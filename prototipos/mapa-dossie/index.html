@@ -1,0 +1,1193 @@
+<title>Dossiê no Mapa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Source+Serif+4:opsz,wght@8..60,300..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* Mesma paleta cartográfica da documentação de produto:
+   marrom = curva de nível · azul = hidrografia
+   verde = vegetação · magenta = limite cadastral (acento) */
+:root {
+  --ground:      #F1F3EE;
+  --surface:     #FBFCFA;
+  --surface-alt: #E8EBE4;
+  --ink:         #19222C;
+  --ink-soft:    #4B5866;
+  --ink-faint:   #7D8A94;
+  --contour:     #8A6A3F;
+  --contour-hair:#CFC6B4;
+  --water:       #2E6C8E;
+  --water-fill:  #CFE0EA;
+  --vegetation:  #4F7A4C;
+  --veg-fill:    #D3E2CE;
+  --boundary:    #AF3355;
+  --boundary-wash:#F6E4E9;
+  --rule:        #D5DAD1;
+  --lot-fill:    #E4E7DF;
+  --lot-line:    #A9B2A5;
+  --parcel-fill: #EDE7DA;
+  --flood:       #3E7FA8;
+  --slide:       #B4642A;
+  --shadow:      0 1px 2px rgba(25,34,44,.06), 0 12px 32px -18px rgba(25,34,44,.4);
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:    "Source Serif 4", Georgia, serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #10161C;
+    --surface:     #161E26;
+    --surface-alt: #1D262F;
+    --ink:         #E4E9E3;
+    --ink-soft:    #A7B3B8;
+    --ink-faint:   #74828A;
+    --contour:     #C09A63;
+    --contour-hair:#3A3527;
+    --water:       #6FB1D4;
+    --water-fill:  #14313F;
+    --vegetation:  #8FBE86;
+    --veg-fill:    #1B2B1D;
+    --boundary:    #E8748F;
+    --boundary-wash:#2B1A21;
+    --rule:        #2A343D;
+    --lot-fill:    #202A33;
+    --lot-line:    #46545F;
+    --parcel-fill: #262A22;
+    --flood:       #6FB1D4;
+    --slide:       #D9945A;
+    --shadow:      0 1px 2px rgba(0,0,0,.5), 0 14px 36px -20px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:      #10161C;
+  --surface:     #161E26;
+  --surface-alt: #1D262F;
+  --ink:         #E4E9E3;
+  --ink-soft:    #A7B3B8;
+  --ink-faint:   #74828A;
+  --contour:     #C09A63;
+  --contour-hair:#3A3527;
+  --water:       #6FB1D4;
+  --water-fill:  #14313F;
+  --vegetation:  #8FBE86;
+  --veg-fill:    #1B2B1D;
+  --boundary:    #E8748F;
+  --boundary-wash:#2B1A21;
+  --rule:        #2A343D;
+  --lot-fill:    #202A33;
+  --lot-line:    #46545F;
+  --parcel-fill: #262A22;
+  --flood:       #6FB1D4;
+  --slide:       #D9945A;
+  --shadow:      0 1px 2px rgba(0,0,0,.5), 0 14px 36px -20px rgba(0,0,0,.9);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app { position: fixed; inset: 0; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#map.dragging { cursor: grabbing; }
+
+.panel {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- cabeçalho ---------- */
+#head { top: 14px; left: 14px; max-width: 340px; padding: 14px 16px; }
+#head .brand {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 112;
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -.015em;
+  margin: 0 0 3px;
+}
+#head .tag {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--contour);
+  margin: 0 0 10px;
+}
+#head .synth {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--boundary);
+  padding-left: 10px;
+  margin: 0;
+}
+#head .synth b { color: var(--boundary); }
+
+/* ---------- camadas ---------- */
+#layers { top: 14px; right: 14px; width: 226px; padding: 12px 14px; }
+#layers h3, #legend h3 {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 9px;
+}
+.lay { display: flex; align-items: center; gap: 9px; padding: 3px 0; cursor: pointer; font-size: 13px; }
+.lay input { margin: 0; accent-color: var(--boundary); cursor: pointer; }
+.lay .sw { width: 13px; height: 13px; border-radius: 2px; flex: none; border: 1px solid rgba(0,0,0,.18); }
+.lay span { color: var(--ink-soft); }
+.lay-note {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  line-height: 1.5;
+}
+
+/* ---------- controles ---------- */
+#zoomctl { bottom: 148px; right: 14px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+#zoomctl button {
+  width: 38px; height: 38px;
+  border: none;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--f-display);
+  font-size: 19px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+}
+#zoomctl button + button { border-top: 1px solid var(--rule); }
+#zoomctl button:hover { background: var(--surface-alt); }
+#zoomctl button.small { font-size: 10px; font-family: var(--f-mono); letter-spacing: .06em; height: 32px; }
+
+/* ---------- status ---------- */
+#status {
+  bottom: 14px; left: 14px;
+  padding: 9px 13px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#scalebar { display: flex; align-items: center; gap: 7px; }
+#scaleline { height: 6px; border: 1px solid var(--ink-soft); border-top: none; width: 60px; }
+
+/* ---------- legenda ---------- */
+#legend { bottom: 14px; right: 14px; padding: 11px 14px; }
+.leg { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-soft); padding: 2px 0; }
+.leg .sw { width: 15px; height: 10px; flex: none; border-radius: 1px; }
+
+/* ---------- dica de hover ---------- */
+#tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--ground);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 2px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .1s;
+  z-index: 5;
+}
+#tip.on { opacity: .94; }
+
+/* ---------- dossiê ---------- */
+#dossie {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 392px;
+  max-width: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--rule);
+  box-shadow: -18px 0 40px -28px rgba(0,0,0,.5);
+  transform: translateX(100%);
+  transition: transform .22s ease;
+  overflow-y: auto;
+  z-index: 10;
+}
+#dossie.open { transform: none; }
+.dz { padding: 18px 22px; border-bottom: 1px solid var(--rule); }
+.dz:last-child { border-bottom: none; }
+.dz h3 {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--contour);
+  margin: 0 0 12px;
+}
+#dclose {
+  position: absolute; top: 12px; right: 14px;
+  border: 1px solid var(--rule); background: var(--surface);
+  color: var(--ink-soft);
+  width: 27px; height: 27px; border-radius: 3px;
+  cursor: pointer; font-size: 15px; line-height: 1;
+  font-family: var(--f-mono);
+}
+#dclose:hover { color: var(--boundary); border-color: var(--boundary); }
+.dhead .kind {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.kind.rural { color: var(--vegetation); }
+.kind.urbano { color: var(--water); }
+.dhead .code {
+  font-family: var(--f-mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  margin: 0 0 4px;
+  word-break: break-all;
+}
+.dhead .place { font-size: 14px; color: var(--ink-soft); margin: 0; }
+
+.row { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; padding: 7px 0; border-bottom: 1px dotted var(--rule); align-items: baseline; }
+.row:last-child { border-bottom: none; }
+.row .lbl { font-size: 13.5px; color: var(--ink-soft); }
+.row .val { font-family: var(--f-mono); font-size: 13.5px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.row .prov {
+  grid-column: 1 / -1;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: .05em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.rest { padding: 9px 0; border-bottom: 1px dotted var(--rule); }
+.rest:last-child { border-bottom: none; }
+.rest .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.rest .nm { font-size: 13.5px; }
+.rest .pct { font-family: var(--f-mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rest .bar { height: 4px; background: var(--surface-alt); border-radius: 2px; margin: 6px 0 4px; overflow: hidden; }
+.rest .bar i { display: block; height: 100%; }
+.rest .meta { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); }
+.rest.marginal .pct { color: var(--contour); }
+.rest .flag {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--contour);
+  border: 1px solid var(--contour);
+  border-radius: 2px;
+  padding: 1px 5px;
+  margin-left: 6px;
+}
+.none { font-size: 13.5px; color: var(--ink-soft); font-style: italic; }
+
+.diverg { background: var(--boundary-wash); border: 1px solid var(--boundary); border-radius: 3px; padding: 13px 15px; }
+.diverg .hd {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--boundary);
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.diverg .row { border-bottom-color: rgba(175,51,85,.25); }
+.diverg p { font-size: 12.5px; color: var(--ink-soft); margin: 9px 0 0; line-height: 1.45; }
+
+.disc {
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  border-left: 2px solid var(--contour-hair);
+  padding-left: 11px;
+}
+.srcline { font-family: var(--f-mono); font-size: 10.5px; color: var(--ink-faint); padding: 3px 0; display: flex; justify-content: space-between; gap: 10px; }
+
+/* ---------- vazio / fora de cobertura ---------- */
+.empty .ic { font-size: 26px; margin-bottom: 8px; }
+.empty h4 { font-family: var(--f-display); font-size: 17px; margin: 0 0 7px; }
+.empty p { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 12px; line-height: 1.5; }
+.cov { border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.cov div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 11px; font-family: var(--f-mono); font-size: 11px; border-bottom: 1px solid var(--rule); }
+.cov div:last-child { border-bottom: none; }
+.cov .y { color: var(--vegetation); }
+.cov .n { color: var(--boundary); }
+
+@media (max-width: 720px) {
+  #head { max-width: none; right: 14px; }
+  #layers { top: auto; bottom: 60px; left: 14px; right: auto; width: 186px; }
+  #zoomctl { bottom: 60px; right: 14px; }
+  #status { bottom: 14px; left: 14px; right: 14px; }
+  #legend { display: none; }
+  #dossie { width: 100%; }
+  #status { font-size: 10px; gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { #dossie { transition: none; } }
+:focus-visible { outline: 2px solid var(--boundary); outline-offset: 2px; }
+</style>
+
+<div id="app">
+  <canvas id="map"></canvas>
+  <div id="tip"></div>
+
+  <div class="panel" id="head">
+    <p class="brand">Dossiê no Mapa</p>
+    <p class="tag">Protótipo de interação · RJ</p>
+    <p class="synth"><b>Dados sintéticos.</b> Os polígonos são gerados, não são cadastro real. O esquema dos campos, as regras de cruzamento e a interação são os do produto especificado.</p>
+  </div>
+
+  <div class="panel" id="layers">
+    <h3>Camadas</h3>
+    <label class="lay"><input type="checkbox" data-l="lotes" checked><span class="sw" style="background:var(--lot-fill);border-color:var(--lot-line)"></span><span>Lotes urbanos</span></label>
+    <label class="lay"><input type="checkbox" data-l="rurais" checked><span class="sw" style="background:var(--parcel-fill);border-color:var(--contour)"></span><span>Imóveis rurais (SIGEF)</span></label>
+    <label class="lay"><input type="checkbox" data-l="car" checked><span class="sw" style="background:transparent;border:1px dashed var(--boundary)"></span><span>Perímetro CAR</span></label>
+    <label class="lay"><input type="checkbox" data-l="uc" checked><span class="sw" style="background:var(--veg-fill);border-color:var(--vegetation)"></span><span>Unidade de conservação</span></label>
+    <label class="lay"><input type="checkbox" data-l="app" checked><span class="sw" style="background:#7FB6D4;opacity:.55"></span><span>APP hídrica</span></label>
+    <label class="lay"><input type="checkbox" data-l="inund" checked><span class="sw" style="background:#7FB6D4;opacity:.4"></span><span>Suscetível a inundação</span></label>
+    <label class="lay"><input type="checkbox" data-l="desliz" checked><span class="sw" style="background:#D9945A;opacity:.5"></span><span>Suscetível a deslizamento</span></label>
+    <p class="lay-note">Clique num polígono para abrir o dossiê. Arraste para mover, role para aproximar.</p>
+  </div>
+
+  <div class="panel" id="zoomctl">
+    <button id="zin" title="Aproximar" aria-label="Aproximar">+</button>
+    <button id="zout" title="Afastar" aria-label="Afastar">−</button>
+    <button id="zurb" class="small" title="Ir para a área urbana" aria-label="Ir para a área urbana">URB</button>
+    <button id="zrur" class="small" title="Ir para a área rural" aria-label="Ir para a área rural">RUR</button>
+    <button id="zfit" class="small" title="Ver tudo" aria-label="Ver tudo">TUDO</button>
+  </div>
+
+  <div class="panel" id="status">
+    <span id="coords">—</span>
+    <span id="scalebar"><span id="scaleline"></span><span id="scaletxt">—</span></span>
+    <span id="feat">—</span>
+  </div>
+
+  <div class="panel" id="legend">
+    <h3>Convenção</h3>
+    <div class="leg"><span class="sw" style="background:var(--water-fill);border:1px solid var(--water)"></span>Corpo d'água</div>
+    <div class="leg"><span class="sw" style="background:var(--veg-fill);border:1px solid var(--vegetation)"></span>Vegetação protegida</div>
+    <div class="leg"><span class="sw" style="background:transparent;border:1px dashed var(--boundary)"></span>Limite declarado (CAR)</div>
+    <div class="leg"><span class="sw" style="background:transparent;border:1px solid var(--contour)"></span>Limite certificado (SIGEF)</div>
+  </div>
+
+  <aside id="dossie" aria-live="polite">
+    <button id="dclose" title="Fechar" aria-label="Fechar dossiê">✕</button>
+    <div id="dbody"></div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+(function () {
+
+/* ==========================================================
+   1 · Projeção local em metros (equirretangular sobre SIRGAS)
+   ========================================================== */
+var LAT0 = -22.78, LON0 = -43.05;
+var MX = 111320 * Math.cos(LAT0 * Math.PI / 180), MY = 110540;
+function toLon(x) { return LON0 + x / MX; }
+function toLat(y) { return LAT0 - y / MY; }
+
+/* ==========================================================
+   2 · Geometria
+   ========================================================== */
+function area(poly) {                       /* shoelace, m² */
+  var a = 0;
+  for (var i = 0, n = poly.length; i < n; i++) {
+    var p = poly[i], q = poly[(i + 1) % n];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return Math.abs(a) / 2;
+}
+function perimeter(poly) {
+  var s = 0;
+  for (var i = 0, n = poly.length; i < n; i++) {
+    var p = poly[i], q = poly[(i + 1) % n];
+    s += Math.hypot(q[0] - p[0], q[1] - p[1]);
+  }
+  return s;
+}
+function inside(pt, poly) {                 /* ray casting */
+  var x = pt[0], y = pt[1], hit = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) hit = !hit;
+  }
+  return hit;
+}
+function bbox(poly) {
+  var b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (var i = 0; i < poly.length; i++) {
+    var p = poly[i];
+    if (p[0] < b[0]) b[0] = p[0];
+    if (p[1] < b[1]) b[1] = p[1];
+    if (p[0] > b[2]) b[2] = p[0];
+    if (p[1] > b[3]) b[3] = p[1];
+  }
+  return b;
+}
+/* Sutherland–Hodgman: recorta `sub` por um polígono `clip` CONVEXO.
+   Todas as camadas de restrição deste protótipo são convexas por
+   construção, então o resultado é exato — não é amostragem. */
+function clipConvex(sub, clip) {
+  var orient = signedArea(clip) >= 0 ? 1 : -1;
+  var out = sub, i, j;
+  for (i = 0; i < clip.length; i++) {
+    var a = clip[i], b = clip[(i + 1) % clip.length];
+    var inp = out; out = [];
+    if (!inp.length) return [];
+    for (j = 0; j < inp.length; j++) {
+      var cur = inp[j], prev = inp[(j + inp.length - 1) % inp.length];
+      var dc = side(a, b, cur) * orient, dp = side(a, b, prev) * orient;
+      if (dc >= 0) {
+        if (dp < 0) out.push(interp(prev, cur, dp, dc));
+        out.push(cur);
+      } else if (dp >= 0) {
+        out.push(interp(prev, cur, dp, dc));
+      }
+    }
+  }
+  return out;
+}
+function side(a, b, p) {
+  return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+}
+function signedArea(poly) {
+  var a = 0;
+  for (var i = 0, n = poly.length; i < n; i++) {
+    var p = poly[i], q = poly[(i + 1) % n];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return a / 2;
+}
+function interp(p, q, dp, dq) {
+  var t = dp / (dp - dq);
+  return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+}
+function overlapArea(sub, clipParts) {
+  var total = 0;
+  for (var i = 0; i < clipParts.length; i++) {
+    var r = clipConvex(sub, clipParts[i]);
+    if (r.length > 2) total += area(r);
+  }
+  return total;
+}
+
+/* ==========================================================
+   3 · Dados sintéticos com o esquema real das fontes
+   ========================================================== */
+function rng(seed) {                        /* mulberry32 */
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var R = rng(20260818);
+
+var BAIRROS = ["Icaraí", "Santa Rosa", "Ingá", "São Francisco", "Charitas", "Fonseca"];
+var VIAS = ["Rua Gavião Peixoto", "Av. Jornalista Alberto Francisco Torres", "Rua Moreira César",
+            "Rua Mariz e Barros", "Av. Roberto Silveira", "Rua Otávio Carneiro", "Rua Lopes Trovão"];
+var FAZENDAS = ["Sítio Bom Retiro", "Fazenda Santa Luzia", "Sítio Boa Vista", "Fazenda São Pedro",
+                "Sítio das Águas", "Fazenda Córrego Fundo", "Sítio Alto da Serra", "Fazenda Palmeiras"];
+
+/* --- 3.1 lotes urbanos de Niterói --- */
+var lotes = [];
+(function buildUrban() {
+  var seq = 1;
+  for (var qy = 0; qy < 9; qy++) {
+    for (var qx = 0; qx < 11; qx++) {
+      var ox = -1250 + qx * 118, oy = -430 + qy * 92;
+      var skew = (R() - 0.5) * 8;
+      var perRow = 4, rows = 2;
+      var lw = 96 / perRow, lh = 34;
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < perRow; c++) {
+          if (R() < 0.06) continue;                       /* buracos = quadra sem lote mapeado */
+          var x = ox + c * lw, y = oy + r * (lh + 6);
+          var jx = (R() - 0.5) * 2.4, jy = (R() - 0.5) * 1.8;
+          var poly = [
+            [x + jx, y + jy],
+            [x + lw - 2 + jx + skew * 0.02, y + jy],
+            [x + lw - 2 + jx + skew * 0.02, y + lh + jy],
+            [x + jx, y + lh + jy]
+          ];
+          var bairro = BAIRROS[(qy + qx) % BAIRROS.length];
+          lotes.push({
+            tipo: "urbano",
+            poly: poly,
+            bb: bbox(poly),
+            insc: String(3 + (qx % 4)) + "." + String(100 + qy * 11 + qx) + "." + String(seq).padStart(3, "0") + "-" + String(Math.floor(R() * 9)),
+            quadra: "Q" + String(qy * 11 + qx + 1).padStart(3, "0"),
+            lote: String(r * perRow + c + 1).padStart(2, "0"),
+            via: VIAS[(qx + r) % VIAS.length],
+            numero: String(20 + (c + r * 4) * 12 + qy * 3),
+            bairro: bairro,
+            testada: +(lw - 2).toFixed(1),
+            loteamento: R() < 0.62 ? "PAL " + (4000 + Math.floor(R() * 900)) : null
+          });
+          seq++;
+        }
+      }
+    }
+  }
+})();
+
+/* --- 3.2 imóveis rurais: SIGEF (certificado) + CAR (declarado) --- */
+var rurais = [];
+(function buildRural() {
+  for (var i = 0; i < 34; i++) {
+    var cx = 1400 + (i % 6) * 1500 + (R() - 0.5) * 420;
+    var cy = -14200 + Math.floor(i / 6) * 1450 + (R() - 0.5) * 420;
+    var n = 6 + Math.floor(R() * 4), poly = [], k;
+    var rad = 340 + R() * 430;
+    for (k = 0; k < n; k++) {
+      var ang = (k / n) * Math.PI * 2 + (R() - 0.5) * 0.28;
+      var rr = rad * (0.66 + R() * 0.62);
+      poly.push([cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr * 0.82]);
+    }
+    /* CAR: o mesmo imóvel, declarado pelo proprietário — deslocado e reescalado */
+    var driftBig = R() < 0.3;
+    var dx = (R() - 0.5) * (driftBig ? 190 : 46);
+    var dy = (R() - 0.5) * (driftBig ? 190 : 46);
+    var sc = driftBig ? 1 + (R() - 0.35) * 0.34 : 1 + (R() - 0.5) * 0.06;
+    var car = poly.map(function (p) {
+      return [cx + (p[0] - cx) * sc + dx, cy + (p[1] - cy) * sc + dy];
+    });
+    /* Reserva Legal declarada: quadrilátero convexo dentro do imóvel */
+    var rlw = rad * 0.62, rlh = rad * 0.56;
+    var rl = [
+      [cx - rlw, cy - rlh * 0.15],
+      [cx - rlw * 0.05, cy - rlh * 0.4],
+      [cx + rlw * 0.15, cy + rlh * 0.75],
+      [cx - rlw * 0.9, cy + rlh * 0.8]
+    ];
+    rurais.push({
+      tipo: "rural",
+      poly: poly,
+      bb: bbox(poly),
+      car: car,
+      rl: [rl],
+      codigo: hex(8) + "-" + hex(4) + "-" + hex(4) + "-" + hex(4) + "-" + hex(12),
+      denom: FAZENDAS[i % FAZENDAS.length] + (i >= FAZENDAS.length ? " " + (Math.floor(i / FAZENDAS.length) + 1) : ""),
+      municipio: i % 3 === 0 ? "Cachoeiras de Macacu" : (i % 3 === 1 ? "Rio Bonito" : "Silva Jardim"),
+      situacao: R() < 0.86 ? "Certificado" : "Em análise",
+      numCar: "RJ-" + String(3300000 + Math.floor(R() * 99999)) + "-" + hex(4).toUpperCase()
+    });
+  }
+  function hex(n) {
+    var s = "";
+    for (var i = 0; i < n; i++) s += "0123456789ABCDEF"[Math.floor(R() * 16)];
+    return s;
+  }
+})();
+
+/* --- 3.3 camadas de restrição (convexas, para recorte exato) --- */
+var UC = {
+  nome: "APA da Serra do Mato Grosso",
+  cat: "Área de Proteção Ambiental",
+  parts: [[[2400, -15600], [8100, -15900], [8600, -13100], [3000, -12700]]]
+};
+var APP = (function () {                    /* faixa ao longo de um curso d'água */
+  var pts = [[900, -12400], [3300, -13100], [5900, -13500], [8900, -14100], [11200, -14900]];
+  var w = 130, parts = [], riverLine = pts;
+  for (var i = 0; i + 1 < pts.length; i++) {
+    var a = pts[i], b = pts[i + 1];
+    var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+    var nx = -dy / L * w, ny = dx / L * w;
+    parts.push([[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]);
+  }
+  return { nome: "APP de curso d'água", parts: parts, line: riverLine };
+})();
+var INUND = { nome: "Área suscetível a inundação", grau: "Alto",
+  parts: [[[-1520, 40], [-560, -40], [-470, 520], [-1540, 560]]] };
+var DESLIZ = { nome: "Área suscetível a deslizamento", grau: "Muito alto (R4)",
+  parts: [[[-820, -500], [420, -600], [560, 40], [-740, 160]]] };
+
+/* --- 3.4 base: baía e malha viária --- */
+var BAIA = [[1150, -200], [2600, -900], [3400, 900], [2500, 2600], [900, 2300], [700, 900]];
+var VIAS_BASE = (function () {
+  var L = [], i;
+  for (i = 0; i <= 11; i++) L.push([[-1250 + i * 118 - 11, -520], [-1250 + i * 118 - 11, 420]]);
+  for (i = 0; i <= 9; i++) L.push([[-1290, -430 + i * 92 - 11], [-30, -430 + i * 92 - 11]]);
+  L.push([[-1400, -14800], [12000, -13400]]);
+  L.push([[600, -16200], [2200, -400]]);
+  return L;
+})();
+
+var DIVISAS = [
+  [[-2600, -3600], [3200, -4200], [7600, -3200], [13000, -4400]],
+  [[4600, -16800], [5200, -3900]],
+  [[-2600, -10600], [4900, -11200]]
+];
+var ROTULOS = [
+  { t: "NITERÓI",              x: -640,  y: 900,    s: 13 },
+  { t: "BAÍA DE GUANABARA",    x: 2050,  y: 1000,   s: 11 },
+  { t: "CACHOEIRAS DE MACACU", x: 1500,  y: -13400, s: 12 },
+  { t: "RIO BONITO",           x: 8600,  y: -12600, s: 12 },
+  { t: "SILVA JARDIM",         x: 8800,  y: -8200,  s: 12 },
+  { t: "SÃO GONÇALO",          x: -1400, y: -6200,  s: 12 }
+];
+
+var MUNI_COVER = [
+  { m: "Niterói", u: true, r: true },
+  { m: "Rio de Janeiro", u: false, r: true },
+  { m: "Cachoeiras de Macacu", u: false, r: true },
+  { m: "Rio Bonito", u: false, r: true },
+  { m: "Outros 88 municípios", u: false, r: true }
+];
+
+/* Datas de extração por camada — a exigência de proveniência do produto */
+var FONTES = {
+  sigef:  { nome: "SIGEF / INCRA",   data: "2026-08-04" },
+  car:    { nome: "SICAR / CAR",     data: "2026-07-28" },
+  sigeo:  { nome: "SIGeo Niterói",   data: "2026-08-11" },
+  inea:   { nome: "GEOINEA / INEA",  data: "2026-06-19" },
+  cprm:   { nome: "SGB / CPRM",      data: "2026-05-02" },
+  ibge:   { nome: "IBGE",            data: "2026-08-01" }
+};
+
+/* ==========================================================
+   4 · Câmera e desenho
+   ========================================================== */
+var cv = document.getElementById("map"), ctx = cv.getContext("2d");
+var view = { cx: -640, cy: -20, scale: 0.86 };     /* px por metro */
+var W = 0, H = 0, DPR = 1;
+var layerOn = { lotes: 1, rurais: 1, car: 1, uc: 1, app: 1, inund: 1, desliz: 1 };
+var hovered = null, selected = null;
+
+function sx(x) { return (x - view.cx) * view.scale + W / 2; }
+function sy(y) { return (y - view.cy) * view.scale + H / 2; }
+function wx(px) { return (px - W / 2) / view.scale + view.cx; }
+function wy(py) { return (py - H / 2) / view.scale + view.cy; }
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+}
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function path(poly) {
+  ctx.beginPath();
+  ctx.moveTo(sx(poly[0][0]), sy(poly[0][1]));
+  for (var i = 1; i < poly.length; i++) ctx.lineTo(sx(poly[i][0]), sy(poly[i][1]));
+  ctx.closePath();
+}
+function visible(bb) {
+  return !(sx(bb[2]) < -40 || sx(bb[0]) > W + 40 || sy(bb[3]) < -40 || sy(bb[1]) > H + 40);
+}
+function fillParts(parts, fill, stroke, alpha) {
+  ctx.globalAlpha = alpha;
+  for (var i = 0; i < parts.length; i++) {
+    path(parts[i]);
+    ctx.fillStyle = fill; ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  var C = {
+    ground: css("--ground"), water: css("--water"), waterFill: css("--water-fill"),
+    veg: css("--vegetation"), vegFill: css("--veg-fill"), lotFill: css("--lot-fill"),
+    lotLine: css("--lot-line"), parcel: css("--parcel-fill"), contour: css("--contour"),
+    boundary: css("--boundary"), ink: css("--ink"), faint: css("--ink-faint"),
+    rule: css("--rule"), flood: css("--flood"), slide: css("--slide")
+  };
+  ctx.fillStyle = C.ground;
+  ctx.fillRect(0, 0, W, H);
+
+  /* gratícula: dá estrutura ao vazio em vez de deixá-lo como fundo morto */
+  (function graticule() {
+    var stepM = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000]
+      .reduce(function (a, b) { return Math.abs(b * view.scale - 130) < Math.abs(a * view.scale - 130) ? b : a; });
+    var x0 = Math.floor(wx(0) / stepM) * stepM, x1 = wx(W);
+    var y0 = Math.floor(wy(0) / stepM) * stepM, y1 = wy(H);
+    ctx.strokeStyle = C.rule; ctx.lineWidth = 0.5; ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    for (var gx = x0; gx <= x1; gx += stepM) { ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), H); }
+    for (var gy = y0; gy <= y1; gy += stepM) { ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  })();
+
+  /* divisas municipais */
+  ctx.strokeStyle = C.contour; ctx.lineWidth = 1.4;
+  ctx.setLineDash([9, 4, 2, 4]); ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  for (var dv = 0; dv < DIVISAS.length; dv++) {
+    var ln = DIVISAS[dv];
+    ctx.moveTo(sx(ln[0][0]), sy(ln[0][1]));
+    for (var dp = 1; dp < ln.length; dp++) ctx.lineTo(sx(ln[dp][0]), sy(ln[dp][1]));
+  }
+  ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  /* baía */
+  path(BAIA); ctx.fillStyle = C.waterFill; ctx.fill();
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1; ctx.stroke();
+
+  /* apenas a UC entra por baixo: é contexto de fundo, não alerta pontual */
+  if (layerOn.uc) fillParts(UC.parts, C.vegFill, C.veg, 0.8);
+
+  /* curso d'água */
+  ctx.beginPath();
+  ctx.moveTo(sx(APP.line[0][0]), sy(APP.line[0][1]));
+  for (var i = 1; i < APP.line.length; i++) ctx.lineTo(sx(APP.line[i][0]), sy(APP.line[i][1]));
+  ctx.strokeStyle = C.water; ctx.lineWidth = Math.max(1, view.scale * 18); ctx.stroke();
+
+  /* malha viária */
+  ctx.strokeStyle = C.rule; ctx.lineWidth = Math.max(0.6, view.scale * 11);
+  ctx.beginPath();
+  for (i = 0; i < VIAS_BASE.length; i++) {
+    ctx.moveTo(sx(VIAS_BASE[i][0][0]), sy(VIAS_BASE[i][0][1]));
+    ctx.lineTo(sx(VIAS_BASE[i][1][0]), sy(VIAS_BASE[i][1][1]));
+  }
+  ctx.stroke();
+
+  var shown = 0;
+
+  /* imóveis rurais */
+  if (layerOn.rurais) {
+    for (i = 0; i < rurais.length; i++) {
+      var f = rurais[i];
+      if (!visible(f.bb)) continue;
+      shown++;
+      path(f.poly);
+      ctx.fillStyle = C.parcel; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = (f === selected) ? C.boundary : C.contour;
+      ctx.lineWidth = (f === selected) ? 2.6 : (f === hovered ? 1.8 : 1.1);
+      ctx.stroke();
+      if (view.scale > 0.09) {
+        ctx.fillStyle = C.faint;
+        ctx.font = "500 10px " + css("--f-mono");
+        ctx.textAlign = "center";
+        ctx.fillText(f.denom, sx(f.bb[0] + (f.bb[2] - f.bb[0]) / 2), sy(f.bb[1] + (f.bb[3] - f.bb[1]) / 2));
+      }
+    }
+  }
+
+  /* lotes urbanos — só quando a escala os torna legíveis */
+  if (layerOn.lotes) {
+    if (view.scale > 0.22) {
+      for (i = 0; i < lotes.length; i++) {
+        var g = lotes[i];
+        if (!visible(g.bb)) continue;
+        shown++;
+        path(g.poly);
+        ctx.fillStyle = C.lotFill; ctx.fill();
+        ctx.strokeStyle = (g === selected) ? C.boundary : (g === hovered ? C.ink : C.lotLine);
+        ctx.lineWidth = (g === selected) ? 2.2 : (g === hovered ? 1.5 : 0.7);
+        ctx.stroke();
+      }
+      if (view.scale > 1.5) {
+        ctx.fillStyle = C.faint;
+        ctx.font = "500 9px " + css("--f-mono");
+        ctx.textAlign = "center";
+        for (i = 0; i < lotes.length; i++) {
+          var h = lotes[i];
+          if (!visible(h.bb)) continue;
+          ctx.fillText(h.lote, sx((h.bb[0] + h.bb[2]) / 2), sy((h.bb[1] + h.bb[3]) / 2) + 3);
+        }
+      }
+    } else {
+      /* extensão da mancha urbana quando o lote é pequeno demais */
+      var ub = [-1260, -440, -30, 420];
+      ctx.beginPath();
+      ctx.rect(sx(ub[0]), sy(ub[1]), (ub[2] - ub[0]) * view.scale, (ub[3] - ub[1]) * view.scale);
+      ctx.fillStyle = C.lotFill; ctx.globalAlpha = 0.8; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.lotLine; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = C.faint;
+      ctx.font = "500 10px " + css("--f-mono");
+      ctx.textAlign = "center";
+      ctx.fillText("NITERÓI · aproxime para ver lotes", sx((ub[0] + ub[2]) / 2), sy(ub[1]) - 7);
+    }
+  }
+  /* alertas POR CIMA dos lotes: o polígono afetado precisa ficar marcado,
+     não apenas a fresta entre eles */
+  if (layerOn.app) fillParts(APP.parts, "#7FB6D4", null, 0.42);
+  if (layerOn.inund) fillParts(INUND.parts, C.flood, null, 0.26);
+  if (layerOn.desliz) fillParts(DESLIZ.parts, C.slide, null, 0.27);
+
+  /* perímetro CAR por cima dos alertas */
+  if (layerOn.rurais && layerOn.car) {
+    ctx.strokeStyle = C.boundary; ctx.lineWidth = 1.2;
+    ctx.setLineDash([5, 4]); ctx.globalAlpha = 0.9;
+    for (var ci = 0; ci < rurais.length; ci++) {
+      if (!visible(rurais[ci].bb)) continue;
+      path(rurais[ci].car); ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  /* seleção e hover no topo de tudo */
+  [hovered, selected].forEach(function (f2) {
+    if (!f2) return;
+    path(f2.poly);
+    ctx.strokeStyle = (f2 === selected) ? C.boundary : C.ink;
+    ctx.lineWidth = (f2 === selected) ? 2.8 : 1.8;
+    ctx.stroke();
+  });
+
+  /* rótulos de contexto */
+  ctx.textAlign = "center";
+  ctx.fillStyle = C.faint;
+  for (var rl = 0; rl < ROTULOS.length; rl++) {
+    var L2 = ROTULOS[rl];
+    var px = sx(L2.x), py = sy(L2.y);
+    if (px < -80 || px > W + 80 || py < 0 || py > H) continue;
+    ctx.font = "600 " + L2.s + "px " + css("--f-mono");
+    ctx.globalAlpha = 0.72;
+    ctx.fillText(L2.t, px, py);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = "left";
+  updateStatus(shown);
+}
+
+/* ==========================================================
+   5 · Interação: arrastar, zoom, clicar
+   ========================================================== */
+var drag = null, moved = 0;
+
+cv.addEventListener("pointerdown", function (e) {
+  cv.setPointerCapture(e.pointerId);
+  drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy };
+  moved = 0;
+  cv.classList.add("dragging");
+});
+cv.addEventListener("pointermove", function (e) {
+  if (drag) {
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+    view.cx = drag.cx - dx / view.scale;
+    view.cy = drag.cy - dy / view.scale;
+    draw();
+    return;
+  }
+  var r = cv.getBoundingClientRect();
+  var f = pick(wx(e.clientX - r.left), wy(e.clientY - r.top));
+  if (f !== hovered) { hovered = f; draw(); }
+  var tip = document.getElementById("tip");
+  if (f) {
+    tip.textContent = f.tipo === "rural"
+      ? f.denom + " · " + fmt(area(f.poly) / 10000, 1) + " ha"
+      : f.via + ", " + f.numero + " · " + fmt(area(f.poly), 0) + " m²";
+    tip.style.left = (e.clientX - r.left + 14) + "px";
+    tip.style.top = (e.clientY - r.top + 14) + "px";
+    tip.classList.add("on");
+  } else tip.classList.remove("on");
+});
+function endDrag(e) {
+  if (drag && moved < 5) {
+    var r = cv.getBoundingClientRect();
+    openAt(wx(e.clientX - r.left), wy(e.clientY - r.top));
+  }
+  drag = null;
+  cv.classList.remove("dragging");
+}
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", function () { drag = null; cv.classList.remove("dragging"); });
+cv.addEventListener("pointerleave", function () { document.getElementById("tip").classList.remove("on"); });
+
+cv.addEventListener("wheel", function (e) {
+  e.preventDefault();
+  var r = cv.getBoundingClientRect();
+  var mx = e.clientX - r.left, my = e.clientY - r.top;
+  var before = [wx(mx), wy(my)];
+  var k = Math.exp(-e.deltaY * 0.0016);
+  setScale(view.scale * k);
+  view.cx += before[0] - wx(mx);
+  view.cy += before[1] - wy(my);
+  draw();
+}, { passive: false });
+
+function setScale(s) { view.scale = Math.min(9, Math.max(0.012, s)); }
+function zoomBy(k) { setScale(view.scale * k); draw(); }
+document.getElementById("zin").onclick = function () { zoomBy(1.6); };
+document.getElementById("zout").onclick = function () { zoomBy(1 / 1.6); };
+function fitTo(bb, pad) {
+  var w = bb[2] - bb[0], h = bb[3] - bb[1];
+  view.cx = (bb[0] + bb[2]) / 2;
+  view.cy = (bb[1] + bb[3]) / 2;
+  setScale(Math.min((W - pad * 2) / w, (H - pad * 2) / h));
+  draw();
+}
+var BB_ALL = (function () {
+  var b = [Infinity, Infinity, -Infinity, -Infinity];
+  [lotes, rurais].forEach(function (set) {
+    set.forEach(function (f) {
+      if (f.bb[0] < b[0]) b[0] = f.bb[0];
+      if (f.bb[1] < b[1]) b[1] = f.bb[1];
+      if (f.bb[2] > b[2]) b[2] = f.bb[2];
+      if (f.bb[3] > b[3]) b[3] = f.bb[3];
+    });
+  });
+  return b;
+})();
+document.getElementById("zfit").onclick = function () { fitTo(BB_ALL, 60); };
+document.getElementById("zurb").onclick = function () { fitTo([-1300, -480, 90, 460], 90); };
+document.getElementById("zrur").onclick = function () { fitTo([700, -15200, 10200, -6200], 70); };
+
+/* pinça em toque */
+var touches = {};
+cv.addEventListener("touchstart", function (e) {
+  if (e.touches.length === 2) {
+    drag = null;
+    touches.d = dist(e.touches), touches.s = view.scale;
+  }
+}, { passive: true });
+cv.addEventListener("touchmove", function (e) {
+  if (e.touches.length === 2 && touches.d) {
+    e.preventDefault();
+    setScale(touches.s * dist(e.touches) / touches.d);
+    draw();
+  }
+}, { passive: false });
+cv.addEventListener("touchend", function () { touches.d = 0; }, { passive: true });
+function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+
+document.querySelectorAll(".lay input").forEach(function (el) {
+  el.addEventListener("change", function () {
+    layerOn[el.getAttribute("data-l")] = el.checked ? 1 : 0;
+    draw();
+  });
+});
+
+function pick(x, y) {
+  var i;
+  if (layerOn.lotes && view.scale > 0.22) {
+    for (i = 0; i < lotes.length; i++) {
+      var g = lotes[i];
+      if (x >= g.bb[0] && x <= g.bb[2] && y >= g.bb[1] && y <= g.bb[3] && inside([x, y], g.poly)) return g;
+    }
+  }
+  if (layerOn.rurais) {
+    for (i = 0; i < rurais.length; i++) {
+      var f = rurais[i];
+      if (x >= f.bb[0] && x <= f.bb[2] && y >= f.bb[1] && y <= f.bb[3] && inside([x, y], f.poly)) return f;
+    }
+  }
+  return null;
+}
+
+/* ==========================================================
+   6 · Dossiê
+   ========================================================== */
+var panel = document.getElementById("dossie"), body = document.getElementById("dbody");
+document.getElementById("dclose").onclick = function () {
+  panel.classList.remove("open"); selected = null; draw();
+};
+
+function fmt(n, d) {
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function prov(k) { return FONTES[k].nome + " · extraído em " + FONTES[k].data.split("-").reverse().join("/"); }
+function row(lbl, val, src) {
+  return '<div class="row"><span class="lbl">' + lbl + '</span><span class="val">' + val + '</span>'
+       + (src ? '<span class="prov">' + prov(src) + '</span>' : '') + '</div>';
+}
+
+function openAt(x, y) {
+  var f = pick(x, y);
+  selected = f;
+  if (f) renderDossie(f);
+  else renderEmpty(x, y);
+  panel.classList.add("open");
+  draw();
+}
+
+function restrictionRows(poly, isRural) {
+  var A = area(poly), out = [], any = false;
+  var checks = [];
+  if (layerOn.uc || true) checks.push({ nm: UC.nome + " (" + UC.cat + ")", parts: UC.parts, src: "inea", col: "var(--vegetation)" });
+  checks.push({ nm: APP.nome, parts: APP.parts, src: "inea", col: "#7FB6D4" });
+  checks.push({ nm: INUND.nome + " — grau " + INUND.grau, parts: INUND.parts, src: "inea", col: "var(--flood)" });
+  checks.push({ nm: DESLIZ.nome + " — " + DESLIZ.grau, parts: DESLIZ.parts, src: "cprm", col: "var(--slide)" });
+  if (isRural) checks.unshift({ nm: "Reserva Legal declarada", parts: null, src: "car", col: "var(--vegetation)", rl: true });
+
+  for (var i = 0; i < checks.length; i++) {
+    var c = checks[i];
+    var parts = c.rl ? selected.rl : c.parts;
+    var ov = overlapArea(poly, parts);
+    if (ov <= 0) continue;
+    any = true;
+    var pct = ov / A * 100;
+    var marginal = pct < 1;
+    out.push(
+      '<div class="rest' + (marginal ? ' marginal' : '') + '">' +
+        '<div class="top"><span class="nm">' + c.nm +
+          (marginal ? '<span class="flag">verificar em campo</span>' : '') + '</span>' +
+        '<span class="pct">' + (pct < 0.05 ? "&lt;0,1" : fmt(pct, 1)) + '%</span></div>' +
+        '<div class="bar"><i style="width:' + Math.min(100, pct).toFixed(1) + '%;background:' + c.col + '"></i></div>' +
+        '<div class="meta">' + (ov > 10000 ? fmt(ov / 10000, 2) + ' ha' : fmt(ov, 0) + ' m²') +
+        ' · ' + prov(c.src) + '</div>' +
+      '</div>');
+  }
+  if (!any) out.push('<p class="none">Nenhuma intersecção detectada nas camadas carregadas.</p>');
+  return out.join("");
+}
+
+function renderDossie(f) {
+  var A = area(f.poly), P = perimeter(f.poly);
+  var h = '';
+
+  h += '<div class="dz dhead">' +
+       '<span class="kind ' + f.tipo + '">' + (f.tipo === "rural" ? "Imóvel rural" : "Lote urbano") + '</span>' +
+       '<p class="code">' + (f.tipo === "rural" ? f.codigo : f.insc) + '</p>' +
+       '<p class="place">' + (f.tipo === "rural"
+          ? f.denom + " · " + f.municipio + " / RJ"
+          : f.via + ", " + f.numero + " · " + f.bairro + " · Niterói / RJ") + '</p></div>';
+
+  /* identificação */
+  h += '<div class="dz"><h3>Identificação</h3>';
+  if (f.tipo === "rural") {
+    h += row("Situação", f.situacao, "sigef");
+    h += row("Município", f.municipio, "ibge");
+    h += row("Nº do CAR", f.numCar, "car");
+  } else {
+    h += row("Quadra / lote", f.quadra + " / " + f.lote, "sigeo");
+    h += row("Bairro", f.bairro, "sigeo");
+    h += row("Loteamento", f.loteamento || "sem PAL vinculado", "sigeo");
+  }
+  h += '</div>';
+
+  /* geometria */
+  h += '<div class="dz"><h3>Geometria</h3>';
+  if (f.tipo === "rural") {
+    h += row("Área calculada", fmt(A / 10000, 2) + " ha", "sigef");
+    h += row("Perímetro", fmt(P, 0) + " m", "sigef");
+  } else {
+    h += row("Área do lote", fmt(A, 0) + " m²", "sigeo");
+    h += row("Perímetro", fmt(P, 0) + " m", "sigeo");
+    h += row("Testada", fmt(f.testada, 1) + " m", "sigeo");
+  }
+  h += '<div class="row"><span class="lbl">Centroide</span><span class="val">' +
+       toLat((f.bb[1] + f.bb[3]) / 2).toFixed(5) + ", " + toLon((f.bb[0] + f.bb[2]) / 2).toFixed(5) +
+       '</span><span class="prov">SIRGAS 2000 · EPSG:4674</span></div>';
+  h += '</div>';
+
+  /* restrições */
+  h += '<div class="dz"><h3>Restrições e alertas</h3>' + restrictionRows(f.poly, f.tipo === "rural") + '</div>';
+
+  /* divergência SIGEF × CAR */
+  if (f.tipo === "rural") {
+    var ac = area(f.car), diff = ac - A, pct = Math.abs(diff) / A * 100;
+    h += '<div class="dz"><h3>Divergência entre fontes</h3><div class="diverg">' +
+         '<div class="hd">' + (pct > 5 ? "⚠ divergência acima do limiar de 5%" : "dentro do limiar de 5%") + '</div>' +
+         row("SIGEF — certificado", fmt(A / 10000, 2) + " ha", "sigef") +
+         row("CAR — declarado", fmt(ac / 10000, 2) + " ha", "car") +
+         row("Diferença", (diff >= 0 ? "+" : "−") + fmt(Math.abs(diff) / 10000, 2) + " ha (" + fmt(pct, 1) + "%)") +
+         '<p>O SIGEF é o limite certificado pelo INCRA; o CAR é a declaração do proprietário. ' +
+         'As duas geometrias são mantidas separadas — o produto não reconcilia limites divergentes.</p>' +
+         '</div></div>';
+  }
+
+  /* proveniência */
+  h += '<div class="dz"><h3>Proveniência</h3>';
+  var used = f.tipo === "rural" ? ["sigef", "car", "inea", "cprm", "ibge"] : ["sigeo", "inea", "cprm", "ibge"];
+  for (var i = 0; i < used.length; i++) {
+    var s = FONTES[used[i]];
+    h += '<div class="srcline"><span>' + s.nome + '</span><span>' + s.data.split("-").reverse().join("/") + '</span></div>';
+  }
+  h += '<p class="disc" style="margin-top:12px">Os cruzamentos são indicativos e não substituem ' +
+       'levantamento técnico ou licenciamento. Este dossiê não tem fé pública e não substitui certidão.</p></div>';
+
+  body.innerHTML = h;
+  panel.scrollTop = 0;
+}
+
+function nearestMuni(x, y) {
+  var best = null, bd = Infinity;
+  for (var i = 0; i < ROTULOS.length; i++) {
+    var r = ROTULOS[i];
+    if (r.t === "BAÍA DE GUANABARA") continue;
+    var d = Math.hypot(r.x - x, r.y - y);
+    if (d < bd) { bd = d; best = r.t; }
+  }
+  return bd > 9000 ? "indeterminado nesta base" : best.charAt(0) + best.slice(1).toLowerCase();
+}
+function renderEmpty(x, y) {
+  var fora = (x < -6000 || x > 26000 || y < -26000 || y > 12000);
+  var h = '<div class="dz empty">';
+  if (fora) {
+    h += '<div class="ic">⛔</div><h4>Fora da área de cobertura</h4>' +
+         '<p>A consulta foi recusada: este ponto está fora dos limites do estado do Rio de Janeiro. ' +
+         'O produto cobre apenas o RJ nesta fase.</p>';
+  } else {
+    h += '<div class="ic">◌</div><h4>Sem lote mapeado neste ponto</h4>' +
+         '<p>Não há polígono cadastrado nas bases carregadas para esta coordenada — ' +
+         '<span style="font-family:var(--f-mono);font-size:12px">' +
+         toLat(y).toFixed(5) + ", " + toLon(x).toFixed(5) + '</span>. ' +
+         'Isso não significa que o terreno não exista: significa que a fonte não o publica.</p>' +
+         '<p style="font-size:12.5px">Município estimado: <b>' + nearestMuni(x, y) + '</b></p>';
+  }
+  h += '<h3 style="margin-top:16px">Cobertura declarada</h3><div class="cov">';
+  for (var i = 0; i < MUNI_COVER.length; i++) {
+    var m = MUNI_COVER[i];
+    h += '<div><span>' + m.m + '</span><span>' +
+         '<span class="' + (m.r ? "y" : "n") + '">rural ' + (m.r ? "✓" : "✕") + '</span> · ' +
+         '<span class="' + (m.u ? "y" : "n") + '">urbano ' + (m.u ? "✓" : "✕") + '</span></span></div>';
+  }
+  h += '</div></div>';
+  body.innerHTML = h;
+}
+
+/* ==========================================================
+   7 · Barra de status
+   ========================================================== */
+function updateStatus(shown) {
+  document.getElementById("coords").textContent =
+    toLat(view.cy).toFixed(4) + ", " + toLon(view.cx).toFixed(4);
+  var targetPx = 70, meters = targetPx / view.scale;
+  var pow = Math.pow(10, Math.floor(Math.log10(meters)));
+  var nice = [1, 2, 5, 10].map(function (m) { return m * pow; })
+    .reduce(function (a, b) { return Math.abs(b - meters) < Math.abs(a - meters) ? b : a; });
+  document.getElementById("scaleline").style.width = (nice * view.scale).toFixed(0) + "px";
+  document.getElementById("scaletxt").textContent = nice >= 1000 ? (nice / 1000) + " km" : nice + " m";
+  document.getElementById("feat").textContent = shown + " feições em tela";
+}
+
+/* ==========================================================
+   8 · Início
+   ========================================================== */
+window.addEventListener("resize", resize);
+if (window.matchMedia) {
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", draw);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+resize();
+
+})();
+</script>

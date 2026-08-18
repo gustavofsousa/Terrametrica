@@ -61,10 +61,17 @@ fontes e o registro de decisões.
 | [Riscos](docs/produto/riscos.md) | Cinco riscos e a mitigação embutida em cada um |
 | [Glossário](docs/produto/glossario.md) | SIGEF, CAR, APP, testada, fé pública — para quem não é da área |
 
+### Protótipo
+| O quê | Para quê |
+| --- | --- |
+| [Dossiê no Mapa](prototipos/mapa-dossie/) | Mapa arrastável em que clicar num polígono abre o dossiê. Interação e layout reais, polígonos sintéticos |
+
 ### Técnico
 | Documento | Para quê |
 | --- | --- |
 | [Fontes de dados](docs/research/fontes-de-dados-rj.md) | Bases federais, estaduais e municipais, com nível de confiança e checklist |
+| [Catálogo de fontes e APIs](docs/research/catalogo-fontes-e-apis.md) | Geosserviços, APIs públicas, forma de acesso e ordem de ataque |
+| [Stack open source](docs/research/stack-open-source.md) | O que já existe pronto por camada, e o que não usar |
 | [Spec do MVP](.specs/features/dossie-lote-rj/spec.md) | 30 requisitos rastreáveis em EARS |
 | [Contexto da feature](.specs/features/dossie-lote-rj/context.md) | Decisões tomadas na discussão, e o que ficou a critério do agente |
 | [Decisões do projeto](.specs/STATE.md) | Log de decisões arquiteturais (AD-NNN) |
