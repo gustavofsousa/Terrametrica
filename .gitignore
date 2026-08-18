@@ -3,9 +3,14 @@
 node_modules/
 __pycache__/
 .venv/
+
+# Dados brutos e processados nunca entram no repositório
 data/raw/
 data/processed/
 *.shp
 *.shx
 *.dbf
 *.gpkg
+
+# Skill de terceiros instalada localmente — ver docs/DEV-SETUP.md
+.claude/skills/
