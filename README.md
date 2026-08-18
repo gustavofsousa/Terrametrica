@@ -36,7 +36,7 @@ fontes e o registro de decisões.
 | Camada | Cobertura | Fonte |
 | --- | --- | --- |
 | Rural | **Todo o estado do RJ** | SIGEF/INCRA (certificado) + CAR (declarado) |
-| Urbana | **Município do Rio de Janeiro** | DATA.RIO / IPP |
+| Urbana | **Município de Niterói** | SIGeo / ArcGIS Hub (WFS · WMS · GeoJSON) |
 | Restrições | Todo o estado | INEA, ICMBio, ANA |
 | Proprietário | **Fora desta versão** | — ver [riscos](docs/produto/riscos.md#1-jurídico--a-camada-de-proprietário-alto) |
 

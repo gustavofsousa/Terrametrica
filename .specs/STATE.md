@@ -46,11 +46,15 @@ bem formatado, e cobertura irregular por município é fato estrutural do RJ, n�
 **Consequência:** O esquema de dados carrega metadados de proveniência junto de cada feição, e
 existe uma página pública de cobertura por município e camada.
 
-### AD-006 — Piloto urbano: município do Rio de Janeiro
-**Data:** 2026-08-18
-**Decisão:** A camada urbana do MVP cobre apenas o município do Rio (DATA.RIO / IPP). Niterói é o segundo.
-**Razão:** Maior mercado para a persona incorporador e portal de dados abertos mais maduro do estado.
-**Consequência:** A página de cobertura precisa deixar explícito que 91 municípios não têm camada urbana.
+### AD-006 — Piloto urbano: município de Niterói
+**Data:** 2026-08-18 (revisada)
+**Decisão:** A camada urbana do MVP cobre apenas o município de Niterói, via SIGeo. O município do
+Rio de Janeiro é o segundo.
+**Razão:** Escolha do usuário, sustentada tecnicamente: o SIGeo publica WFS, WMS e GeoJSON por
+ArcGIS Hub, permitindo ingestão automatizada e reprodutível. O DATA.RIO também publica dado
+aberto, mas a granularidade da camada de lote não está confirmada.
+**Consequência:** A página de cobertura precisa deixar explícito que 91 municípios não têm camada
+urbana. A revisão substitui a decisão anterior, que apontava o município do Rio como piloto.
 
 ## Handoff
 

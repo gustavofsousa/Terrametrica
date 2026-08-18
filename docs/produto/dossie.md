@@ -32,14 +32,14 @@ As seções aparecem nesta ordem, porque é a ordem em que a pergunta do usuári
 | Denominação | SIGEF | Quando declarada |
 | Situação da certificação | SIGEF | Certificado, em análise |
 
-### Lote urbano (município do Rio)
+### Lote urbano (município de Niterói)
 
 | Campo | Fonte | Observação |
 | --- | --- | --- |
-| Inscrição cadastral | DATA.RIO / IPP | Chave do cadastro do IPTU |
-| Logradouro e número | DATA.RIO / IPP | |
-| Bairro | DATA.RIO / IPP | |
-| Quadra e lote (PAL) | GeoPAL | Quando o lote tem projeto de alinhamento aprovado |
+| Inscrição cadastral | SIGeo Niterói | Chave do cadastro do IPTU |
+| Logradouro e número | SIGeo Niterói | |
+| Bairro | SIGeo Niterói | |
+| Quadra e loteamento | SIGeo Niterói | Planta de loteamento aprovada, quando existe |
 
 ---
 

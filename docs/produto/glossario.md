@@ -21,8 +21,12 @@ produto aparece como declaração, nunca como limite legal.
 **INEA** — Instituto Estadual do Ambiente do RJ. Fonte das unidades de conservação estaduais,
 corpos d'água e áreas suscetíveis a inundação e deslizamento, nos 92 municípios.
 
+**SIGeo Niterói** — Sistema de Gestão da Geoinformação da prefeitura de Niterói. Publica o
+cadastro municipal por ArcGIS Hub, com WFS, WMS e download em GeoJSON. Fonte da camada urbana
+do MVP.
+
 **DATA.RIO / IPP** — portal de dados abertos do município do Rio, mantido pelo Instituto
-Pereira Passos. Fonte da camada urbana do MVP.
+Pereira Passos. Segundo município urbano previsto.
 
 **GeoPAL** — consulta aos Projetos de Alinhamento (PAL) aprovados no município do Rio.
 

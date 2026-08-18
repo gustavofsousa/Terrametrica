@@ -12,7 +12,7 @@ depois da escritura. Este produto colapsa esse trabalho em um clique no mapa.
 ## Goals
 
 - [ ] Do clique no mapa ao dossiê legível em **menos de 10 segundos** para qualquer lote coberto
-- [ ] Cobrir **100% dos imóveis rurais certificados (SIGEF) do RJ** e os lotes urbanos do município do Rio de Janeiro
+- [ ] Cobrir **100% dos imóveis rurais certificados (SIGEF) do RJ** e os lotes urbanos do município de Niterói
 - [ ] Cada campo do dossiê exibe **fonte e data de extração** — zero dado órfão
 - [ ] Onde não há dado, o sistema diz **"não há cobertura aqui"** em vez de devolver vazio ambíguo
 
@@ -23,7 +23,7 @@ Explicitamente excluído. Documentado para evitar avanço de escopo.
 | Feature | Reason |
 | --- | --- |
 | Dados de proprietário (nome, CPF/CNPJ, ônus, cadeia dominial) | Publicidade registral (Lei 6.015/73 art. 17) autoriza consulta por certidão, não agregação e redistribuição de base. Sem caminho confirmado com o ONR, vira passivo de LGPD. O gate de permissão é arquitetado (P2), o dado não é ingerido. |
-| Municípios do RJ além do Rio de Janeiro na camada urbana | Cobertura cadastral aberta dos outros 91 municípios é desconhecida. Exige inventário próprio antes de prometer. |
+| Municípios do RJ além de Niterói na camada urbana | Cobertura cadastral aberta dos outros 91 municípios é desconhecida. Exige inventário próprio antes de prometer. |
 | Estados fora do RJ | Decisão declarada do produto. Arquitetura é preparada para federar, o MVP não federa. |
 | Valuation / preço estimado do lote | Exige base de transações que não temos e responsabilidade de laudo que não queremos no MVP. |
 | Edição ou correção de dado público pelo usuário | O produto lê e cruza fontes oficiais; não é canal de retificação cadastral. |
@@ -38,8 +38,8 @@ Toda ambiguidade está resolvida ou registrada aqui — nada fica silenciosament
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
-| Recorte do MVP | Rural em todo o RJ (SIGEF + CAR) mais o município do Rio como piloto urbano | Usuário não expressou preferência e delegou. Rural já tem cobertura estadual pronta; o Rio é o maior mercado urbano e publica dado aberto. Um recorte por persona escolhida. | n |
-| Município urbano piloto | Rio de Janeiro (DATA.RIO / IPP) | Maior volume de negócio para a persona incorporador e portal de dados abertos mais maduro do estado. Niterói entra como segundo. | n |
+| Recorte do MVP | Rural em todo o RJ (SIGEF + CAR) mais o município de Niterói como piloto urbano | Rural já tem cobertura estadual pronta. Niterói foi escolhido pelo usuário e é o município do estado com infraestrutura de dados mais favorável a integração automatizada. | y |
+| Município urbano piloto | Niterói (SIGeo / ArcGIS Hub) | O SIGeo publica WFS, WMS e GeoJSON, o que permite ingestão automatizada e reprodutível em vez de download manual. O município do Rio entra como segundo. | y |
 | Camada de proprietário | Fora do MVP; papéis, verificação de credencial e log de auditoria são construídos vazios em P2 | Decisão do usuário. Construir o gate antes evita retrabalho quando o caminho registral for confirmado. | y |
 | Existência de API do ONR para terceiros | Assumimos que **não existe** integração pública documentada até prova em contrário | Não localizada na pesquisa. Assumir ausência é o erro barato; assumir presença quebra a promessa de produto. | n |
 | Autoridade do limite rural | SIGEF é o limite autoritativo; CAR é exibido como declaração do proprietário | SIGEF é certificado pelo INCRA, CAR é autodeclaratório. Inverter isso induziria o usuário a erro material. | n |
@@ -48,7 +48,7 @@ Toda ambiguidade está resolvida ou registrada aqui — nada fica silenciosament
 | Comportamento quando fontes discordam | Exibir ambas as versões lado a lado com a divergência quantificada; nunca reconciliar silenciosamente | O valor do produto é confiança. Uma reconciliação automática esconde exatamente o achado que o usuário precisa ver. | n |
 | Acesso ao MVP | Requer conta autenticada, sem paywall | Necessário para log de auditoria e para medir uso real por persona antes de precificar. | n |
 | Idioma | Português do Brasil na interface e no dossiê | Público exclusivamente brasileiro. | y |
-| Licença do MapBiomas para uso comercial | Assumida como **não confirmada**; camada de uso do solo entra apenas se a licença permitir | Usar dado licenciado indevidamente contamina o produto inteiro. | n |
+| Licença do MapBiomas para uso comercial | **Confirmada: CC-BY, livre inclusive para uso comercial**, mediante citação da fonte | Verificado nos termos de uso publicados pelo MapBiomas. A citação da fonte já é exigida pela regra de proveniência do produto. | y |
 | Precisão declarada | O dossiê declara a precisão da fonte e não afirma precisão maior que ela | Polígonos públicos têm erro posicional real; alegar exatidão cria responsabilidade indevida. | n |
 
 **Open questions:** none — todas resolvidas ou registradas acima.
@@ -84,13 +84,13 @@ a ficha técnica daquele lote, para saber o que é aquele terreno sem abrir sete
 
 **Acceptance Criteria**:
 1. WHEN o usuário toca um ponto do mapa que cai dentro de um imóvel rural certificado SIGEF THEN o sistema SHALL destacar o polígono do imóvel e exibir código do imóvel, área em hectares, perímetro em metros e município
-2. WHEN o usuário toca um ponto do mapa que cai dentro de um lote urbano do município do Rio THEN o sistema SHALL destacar o polígono do lote e exibir a inscrição cadastral, a área do lote em metros quadrados e o logradouro
+2. WHEN o usuário toca um ponto do mapa que cai dentro de um lote urbano do município de Niterói THEN o sistema SHALL destacar o polígono do lote e exibir a inscrição cadastral, a área do lote em metros quadrados e o logradouro
 3. WHEN o usuário toca um ponto coberto pela base THEN o sistema SHALL apresentar o dossiê completo em até 10 segundos no percentil 95
 4. IF o ponto tocado não está contido em nenhum polígono conhecido THEN o sistema SHALL exibir "sem lote mapeado neste ponto" junto do município e da cobertura declarada daquele município
 5. IF a coordenada tocada está fora dos limites do estado do Rio de Janeiro THEN o sistema SHALL recusar a consulta com a mensagem "fora da área de cobertura: apenas RJ"
 6. WHEN um ponto cai na sobreposição de dois ou mais polígonos THEN o sistema SHALL listar todos os imóveis sobrepostos e SHALL exigir que o usuário escolha um antes de montar o dossiê
 
-**Independent Test**: Abrir o mapa em uma fazenda conhecida de Cachoeiras de Macacu e um lote conhecido de Copacabana, tocar cada um e conferir código, área e município contra o portal oficial da fonte.
+**Independent Test**: Abrir o mapa em uma fazenda conhecida de Cachoeiras de Macacu e um lote conhecido de Icaraí, tocar cada um e conferir código, área e município contra o portal oficial da fonte.
 
 ---
 

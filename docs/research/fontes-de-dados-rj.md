@@ -29,9 +29,9 @@ dossiê precisa mostrar as duas versões e a divergência, não escolher uma sil
 
 | Fonte | Cobertura | Confiança | Observações |
 |---|---|---|---|
-| **DATA.RIO / IPP** (município do Rio) | Lotes, logradouros, uso do solo, dinâmica imobiliária | Alta (portal existe, hub ArcGIS) | Publica GeoService/GeoJSON via ArcGIS Hub. Granularidade exata da camada de lote — **a verificar**. |
+| **SIGeo Niterói** — *piloto do MVP* | Cadastro imobiliário municipal, plantas de loteamento | **Alta** | ArcGIS Hub com **WFS, WMS e GeoServices**, download em GeoJSON/CSV/KML/GeoTIFF. É o município do RJ com a via de ingestão automatizada mais clara. |
+| **DATA.RIO / IPP** (município do Rio) | Lotes, logradouros, uso do solo, dinâmica imobiliária | Alta (portal existe, hub ArcGIS) | Segundo município previsto. Granularidade exata da camada de lote — **a verificar**. |
 | **GeoPAL** (Rio) | Projetos de Alinhamento (PAL) aprovados | Média | Útil para alinhamento/testada; formato de saída — a verificar. |
-| **SIGeo Niterói** | Cadastro imobiliário municipal | Média-alta | Portal existe e é citado como referência de SIG municipal no RJ. |
 | **Demais 90 municípios** | — | **Baixa / desconhecida** | **Esta é a maior incerteza do projeto.** A maioria dos municípios do RJ provavelmente não publica lote cadastral em formato aberto. Requer levantamento município a município. |
 
 **Consequência de arquitetura:** a cobertura urbana será *irregular por município*. O app precisa
@@ -47,7 +47,7 @@ silêncio vira erro percebido ("o app está errado" quando na verdade é "não h
 | **GEOINEA (INEA-RJ)** | Unidades de conservação, APP, corpos d'água, mananciais, áreas suscetíveis a deslizamento e inundação, relevo — para os 92 municípios | Alta (portal ArcGIS Online, download shp/kml/GeoTIFF) |
 | **IBGE** | Malhas territoriais, hidrografia, setores censitários, relevo | Alta |
 | **ICMBio** | Unidades de conservação federais | Alta |
-| **MapBiomas** | Uso e cobertura do solo, alertas de desmatamento, série histórica | Alta (licença a verificar para uso comercial) |
+| **MapBiomas** | Uso e cobertura do solo, alertas de desmatamento, série histórica | Alta — **CC-BY, livre inclusive para uso comercial**, mediante citação |
 | **ANA** | Recursos hídricos | Média-alta |
 
 ---
@@ -90,10 +90,10 @@ Resumo do que a lei sustenta hoje:
 
 - [ ] Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos
 - [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
-- [ ] Confirmar se DATA.RIO expõe camada de **lote** (não só quadra/bairro) e em qual endpoint
+- [ ] Confirmar se o SIGeo de Niterói expõe camada de **lote** (não só quadra) e em qual endpoint WFS
 - [ ] Confirmar formato e licença de saída do SIGeo Niterói
+- [ ] Confirmar se DATA.RIO expõe camada de **lote**, para o segundo município
 - [ ] Inventariar os 92 municípios: quem publica lote cadastral aberto (planilha de cobertura)
-- [ ] Confirmar licença do MapBiomas para uso comercial
 - [ ] Contatar ONR sobre existência/condições de API para terceiros
 - [ ] Definir CRS canônico do projeto (candidato: SIRGAS 2000 / EPSG:4674 para armazenamento, 3857 para tiles) — decidir em Design
 
@@ -104,7 +104,8 @@ Resumo do que a lei sustenta hoje:
 - [dados.gov.br — conjunto SIGEF](https://dados.gov.br/dados/conjuntos-dados/sistema-de-gestao-fundiaria---sigef)
 - [SICAR — consulta pública](https://consultapublica.car.gov.br/)
 - [DATA.RIO](https://www.data.rio/)
-- [HUB SIGeo Niterói](https://www.sigeo.niteroi.rj.gov.br/)
+- [HUB SIGeo Niterói](https://www.sigeo.niteroi.rj.gov.br/) · [dados abertos Niterói (ArcGIS Hub)](https://dados-geoniteroi.opendata.arcgis.com/)
+- [MapBiomas — termos de uso](https://brasil.mapbiomas.org/termos-de-uso/)
 - [INEA — informações geoespaciais](http://www.inea.rj.gov.br/biodiversidade-territorio/informacoes-geoespaciais/)
 - [ONR — Operador Nacional do Registro de Imóveis](https://www.onr.org.br/)
 - [CNJ — SREI](https://www.cnj.jus.br/sistemas/srei/)

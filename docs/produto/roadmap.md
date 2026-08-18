@@ -13,8 +13,7 @@ confirmadas por acesso real — o ambiente de desenvolvimento bloqueia HTTPS par
 
 - Baixar SIGEF do RJ e medir: número de feições, CRS, validade dos polígonos
 - Baixar CAR de um município piloto e medir a sobreposição SIGEF × CAR
-- Confirmar se DATA.RIO expõe camada de **lote** (não só quadra ou bairro), e em qual endpoint
-- Confirmar licença do MapBiomas para uso comercial
+- Confirmar se o SIGeo de Niterói expõe camada de **lote** (não só quadra), e em qual endpoint WFS
 - Contatar o ONR sobre existência e condições de API para terceiros
 
 **Destrava:** todo o resto. Um "não" aqui muda o produto, não o cronograma.
@@ -28,7 +27,7 @@ Checklist completa em [`../research/fontes-de-dados-rj.md`](../research/fontes-d
 **Entrega:** clicar no mapa e receber o dossiê, com restrições cruzadas e proveniência.
 
 - Camada rural em todo o RJ (SIGEF + CAR)
-- Camada urbana no município do Rio
+- Camada urbana no município de Niterói
 - Cruzamento com APP, Reserva Legal, unidades de conservação, inundação e deslizamento
 - Fonte e data em cada campo, página de cobertura pública
 - Painel web, conta autenticada, sem paywall
@@ -77,7 +76,7 @@ Três desenhos possíveis, em ordem decrescente de valor e de risco:
 
 Em ordem de custo crescente por unidade de valor:
 
-1. **Niterói** como segundo município urbano — SIG municipal maduro, mercado relevante
+1. **Município do Rio de Janeiro** como segundo — maior mercado do estado, via DATA.RIO / IPP
 2. **Inventário dos 92 municípios** — planilha de quem publica lote cadastral aberto; define se a camada urbana escala ou estaciona
 3. **Camadas de infraestrutura** — rodovias do DNIT e afins, cruzamentos que hoje ninguém faz
 4. **API para terceiros** — vender o motor para quem já tem sistema (banco, ERP agro, escritório)
