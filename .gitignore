@@ -1,0 +1,11 @@
+.DS_Store
+*.log
+node_modules/
+__pycache__/
+.venv/
+data/raw/
+data/processed/
+*.shp
+*.shx
+*.dbf
+*.gpkg
