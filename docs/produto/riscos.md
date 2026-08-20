@@ -35,7 +35,7 @@ conclui que o produto está errado — não que o dado não existe.
 
 **Mitigação já decidida:** cobertura declarada por município e por camada, em página pública, e
 mensagem explícita de ausência no lugar de vazio. Comunicação de produto fala em "rural em todo
-o RJ, urbano no Rio", nunca em "lotes do RJ".
+o RJ, urbano em Niterói", nunca em "lotes do RJ".
 
 **Sinal de que o risco virou realidade:** suporte recebendo "o app não encontra meu terreno".
 

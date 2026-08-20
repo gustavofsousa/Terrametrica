@@ -3,9 +3,6 @@
 **Um clique no mapa, o dossiê do lote.** Área, restrições ambientais e de risco já cruzadas,
 com fonte e data em cada número. Estado do Rio de Janeiro.
 
-> **Premissa a confirmar:** o nome "Terramétrica" foi inferido do nome do repositório
-> (`Terram-trica`). Se o nome for outro, é uma substituição de texto.
-
 ---
 
 ## O problema em uma frase
