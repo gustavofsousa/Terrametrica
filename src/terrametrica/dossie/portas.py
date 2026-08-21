@@ -39,6 +39,12 @@ class RepositorioLotes(Protocol):
         """
         ...
 
+    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> str:
+        """Município que contém o ponto (malha IBGE). Usado para declarar cobertura
+        quando não há lote no ponto (DOS-04). Só é chamado após `LimiteEstado.contem`
+        confirmar que a coordenada está no RJ, então sempre resolve um município."""
+        ...
+
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:
         """Cobertura declarada por camada no município (DOS-11/13)."""
         ...
