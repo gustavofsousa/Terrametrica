@@ -56,14 +56,51 @@ aberto, mas a granularidade da camada de lote não está confirmada.
 **Consequência:** A página de cobertura precisa deixar explícito que 91 municípios não têm camada
 urbana. A revisão substitui a decisão anterior, que apontava o município do Rio como piloto.
 
+### AD-007 — Arquitetura: monolito Python modular com read-model materializado por versão
+**Data:** 2026-08-20
+**Decisão:** O backend é um monolito Python (FastAPI) organizado por domínio, com a **ingestão como
+entrypoint separado no mesmo repo**. O dossiê é montado a partir de um **read-model materializado
+por versão de base**: as intersecções lote × restrição são calculadas na ingestão, não por consulta.
+**Razão:** MVP de um dev — separar a ingestão pesada (que exige egress `.gov.br`) sem pagar um
+segundo deployable. Uma linguagem só evita duplicar a regra geoespacial. Materializar torna DOS-03
+(10s p95), DOS-26 (idempotência) e DOS-28 (troca atômica) verdadeiros por construção, não por
+esforço em tempo de request. Escolhido pelo usuário entre 3 approaches (A/B/C).
+**Consequência:** Toda regra de negócio vive em módulos framework-agnósticos; a rota FastAPI só
+orquestra. A ingestão nunca está no caminho de request. Read-model cresce por versão → exige
+política de retenção de N versões.
+
+### AD-008 — CRS canônico e versionamento de base por ponteiro
+**Data:** 2026-08-20
+**Decisão:** Armazenamento em SIRGAS 2000 (EPSG:4674); área calculada em projeção equivalente;
+Web Mercator (3857) só para tiles. Publicação de versão troca um **ponteiro `published` por swap
+atômico em transação**, com guarda de ≥90% das feições da versão anterior.
+**Razão:** EPSG:4674 é o padrão oficial brasileiro; a área correta não pode depender do SRID de
+exibição. O ponteiro atômico garante que nenhuma consulta veja base meio atualizada e que a
+reingestão não misture versões dentro de um dossiê.
+**Consequência:** Toda tabela cujo dado muda por reingestão carrega `versao_base_id`. O SRID final
+e a granularidade de lote do SIGeo permanecem **pendentes de confirmação na Fase 0** — o design é
+robusto a ambos (CRS é config; camada urbana fica atrás de cobertura declarada).
+
 ## Handoff
 
-**Branch:** `claude/lote-dossier-rj-app-qxe897`
-**Fase atual:** Specify concluída, aguardando confirmação do usuário antes de Design.
-**Artefatos:** `docs/research/fontes-de-dados-rj.md`, `.specs/features/dossie-lote-rj/spec.md`,
-`.specs/features/dossie-lote-rj/context.md`.
-**Próximo passo:** com o spec aprovado, rodar Design (escopo Large/Complex exige design.md).
-**Bloqueios conhecidos:** o ambiente de desenvolvimento bloqueia HTTPS para hosts `.gov.br`,
-então nenhum endpoint de fonte foi testado por requisição real. A checklist de verificação em
-`docs/research/fontes-de-dados-rj.md` precisa rodar em ambiente com egress liberado antes de
-qualquer código de ingestão.
+**Branch:** `main`
+**Fase atual:** Execute concluído para a **Fatia 1 — núcleo de domínio** (`tasks.md` T1–T5).
+Validação PASS registrada em `.specs/features/dossie-lote-rj/validation.md` (46 unit tests,
+ruff + mypy strict verdes, sensor de discriminação 6/6 mutantes mortos).
+**Commits:** `b851aec` (T1 scaffold) · `3925023` (T2 domínio) · `74f236d` (T3 geometria) ·
+`aea1e36` (T4 ports) · `7445455` (T5 montagem). Nada pendente de commit no código.
+**O que existe agora:** pacote `terrametrica` puro (sem I/O) — `dominio/modelos.py` (value objects,
+enums fechados, união de resultados), `geometria/regras.py` (marginal 1% + divergência 5%),
+`dossie/portas.py` (Protocols `RepositorioLotes`/`LimiteEstado`), `dossie/montagem.py`
+(árvore de decisão `montar_dossie`), fake em memória em `tests/fakes/`.
+**Refinamentos de contrato vs tasks.md:** `proveniencia_de -> Proveniencia | None` e novo
+`municipio_em(coord, versao) -> str` (necessários p/ DOS-12 e DOS-04). Ver `validation.md`.
+**Escopo entregue:** apenas a lógica de domínio. As ACs de usuário (DOS-01/03 fim-a-fim) **não**
+estão demonstráveis ainda — faltam as fatias de infra. `spec.md` mantido em Pending de propósito
+(não superdeclarar).
+**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada) — **bloqueada na Fase 0**,
+que exige egress `.gov.br` liberado (checklist em `docs/research/fontes-de-dados-rj.md`). Depois:
+camada urbana (Niterói), página de cobertura, API FastAPI + observabilidade, web MapLibre.
+**Bloqueios conhecidos:** o ambiente bloqueia HTTPS para hosts `.gov.br`; nenhum endpoint de fonte
+foi testado por requisição real. A checklist de verificação precisa rodar em ambiente com egress
+liberado antes de qualquer código de ingestão.
