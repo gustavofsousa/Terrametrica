@@ -1063,3 +1063,24 @@ DISTINCT (genérico p/ INEA/ICMBio futuras); `data_extracao` de `proveniencia`. 
 (TD-001 independente), sem lista externa de códigos IBGE.
 
 **Gate:** ruff 0, mypy strict 0, suíte 117 passed (+6 vs baseline 111 da Fatia 3).
+
+---
+
+## Fatia 5 — Unidade de Conservação (UC) como camada de restrição
+
+**Escopo:** ingerir a camada de restrição UC (parques, reservas, APAs — SNUC), reusando a tabela
+genérica `restricao`. **Pré-requisito cumprido nesta fatia:** a fonte não estava verificada (só CAR
+estava, ver §5 do research) — foi feita a verificação Fase-0 por acesso real antes de qualquer
+código. Fonte e decisão em **AD-010** (`.specs/STATE.md`); medição em `docs/research/fontes-de-dados-rj.md` §3.
+
+| Task | Escopo | Teste | Commit | Status |
+| --- | --- | --- | --- | --- |
+| T24: Schema | migração 0004 estende `restricao.tipo` CHECK p/ `unidade_conservacao` | integration (`test_migrar.py`) | `f027efe` | ✅ |
+| T25: `ingerir_uc` | 1 módulo (`ingestao/restricao_uc.py`) — lê GeoJSON, reprojeta 4326→4674, grava genérico em `restricao` | integration (`test_restricao_uc.py`, 3 testes, fixture schema real) | `f027efe` | ✅ |
+| T26: Guarda + e2e | UC entra em `_CAMADAS_PUBLICADAS` (DOS-25) + fiação e2e provando UC no dossiê e cobertura | integration (`test_dossie_e2e.py`) | `45afce7` | ✅ |
+
+**Fonte (AD-010):** FeatureServer consolidado UC ERJ do MPRJ (CNUC + estaduais/municipais) — 455
+feições reais, 0 inválidas, EPSG:4326, três esferas. WFS do INDE rejeitado (631 feature types
+fragmentados → risco de incompletude, fere AD-005).
+
+**Gate:** ruff 0, mypy strict 0, suíte 123 passed (+4 vs 119 da Fatia 4).

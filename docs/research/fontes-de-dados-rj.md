@@ -54,6 +54,35 @@ fonte). Coerente com AD-005 (proveniência já é requisito em todo campo).
 | **MapBiomas** | Uso e cobertura do solo, alertas de desmatamento, série histórica | Alta — **CC-BY, livre inclusive para uso comercial**, mediante citação |
 | **ANA** | Recursos hídricos | Média-alta |
 
+### Unidade de Conservação (UC) — baixada e medida por acesso real (2026-09-04)
+
+Para a Fatia 5 (UC como camada de restrição), a fonte foi **verificada por acesso real**, não
+assumida. Achado central: **não existe uma camada consolidada de UC no WFS do INDE** — o INEA
+publica lá as UCs **fragmentadas em ~631 feature types** (um por UC: `apa_marica`, `apa_tamoios`,
+…), e o ICMBio expõe só 3 (embargos, autos de infração, cavernas), **não** o dataset de UC federal.
+Ingerir "todas as UCs" pelo WFS exigiria enumerar as 631 e torcer para não faltar nenhuma (fere
+AD-005).
+
+**Fonte escolhida (consolidada, RJ-scoped):** FeatureServer ArcGIS do **MPRJ** — camada
+"Unidades de Conservação (UCs) - ERJ", que consolida CNUC federal + UCs estaduais/municipais dentro
+do RJ.
+- URL de item: `https://geo.mprj.mp.br/portal/home/item.html?id=330049c4d719405fb2e750484beea97a`
+- FeatureServer: `.../arcgis/rest/services/meio_ambiente/Unidade_de_Conservação_ERJ/FeatureServer/12`
+- **Medido:** 455 feições, **0 inválidas / 0 vazias**, CRS **EPSG:4326**, mix Polygon(354)+MultiPolygon(101).
+- Esferas: Municipal 396, Estadual 40, Federal 19. Categorias SNUC reais: REBIO, PARNA, APA, MONA,
+  RESEX, ARIE, FLONA, ESEC. `dt_atualiz` = 09/2024.
+- Campos usados: `uc` (nome) → `restricao.nome`, `categoria` → `restricao.categoria`; `jurisdicao`,
+  `cod_cnuc`, `ano_criacao`, `uf_abrang` disponíveis para enriquecimento futuro.
+- **Download público sem login/captcha** (diferente de SIGEF/CAR) — automatizável por agente via
+  `.../FeatureServer/12/query?where=1=1&outFields=...&f=geojson`. `pyogrio` não abre URL direto:
+  baixar o GeoJSON para arquivo local e ler dali (a ingestão `ingerir_uc` lê arquivo local, AD-004).
+
+**Pendências desta fonte (não bloqueiam a Fatia 5):** (1) confirmar termos de licença/atribuição do
+MPRJ para redistribuição (dado é CNUC público, mas a hospedagem é do MPRJ) — a proveniência já
+carimba fonte+data+link (AD-005); (2) avaliar a origem autoritativa GEOINEA/INEA como alternativa
+de proveniência; (3) as outras 3 camadas de restrição (inundação, deslizamento, corpo d'água)
+**seguem não verificadas** — cada uma precisa da mesma medição antes do código de ingestão.
+
 ---
 
 ## 4. Camada registral / proprietário — o ponto jurídico

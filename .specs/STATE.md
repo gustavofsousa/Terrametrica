@@ -102,6 +102,25 @@ concern novo: como `cobertura` não é versionada e o passo só faz upsert, um m
 todos os lotes numa reingestão mantém a linha antiga (staleness) — aceitável no MVP, anotado como
 concern em TD-002 ao fechá-lo. O caminho `SemLote` (DOS-04) segue quebrado por TD-001 (independente).
 
+### AD-010 — UC ingerida da camada consolidada do MPRJ (não do WFS fragmentado do INDE)
+**Data:** 2026-09-04
+**Decisão:** A camada de restrição Unidade de Conservação (Fatia 5) é ingerida da camada
+**consolidada "UC ERJ" do FeatureServer ArcGIS do MPRJ** (CNUC federal + estaduais/municipais,
+455 feições RJ), reusando a tabela genérica `restricao` com `tipo='unidade_conservacao'`. O WFS do
+INDE foi rejeitado como fonte: lá o INEA publica as UCs fragmentadas em ~631 feature types e o
+ICMBio não expõe o dataset federal — enumerar as 631 arriscaria incompletude silenciosa (fere
+AD-005).
+**Razão:** Uma camada consolidada, medida por acesso real (0 inválidas/vazias, EPSG:4326, três
+esferas), é honesta e completa por construção; a fragmentada não. Manter `restricao` genérica evita
+código específico por camada — a próxima restrição (inundação/deslizamento/corpo d'água) reusa o
+mesmo caminho + uma extensão do CHECK. A cobertura da Fatia 4 (AD-009) faz a UC aparecer sozinha no
+dossiê, sem tocar `montagem.py`.
+**Consequência:** `restricao.tipo` ganhou `'unidade_conservacao'` (migração 0004) e a guarda de
+publicação (DOS-25) passou a cobri-la. Fica pendente confirmar licença/atribuição do MPRJ para
+redistribuição (proveniência já carimba fonte+data+link) e avaliar GEOINEA/INEA como origem
+autoritativa alternativa. As outras 3 camadas de restrição seguem **não verificadas** — cada uma
+exige medição por acesso real antes do código, como esta teve.
+
 ## Handoff
 
 **Branch:** `main`
