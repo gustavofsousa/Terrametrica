@@ -943,7 +943,9 @@ nos dicionários de configuração)
       anterior reprova a publicação inteira, mesmo com `lote_rural`/`limite_estado` passando
       (mesma regra "qualquer camada reprova, tudo reprova" de T13)
 - [ ] Gate check passa: `pytest tests/unit tests/integration -q`
-- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+- [ ] Test count: 2 testes novos, em `TestGuardaCobreRestricaoCar` no fim do módulo (ordem
+      deliberada — evita vazar ponteiro real de `app`/`reserva_legal` pros testes existentes que
+      nunca lidam com essas camadas), sem deleção silenciosa
 
 **Tests**: integration
 **Gate**: full

@@ -109,6 +109,21 @@ def _semear_lotes(conexao: psycopg.Connection, versao_id: str, quantidade: int) 
             )
 
 
+def _semear_restricoes(
+    conexao: psycopg.Connection, versao_id: str, tipo: str, quantidade: int
+) -> None:
+    with conexao.cursor() as cursor:
+        for indice in range(quantidade):
+            wkt = _quadrado_wkt(-43.0 + indice * 0.02, -22.9, lado=0.005)
+            cursor.execute(
+                """
+                INSERT INTO restricao (id, tipo, nome, categoria, geom, versao_base_id)
+                VALUES (%s, %s, %s, %s, ST_GeomFromText(%s, 4674), %s)
+                """,
+                (f"{versao_id}-{tipo}-{indice}", tipo, f"Restrição {indice}", None, wkt, versao_id),
+            )
+
+
 def _apontar_ponteiro(conexao: psycopg.Connection, camada: str, versao_id: str) -> None:
     # upsert: `ponteiro_publicado` tem uma única linha por camada em todo o container —
     # compartilhado entre os métodos de teste deste módulo (alguns commitam ao publicar
@@ -239,3 +254,57 @@ class TestAtomicidadeDoSwap:
         assert len(chamadas) == 2  # confirma que a falha ocorreu depois da 1ª camada trocada
         assert _versao_apontada(conexao, CAMADA_LIMITE_ESTADO) == "atomic-v1"
         assert _versao_apontada(conexao, Camada.LOTE_RURAL.value) == "atomic-v1"
+
+
+class TestGuardaCobreRestricaoCar:
+    """No fim do módulo, deliberadamente: os testes abaixo publicam com sucesso e commitam um
+    ponteiro real para `Camada.APP`/`Camada.RESERVA_LEGAL` (`ponteiro_publicado` é chaveado só
+    por `camada`, compartilhado por todo o container — mesmo comportamento já documentado em
+    `_apontar_ponteiro`). Rodar por último evita que esse ponteiro vaze como "versão anterior"
+    para os testes de `TestAtomicidadeDoSwap`/`TestReingestao*`, que nunca lidam com essas duas
+    camadas e assumiriam (incorretamente) que elas nunca foram publicadas antes."""
+
+    def test_primeira_publicacao_passa_guarda_para_app_e_reserva_legal(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        _semear_versao_base(conexao, "carguard-v1")
+        _semear_limite_estado(conexao, "carguard-v1")
+        _semear_lotes(conexao, "carguard-v1", 10)
+        _semear_restricoes(conexao, "carguard-v1", Camada.APP.value, 5)
+        _semear_restricoes(conexao, "carguard-v1", Camada.RESERVA_LEGAL.value, 5)
+
+        resultado = publicar_versao(
+            VersaoBase(id="carguard-v1", criada_em=date(2026, 9, 1)), conexao
+        )
+
+        assert resultado.publicada is True
+        assert _versao_apontada(conexao, Camada.APP.value) == "carguard-v1"
+        assert _versao_apontada(conexao, Camada.RESERVA_LEGAL.value) == "carguard-v1"
+
+    def test_reingestao_com_menos_de_90_por_cento_de_app_rejeita_publicacao_inteira(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        _semear_versao_base(conexao, "carguard80-v1")
+        _semear_limite_estado(conexao, "carguard80-v1")
+        _semear_lotes(conexao, "carguard80-v1", 10)
+        _semear_restricoes(conexao, "carguard80-v1", Camada.APP.value, 10)
+        _apontar_ponteiro(conexao, CAMADA_LIMITE_ESTADO, "carguard80-v1")
+        _apontar_ponteiro(conexao, Camada.LOTE_RURAL.value, "carguard80-v1")
+        _apontar_ponteiro(conexao, Camada.APP.value, "carguard80-v1")
+
+        _semear_versao_base(conexao, "carguard80-v2")
+        _semear_limite_estado(conexao, "carguard80-v2")
+        _semear_lotes(conexao, "carguard80-v2", 10)  # 100% — passaria sozinha
+        _semear_restricoes(conexao, "carguard80-v2", Camada.APP.value, 8)  # 80% de 10 — reprova
+
+        resultado = publicar_versao(
+            VersaoBase(id="carguard80-v2", criada_em=date(2026, 9, 2)), conexao
+        )
+
+        assert resultado.publicada is False
+        camada_lote = next(c for c in resultado.camadas if c.camada == Camada.LOTE_RURAL.value)
+        assert camada_lote.publicada is True  # a camada em si passaria...
+        # ...mas a publicação inteira reprova porque APP reprovou (mesma regra "qualquer
+        # camada reprova, tudo reprova" de TestReingestaoForaDaGuarda)
+        assert _versao_apontada(conexao, Camada.LOTE_RURAL.value) == "carguard80-v1"
+        assert _versao_apontada(conexao, Camada.APP.value) == "carguard80-v1"

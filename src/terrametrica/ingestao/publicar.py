@@ -24,11 +24,22 @@ from terrametrica.ingestao.tipos import RelatorioPublicacaoCamada, ResultadoPubl
 
 LIMIAR_GUARDA = 0.90
 
-_CAMADAS_PUBLICADAS = (CAMADA_LIMITE_ESTADO, Camada.LOTE_RURAL.value)
+_CAMADAS_PUBLICADAS = (
+    CAMADA_LIMITE_ESTADO,
+    Camada.LOTE_RURAL.value,
+    Camada.APP.value,
+    Camada.RESERVA_LEGAL.value,
+)
+
+_QUERY_CONTAGEM_RESTRICAO = (
+    "SELECT COUNT(*) FROM restricao WHERE tipo = %(tipo)s AND versao_base_id = %(versao)s"
+)
 
 _QUERY_CONTAGEM_POR_CAMADA = {
     CAMADA_LIMITE_ESTADO: "SELECT COUNT(*) FROM limite_estado WHERE versao_base_id = %(versao)s",
     Camada.LOTE_RURAL.value: "SELECT COUNT(*) FROM lote_rural WHERE versao_base_id = %(versao)s",
+    Camada.APP.value: _QUERY_CONTAGEM_RESTRICAO,
+    Camada.RESERVA_LEGAL.value: _QUERY_CONTAGEM_RESTRICAO,
 }
 
 _SELECT_VERSAO_PUBLICADA = """
@@ -45,8 +56,11 @@ _MARCAR_PUBLICADA = "UPDATE versao_base SET status = 'published' WHERE id = %(ve
 
 
 def _contar_feicoes(conexao: psycopg.Connection, camada: str, versao_id: str) -> int:
+    # `tipo` só é usado pela query de `restricao` (_QUERY_CONTAGEM_RESTRICAO); ignorado pelas
+    # demais — mesmo valor de `camada` porque Camada.APP/RESERVA_LEGAL.value == TipoRestricao
+    # correspondente (mesmo vocabulário, ver dominio/modelos.py).
     with conexao.cursor() as cursor:
-        cursor.execute(_QUERY_CONTAGEM_POR_CAMADA[camada], {"versao": versao_id})
+        cursor.execute(_QUERY_CONTAGEM_POR_CAMADA[camada], {"versao": versao_id, "tipo": camada})
         linha = cursor.fetchone()
     assert linha is not None  # COUNT(*) sempre devolve exatamente 1 linha
     (total,) = linha
