@@ -838,11 +838,13 @@ download programático — mesma decisão herdada da Fase 0 pro SICAR)
       `ind_status`), incluindo ao menos uma feição `ind_status != 'AT'` para provar o filtro
 - [ ] `ingerir_app_car`/`ingerir_reserva_legal_car` leem a fixture, filtram `AT`, gravam em
       `restricao` com `tipo` correto
-- [ ] Feição inválida na fixture é corrigida e marcada (`geometria_corrigida`), não descartada
-      silenciosamente (mesmo padrão de T12)
+- [ ] Feição inválida na fixture é corrigida (não descartada) e contada em
+      `RelatorioCamada.feicoes_corrigidas` — `restricao` não tem coluna `geometria_corrigida` por
+      linha (mesmo padrão de `limite_estado`/T11: contagem no relatório, não coluna, ver
+      `validacao_geometria.py`)
 - [ ] `proveniencia` carimbada para `Camada.APP` e `Camada.RESERVA_LEGAL` com fonte e data
 - [ ] Gate check passa: `pytest tests/unit tests/integration -q`
-- [ ] Test count: ~6 testes passam (sem deleção silenciosa)
+- [ ] Test count: 6 testes passam (sem deleção silenciosa)
 
 **Tests**: integration
 **Gate**: full
