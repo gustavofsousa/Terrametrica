@@ -97,6 +97,11 @@ Resumo do que a lei sustenta hoje:
 > `consultapublica.car.gov.br` → 302, `certificacao.incra.gov.br` → 200. O bloqueio que travava
 > a Fase 0 era do ambiente remoto e **não se aplica aqui**. As linhas abaixo agora carregam
 > resultado real onde foi testado.
+>
+> **Dados brutos baixados ficam em `data/raw/rj/`** (fora do git, `.gitignore` já cobre
+> `data/raw/`) — SIGEF + as 9 camadas do CAR, ~1,1 GB. Ver `data/raw/rj/README.md` para o que tem
+> em cada arquivo e o link de origem de cada um. Servem de amostra pronta para o design da Fatia 2,
+> sem repetir login/captcha.
 
 - [x] **Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos** —
       **FEITO 2026-09-03.** Login GOV.BR realizado pelo usuário (conta de cidadão comum,
