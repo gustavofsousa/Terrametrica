@@ -456,11 +456,13 @@ geometria é invariante do modelo, AD-003, mesmo com `geom_car` vazio nesta fati
 
 **What**: Implementa o Protocol `RepositorioLotes` (T4) contra o schema real: `lote_em`,
 `intersecoes_de` (retorna lista vazia — nenhuma restrição ingerida nesta fatia, comportamento
-documentado, não um placeholder escondido), `proveniencia_de`, `cobertura_de`.
+documentado, não um placeholder escondido), `proveniencia_de`, `cobertura_de`, `municipio_em`
+(**TD-001**: levanta `NotImplementedError` explícito — exige malha municipal IBGE, fora do escopo
+desta fatia; ver `.specs/TECH-DEBT.md`).
 **Where**: `src/terrametrica/persistencia/repositorio_lotes_postgis.py`
 **Depends on**: T8
 **Reuses**: `dossie/portas.py` (T4, contrato); casos de borda de `tests/fakes/repositorio_fake.py` (T5)
-**Requirement**: DOS-01, DOS-04, DOS-10, DOS-11 sobre dado real
+**Requirement**: DOS-01, DOS-04 (parcial — ver TD-001), DOS-10, DOS-11 sobre dado real
 
 **Tools**:
 - MCP: NONE
@@ -472,7 +474,11 @@ documentado, não um placeholder escondido), `proveniencia_de`, `cobertura_de`.
 - [ ] `intersecoes_de` retorna `[]` de forma explícita e documentada (sem restrição ingerida)
 - [ ] `proveniencia_de` retorna fonte + data carimbadas na ingestão (T12)
 - [ ] `cobertura_de` reflete `cobertura` semeada (camada SIGEF presente, demais ausentes)
-- [ ] Mesmos casos de borda testados no fake em memória (T5) passam aqui contra Postgres real
+- [ ] `municipio_em` levanta `NotImplementedError` com mensagem citando TD-001 — teste confirma a
+      exceção, não um retorno inventado
+- [ ] Mesmos casos de borda testados no fake em memória (T5) passam aqui contra Postgres real,
+      **exceto** o ramo `SemLote` (que depende de `municipio_em` — cai em TD-001, não testável
+      nesta fatia)
 - [ ] Gate check passa: `pytest tests/unit tests/integration -q`
 - [ ] Test count: ~6 testes passam (sem deleção silenciosa)
 
