@@ -50,3 +50,12 @@ class ResultadoPublicacao:
     def publicada(self) -> bool:
         """True somente se a guarda passou para todas as camadas e o swap ocorreu."""
         return all(c.publicada for c in self.camadas)
+
+
+@dataclass(frozen=True, slots=True)
+class RelatorioIntersecoes:
+    """Retorno de `materializar_intersecoes` (Fatia 3): quantos pares lote×restrição
+    tiveram intersecção real (área > 0) gravados em `intersecao_materializada`."""
+
+    versao_base_id: str
+    pares_materializados: int
