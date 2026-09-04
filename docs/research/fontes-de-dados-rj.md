@@ -95,10 +95,27 @@ Resumo do que a lei sustenta hoje:
 > resultado real onde foi testado.
 
 - [ ] Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos
-      — *reachability confirmada* (`certificacao.incra.gov.br/csv_shp/export_shp.py` → 200);
-      download+medição ainda **não** feitos.
+      — **investigado por navegação real 2026-09-03 (Playwright).** No catálogo `dados.gov.br`, o
+      dataset SIGEF está catalogado como **ACESSO PÚBLICO**, licença **Creative Commons
+      Attribution**, formatos CSV/JSON/PDF/SHP, atualização diária. O recurso SHP ("Acervo
+      Fundiário") aponta para `certificacao.incra.gov.br/csv_shp/export_shp.py`, que **agora exige
+      login GOV.BR** (SSO `sso.acesso.gov.br`) — qualquer conta de cidadão serve, não precisa ser
+      credencial institucional. Confirma o que o doc já suspeitava ("desde out/2023 exige login").
+      Existe também uma **API ConectaGov** (JSON) para o SIGEF, mas é restrita a **órgãos públicos
+      federais/estaduais** — não disponível para uso de terceiro/desenvolvedor. **Bloqueio real:
+      alguém precisa logar manualmente com conta gov.br para baixar o shapefile** — ver item 1 de
+      `pendencias-humano.md`. Download+medição ainda não feitos.
 - [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
-      — *reachability confirmada* (`consultapublica.car.gov.br` → 302); download ainda **não** feito.
+      — **investigado por navegação real 2026-09-03 (Playwright).** A "Base de Downloads"
+      (`consultapublica.car.gov.br/publico/estados/downloads`) **não exige login** e lista todas as
+      27 UFs com data de disponibilização (RJ: 03/09/2026, dado fresco). Ao abrir RJ, o modal expõe
+      download por camada: Perímetros dos imóveis (`AREA_IMOVEL`), APP, Remanescente de Vegetação
+      Nativa, Área Consolidada, Área de Pousio, Hidrografia, Uso Restrito, Servidão Administrativa,
+      Reserva Legal — exatamente as camadas do catálogo. **Cada botão de download é gated por
+      reCAPTCHA** (`class="btn-abrir-modal-recaptcha"`) — não tentei contornar (fora de escopo e
+      antiético driblar anti-bot). **Bloqueio real: alguém precisa clicar Download + resolver o
+      captcha manualmente** para a camada "Perímetros dos imóveis" — ver item 6 de
+      `pendencias-humano.md`. Depois disso, a medição de feições/CRS/sobreposição é automatizável.
 - [x] **Confirmar se o SIGeo de Niterói expõe camada de lote (não só quadra) e em qual endpoint** —
       **SIM, confirmado 2026-09-03.** Feature Service hospedado:
       `https://sig.niteroi.rj.gov.br/server/rest/services/Hosted/NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`

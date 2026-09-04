@@ -101,17 +101,24 @@ estão demonstráveis ainda — faltam as fatias de infra. `spec.md` mantido em 
 **Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada). Depois: página de cobertura,
 API FastAPI + observabilidade, web MapLibre.
 
-**Fase 0 — destravada e parcialmente verificada (2026-09-03):**
+**Fase 0 — destravada e verificada por navegação real (2026-09-03):**
 - **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,
   CAR 302, INCRA export_shp 200.
 - **Piloto urbano confirmado por acesso real:** SIGeo Niterói expõe camada `Lotes` lote-a-lote —
   Feature Service `NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`, **82.199 feições**, CRS nativo
   **EPSG:31983**, atributos cadastrais sem PII de proprietário, GeoJSON via `query`. Amostra
-  validada (polígono 8 vértices, Caramujo). Detalhe na checklist de `docs/research/fontes-de-dados-rj.md`.
-- **Ainda pendente antes da ingestão rural:** baixar+medir 1 shapefile SIGEF (RJ) e 1 CAR
-  (município piloto) e quantificar sobreposição SIGEF×CAR; confirmar licença do SIGeo; DATA.RIO
-  (2º município); inventário de cobertura dos 92 municípios.
+  validada (polígono 8 vértices, Caramujo). Pronto para prototipar ingestão real.
+- **SIGEF:** dataset ACESSO PÚBLICO / CC-BY confirmado em `dados.gov.br`, mas o download do SHP
+  exige **login GOV.BR** (conta de cidadão comum serve). API ConectaGov existe mas é restrita a
+  órgãos públicos, não serve para o projeto.
+- **CAR:** "Base de Downloads" não exige login e tem RJ disponível (dado de 2026-09-03), com as 9
+  camadas do catálogo (perímetro, APP, reserva legal etc.) — mas cada download é **gated por
+  reCAPTCHA**, não contornado (fora de escopo/antiético).
+- **Ambos os bloqueios de download rural são ação humana, não técnica** — ver
+  `docs/research/pendencias-humano.md` itens 6 e 7. Assim que o shapefile chegar, a medição
+  (feições/CRS/validade/sobreposição SIGEF×CAR) é automatizável.
 
-**Bloqueios conhecidos:** nenhum bloqueio de egress na máquina local. As fontes rurais (SIGEF/CAR)
-têm reachability confirmada mas **ainda não foram baixadas e medidas** — fazer isso antes do código
-de ingestão rural. A camada urbana (Niterói) já está pronta para prototipar ingestão real.
+**Bloqueios conhecidos:** nenhum bloqueio de egress na máquina local. Fontes rurais exigem ação
+humana pontual para baixar o arquivo (login gov.br p/ SIGEF; resolver captcha p/ CAR) — depois
+disso a medição segue por agente. A camada urbana (Niterói) já está pronta para prototipar
+ingestão real sem depender de ação humana adicional.
