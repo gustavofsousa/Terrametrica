@@ -29,6 +29,7 @@ _CAMADAS_PUBLICADAS = (
     Camada.LOTE_RURAL.value,
     Camada.APP.value,
     Camada.RESERVA_LEGAL.value,
+    Camada.UNIDADE_CONSERVACAO.value,
 )
 
 _QUERY_CONTAGEM_RESTRICAO = (
@@ -40,6 +41,7 @@ _QUERY_CONTAGEM_POR_CAMADA = {
     Camada.LOTE_RURAL.value: "SELECT COUNT(*) FROM lote_rural WHERE versao_base_id = %(versao)s",
     Camada.APP.value: _QUERY_CONTAGEM_RESTRICAO,
     Camada.RESERVA_LEGAL.value: _QUERY_CONTAGEM_RESTRICAO,
+    Camada.UNIDADE_CONSERVACAO.value: _QUERY_CONTAGEM_RESTRICAO,
 }
 
 _SELECT_VERSAO_PUBLICADA = """

@@ -37,6 +37,7 @@ from terrametrica.ingestao.intersecoes import materializar_intersecoes
 from terrametrica.ingestao.limite_rj import ingerir_limite_rj
 from terrametrica.ingestao.publicar import publicar_versao
 from terrametrica.ingestao.restricao_car import ingerir_app_car, ingerir_reserva_legal_car
+from terrametrica.ingestao.restricao_uc import ingerir_uc
 from terrametrica.ingestao.sigef import ingerir_sigef
 from terrametrica.persistencia.limite_estado_postgis import LimiteEstadoPostGIS
 from terrametrica.persistencia.migrar import aplicar_migracoes
@@ -47,10 +48,12 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 FIXTURE_SIGEF = FIXTURES / "sigef" / "sigef_rj_amostra.shp"
 FIXTURE_APP = FIXTURES / "restricao_car" / "app_amostra.shp"
 FIXTURE_RESERVA_LEGAL = FIXTURES / "restricao_car" / "reserva_legal_amostra.shp"
+FIXTURE_UC = FIXTURES / "restricao_uc" / "uc_amostra.geojson"
 
 VERSAO_ID = "e2e-fatia3-v1"
 DATA_EXTRACAO_SIGEF = date(2026, 8, 20)
 DATA_EXTRACAO_CAR = date(2026, 9, 1)
+DATA_EXTRACAO_UC = date(2026, 9, 4)
 
 # SIGEF-001 (fixture sintética): Rio de Janeiro, IBGE 3304557, CERTIFICADA — quadrado centrado
 # exatamente neste ponto (confirmado via geopandas: centroid (-43.10, -22.90), bounds
@@ -112,6 +115,7 @@ def versao_publicada(container: PostgresContainer) -> VersaoBase:
         ingerir_reserva_legal_car(
             FIXTURE_RESERVA_LEGAL, versao, conexao, data_extracao=DATA_EXTRACAO_CAR
         )
+        ingerir_uc(FIXTURE_UC, versao, conexao, data_extracao=DATA_EXTRACAO_UC)
         materializar_intersecoes(versao, conexao)
         semear_cobertura(versao, conexao)
         resultado = publicar_versao(versao, conexao)
@@ -120,6 +124,8 @@ def versao_publicada(container: PostgresContainer) -> VersaoBase:
             "guarda de publicação reprovou a primeira publicação (deveria sempre passar sem "
             f"versão anterior): {resultado.camadas}"
         )
+        # UC (Fatia 5) participa da guarda de publicação, não é ingerida à margem.
+        assert Camada.UNIDADE_CONSERVACAO.value in {c.camada for c in resultado.camadas}
     finally:
         conexao.close()
 
@@ -174,8 +180,31 @@ class TestDossieFimAFimSobrePostGISReal:
         assert resultado.proveniencia[Camada.RESERVA_LEGAL].data_extracao == DATA_EXTRACAO_CAR
 
         # Camadas ainda não ingeridas continuam honestamente sem cobertura, não silenciadas.
-        assert Camada.UNIDADE_CONSERVACAO in resultado.camadas_sem_cobertura
+        # (UC saiu desta lista na Fatia 5, quando passou a ser ingerida.)
         assert Camada.INUNDACAO in resultado.camadas_sem_cobertura
+        assert Camada.DESLIZAMENTO in resultado.camadas_sem_cobertura
+
+    def test_lote_sobre_unidade_de_conservacao_mostra_item_e_cobertura(
+        self, conexao: psycopg.Connection, versao_publicada: VersaoBase
+    ) -> None:
+        # Fatia 5: a UC ingerida (padrão genérico de restrição) é cruzada com o lote pela mesma
+        # materialização e aparece como item de restrição; a cobertura (Fatia 4) marca a camada
+        # unidade_conservacao como coberta — não mais "sem cobertura".
+        repo = RepositorioLotesPostGIS(conexao)
+        limite = LimiteEstadoPostGIS(conexao)
+
+        resultado = montar_dossie(COORD_DENTRO_DO_LOTE_SIGEF_001, versao_publicada, repo, limite)
+
+        assert isinstance(resultado, Dossie)
+
+        item_uc = next(
+            i for i in resultado.itens_restricao
+            if i.tipo is TipoRestricao.UNIDADE_CONSERVACAO
+        )
+        assert item_uc.nome == "APA de Teste Sobreposta"
+
+        assert Camada.UNIDADE_CONSERVACAO not in resultado.camadas_sem_cobertura
+        assert resultado.proveniencia[Camada.UNIDADE_CONSERVACAO].data_extracao == DATA_EXTRACAO_UC
 
     def test_coordenada_fora_do_rj_devolve_fora_do_rj_sobre_limite_real(
         self, conexao: psycopg.Connection, versao_publicada: VersaoBase
