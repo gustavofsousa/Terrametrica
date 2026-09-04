@@ -280,7 +280,8 @@ Nenhuma violação. Testes co-localizados na task que cria a camada — sem defe
 
 **Design**: `.specs/features/dossie-lote-rj/design.md` (seção "Fatia 2 — Escopo desta rodada" e
 "Testing Seams — Fatia 2")
-**Status**: **Draft — aguardando aprovação do usuário, ainda não executada.**
+**Status**: **Executada — T6-T14 concluídas (ver commits); validação de fechamento pendente
+(Verifier roda em seguida).**
 
 **Escopo**: schema PostGIS mínimo, adapters reais (`RepositorioLotesPostGIS`,
 `LimiteEstadoPostGIS`) implementando os *ports* já existentes (T4), e ingestão de **só duas
