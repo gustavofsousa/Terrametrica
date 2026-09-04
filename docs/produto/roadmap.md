@@ -27,10 +27,10 @@ verificada, pode nascer feature nova numa fase. Portanto os totais abaixo são p
 
 | Fase | Pergunta que responde | Features (feito / total atual) | Estado |
 | --- | --- | --- | --- |
-| **0 — Verificar fontes** | As fontes existem e são usáveis de verdade? | 4 / 6 (reabre por fonte nova) | 🟡 em aberto por camada |
+| **0 — Verificar fontes** | As fontes geoespaciais existem e são usáveis de verdade? | 4 / 5 (reabre por fonte nova) | 🟡 em aberto por camada |
 | **1 — MVP: o dossiê** | O cruzamento vale mais que o dado cru? | **5 / 12** | 🟡 em andamento |
 | **2 — Fazer circular** | O dossiê vira artefato e a divergência vira produto? | 0 / 3 (1 parcial) | ⬜ não começada |
-| **3 — Camada registral** | Existe caminho jurídico defensável p/ o dado registral? | 0 / 1 | ⏭️ condicional |
+| **3 — Camada registral** | Existe caminho jurídico defensável p/ o dado registral? | 0 / 2 | ⏭️ condicional |
 | **4 — Ampliação** | Escala em município, camada, estado e canal? | 0 / 5 | ⬜ futura |
 
 ---
@@ -47,9 +47,12 @@ reabre toda vez que uma camada nova entra no escopo.**
 | 0.3 | SIGeo Niterói expõe **lote** (não só quadra) + endpoint | ✅ | 82.199 feições, EPSG:31983, FeatureServer confirmado |
 | 0.4 | UC (Unidade de Conservação) — fonte consolidada | ✅ | 455 feições MPRJ/CNUC, EPSG:4326 (Fatia 5) |
 | 0.5 | INEA inundação / deslizamento / corpo d'água | ⬜ | **não verificada** — custo de Fase-0 por camada |
-| 0.6 | ONR — existe API para terceiros? | 🔒 | pendência humana; alimenta a Fase 3 |
 
-**Contagem:** 4 feito / 6 (cresce a cada camada nova). Detalhe em
+> A verificação do ONR (existe API registral para terceiros?) **não é item da Fase 0** — não é uma
+> fonte geoespacial do dossiê, é a pergunta que decide se a Fase 3 existe. Passou a ser a feature
+> **F3.1**.
+
+**Contagem:** 4 feito / 5 (cresce a cada camada nova). Detalhe em
 [`../research/fontes-de-dados-rj.md`](../research/fontes-de-dados-rj.md).
 **Destrava:** todo o resto. Um "não" aqui muda o produto, não o cronograma.
 
@@ -103,9 +106,14 @@ pouco e transforma a Fase 3 em ligar uma chave.
 
 ## Fase 3 — A camada registral (condicional)
 
-**Só existe se a Fase 0 (item 0.6) confirmar um caminho jurídico defensável com o ONR.** É **1
-feature**, mas com três desenhos possíveis, em ordem decrescente de valor e de risco — escolhe-se
-um conforme o que o ONR permitir:
+**A fase inteira é condicional: só avança se F3.1 confirmar um caminho jurídico defensável.**
+
+| # | Feature | O que entrega | Estado | Nota |
+| --- | --- | --- | --- | --- |
+| F3.1 | Verificação do caminho registral (ONR) | Descobrir se existe API do ONR para terceiros e sob quais condições — decide SE a fase existe e QUAL desenho é viável | 🔒 | pendência humana (contato com o ONR) |
+| F3.2 | Camada registral | Ligar o dado registral ao dossiê, sob o gate da Fase 2, num dos três desenhos abaixo | ⏭️ | escolha depende de F3.1 |
+
+Desenhos possíveis de **F3.2**, em ordem decrescente de valor e de risco:
 
 | Desenho | Como funciona | Depende de |
 | --- | --- | --- |
@@ -113,7 +121,7 @@ um conforme o que o ONR permitir:
 | Deep link | O app leva o usuário ao pedido de certidão no portal oficial, já preenchido com o imóvel | Só o portal existir |
 | Upload de certidão | O usuário anexa a certidão que ele mesmo obteve; o app extrai e cruza com o dossiê | Nada externo |
 
-**Contagem:** 0 / 1 (⏭️ condicional). **O que nunca acontece, em nenhum desenho:** ingerir e servir
+**Contagem:** 0 / 2 (⏭️ condicional). **O que nunca acontece, em nenhum desenho:** ingerir e servir
 uma base agregada de "proprietário → imóveis". Ver [riscos.md](riscos.md).
 
 ---
