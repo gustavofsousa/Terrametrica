@@ -59,3 +59,12 @@ class RelatorioIntersecoes:
 
     versao_base_id: str
     pares_materializados: int
+
+
+@dataclass(frozen=True, slots=True)
+class RelatorioCobertura:
+    """Retorno de `semear_cobertura` (Fatia 4): quantas linhas (município × camada de restrição)
+    foram semeadas em `cobertura` a partir do que a versão publicou (AD-009)."""
+
+    versao_base_id: str
+    linhas_semeadas: int
