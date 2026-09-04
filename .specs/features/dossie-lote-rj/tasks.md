@@ -9,21 +9,27 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/dossie-lote-rj/design.md`
-**Status**: Fatia 1 executada e validada (`validation.md`, PASS, 46 passed). **Fatia 2 em Draft,
-tasks abaixo aguardando aprovação — Fase 0 fechada, sem bloqueio técnico restante.**
+**Status**: Fatia 1 e Fatia 2 executadas e validadas (`validation.md`, PASS). **Fatia 3 em Draft,
+tasks abaixo aguardando aprovação — dado real já medido em `design.md` (seção "Fatia 3"), sem
+bloqueio técnico.**
 
 **Slice 1**: **Núcleo de domínio (rodável agora, sem Fase 0)**. Regras numéricas do produto
 + árvore de decisão da montagem do dossiê, atrás de um *port* de repositório, testadas com um fake
 em memória. Puro Python, `pytest` unit — não depende de PostGIS, ingestão nem egress `.gov.br`.
 
-**Slice 2**: **Adaptador PostGIS + ingestão SIGEF (walking skeleton)** — ver seção própria mais
-abaixo. Schema mínimo, adapters reais dos *ports* de T4, ingestão de limite RJ + SIGEF, publicação
-com guarda e swap atômico, prova fim-a-fim.
+**Slice 2**: **Adaptador PostGIS + ingestão SIGEF (walking skeleton)** — Schema mínimo, adapters
+reais dos *ports* de T4, ingestão de limite RJ + SIGEF, publicação com guarda e swap atômico,
+prova fim-a-fim.
+
+**Slice 3**: **CAR como camada de restrição (APP + Reserva Legal)** — ver seção própria mais abaixo.
+Fecha a AC1 da story "Restrições ambientais" (P1): `intersecoes_de` deixa de devolver `[]` fixo.
+Não inclui a segunda geometria/identidade CAR (P2, divergência com SIGEF) — decisão explícita,
+ver `design.md` "Fatia 3 — Escopo desta rodada".
 
 **Fatias seguintes (fora deste tasks.md ainda):**
-CAR (segunda geometria do lote rural) · camada urbana Niterói (SIGeo) · camadas de restrição
-(INEA/ICMBio/ANA) + `intersecao_materializada` · página de cobertura · API FastAPI +
-observabilidade · web MapLibre · gate jurídico P2.
+CAR como segunda geometria/identidade (P2, divergência SIGEF×CAR) · camada urbana Niterói (SIGeo) ·
+camadas de restrição do INEA/ICMBio/ANA (UC, inundação, deslizamento, corpo d'água) · página de
+cobertura (inclui `TD-002`) · API FastAPI + observabilidade · web MapLibre · gate jurídico P2.
 
 ---
 
@@ -703,5 +709,333 @@ não são seguros numa máquina de um dev só).
 | T12 | Ingestão — SIGEF | integration | integration | ✅ OK |
 | T13 | Ingestão — publicação | integration | integration | ✅ OK |
 | T14 | Fim-a-fim | integration | integration | ✅ OK |
+
+Nenhuma violação. Nenhum "testado em outra task" — cada task carrega seu próprio teste.
+
+---
+
+## Test Coverage Matrix — Fatia 3
+
+> Gerado a partir de `design.md` (seção "Testing Seams — Fatia 3") e do padrão já estabelecido na
+> Fatia 2 (`tests/integration/`) — mesmo tipo de teste, mesmo motivo: comportamento espacial real
+> (`ST_Intersects`/`ST_Intersection`, guarda de publicação) não é verificável contra fake em memória.
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Schema / migração SQL (`persistencia/migracoes/0003_*.sql`) | none | Build gate apenas (correção verificada indiretamente pelas tasks que usam) | — | build gate |
+| Ingestão — restrições CAR (`ingestao/restricao_car.py`) | integration | Happy path + filtro `ind_status='AT'` + validação/correção de geometria + mapeamento tipo/nome/categoria, para as duas camadas (APP e Reserva Legal) | `tests/integration/ingestao/test_restricao_car.py` | `pytest tests/integration -q` |
+| Ingestão — materialização (`ingestao/intersecoes.py`) | integration | 3 casos mínimos: intersecção plena, sem intersecção, intersecção <1% (marginal) — mesmos limiares de DOS-08 | `tests/integration/ingestao/test_intersecoes.py` | `pytest tests/integration -q` |
+| Persistência — adapter (`repositorio_lotes_postgis.py::intersecoes_de`) | integration | Mesmo contrato do Protocol `RepositorioLotes` (T4): devolve `IntersecaoBruta` real, não mais `[]` fixo | `tests/integration/persistencia/test_repositorio_lotes_postgis.py` | `pytest tests/integration -q` |
+| Ingestão — publicação (`ingestao/publicar.py`, extensão) | integration | Guarda de 90% cobre `Camada.APP`/`Camada.RESERVA_LEGAL` nas mesmas condições já testadas para `lote_rural` em T13 | `tests/integration/ingestao/test_publicar.py` | `pytest tests/integration -q` |
+| Fim-a-fim — `montar_dossie` com restrições reais | integration | 1 caso completo: clique num lote com APP/Reserva Legal materializadas → `itens_restricao` populado com área+pct+marginal corretos | `tests/integration/test_dossie_e2e.py` | `pytest tests/integration -q` |
+
+## Parallelism Assessment — Fatia 3
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --- | --- | --- | --- |
+| integration (mesmo modelo da Fatia 2, inalterado) | **No** | Container PostGIS efêmero via testcontainers; mesma restrição já registrada em `design.md` Risks & Concerns | Nenhuma infra de CI dedicada ainda |
+
+**Consequência**: nenhuma task desta fatia leva `[P]`, mesmo padrão da Fatia 2.
+
+## Gate Check Commands — Fatia 3
+
+| Gate Level | When to Use | Command |
+| --- | --- | --- |
+| Quick | Tasks só-unit (nenhuma nesta fatia) | `pytest tests/unit -q` |
+| Full | Após qualquer task de integração (checar `docker info` antes) | `pytest tests/unit tests/integration -q` |
+| Build | Fim de fase / tasks de config | `ruff check . && mypy src && pytest tests/unit tests/integration -q` |
+
+---
+
+## Execution Plan — Fatia 3
+
+### Phase 1: Schema (Sequential)
+
+```
+T15
+```
+
+### Phase 2: Ingestão das camadas de restrição (Sequential)
+
+```
+T15 → T16
+```
+
+### Phase 3: Materialização, leitura e guarda (Sequential)
+
+```
+T16 → T17 → T18
+T16 → T19
+```
+
+### Phase 4: Prova fim-a-fim (Sequential)
+
+```
+T18, T19 → T20
+```
+
+4 fases — mesmo padrão sequencial da Fatia 2 (ver Parallelism Assessment — Fatia 3). Execução
+inline recomendada; oferta de sub-agente por fase é decisão do momento do Execute.
+
+---
+
+## Task Breakdown — Fatia 3
+
+### T15: Schema — migração SQL da Fatia 3
+
+**What**: Migração `persistencia/migracoes/0003_fatia3_restricoes_car.sql` criando `restricao`
+(`id`, `tipo`, `nome`, `categoria`, `grau_suscetibilidade`, `geom geometry(MultiPolygon,4674)`,
+`versao_base_id`) e `intersecao_materializada` (`lote_id`, `restricao_id`, `area_intersecao_m2`,
+`versao_base_id`, FK composta para `lote_rural(id, versao_base_id)`), com índice GiST em
+`restricao.geom` (obrigatório — spatial join contra ~430k feições sem índice é inviável).
+**Where**: `src/terrametrica/persistencia/migracoes/0003_fatia3_restricoes_car.sql`
+**Depends on**: None (aditiva sobre `0001`/`0002`, infra já existe desde a Fatia 2)
+**Reuses**: modelo de dados de `design.md` (seção Data Models, tabela `restricao` já sketchada
+desde a Fatia 1, nunca criada)
+**Requirement**: base p/ DOS-07 (cruzamentos pré-calculados); AD-007 (materializado na ingestão)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`
+
+**Done when**:
+- [ ] `restricao` e `intersecao_materializada` criadas com os tipos de `design.md`
+- [ ] `restricao.tipo` tem `CHECK` para o vocabulário fechado de `TipoRestricao` (mínimo `'app'`,
+      `'reserva_legal'` nesta fatia — as demais entram em fatias futuras sem migração nova)
+- [ ] Índice GiST em `restricao.geom`
+- [ ] FK composta `intersecao_materializada(lote_id, versao_base_id) → lote_rural(id, versao_base_id)`
+- [ ] Gate check passa: `ruff check . && mypy src && pytest tests/unit -q`
+
+**Tests**: none (DDL — verificado funcionalmente por T16-T18)
+**Gate**: build
+
+**Commit**: `feat(persistencia): schema da Fatia 3 (restricao, intersecao_materializada)`
+
+---
+
+### T16: Ingestão — restrições CAR (APP + Reserva Legal)
+
+**What**: `ingestao/restricao_car.py` — `ingerir_app_car(caminho, versao, conexao) ->
+RelatorioCamada` e `ingerir_reserva_legal_car(caminho, versao, conexao) -> RelatorioCamada`,
+compartilhando um helper privado `_ingerir_camada_restricao_car(caminho, tipo, camada, versao,
+conexao)`. Lê shapefile via GeoPandas/`pyogrio`, filtra `ind_status == 'AT'`, valida/corrige
+geometria (`corrigir_geometria`/`para_multipolygon` — reuso de `validacao_geometria.py`, sem
+duplicar), mapeia `nome`=`nom_tema`, `categoria`=`cod_tema`, grava em `restricao` e carimba
+`proveniencia` (fonte='CAR/SICAR', link oficial do portal de download público).
+**Where**: `src/terrametrica/ingestao/restricao_car.py`
+**Depends on**: T15
+**Reuses**: `validacao_geometria.py` (T12, sem mudança); padrão de `sigef.py` (arquivo local, sem
+download programático — mesma decisão herdada da Fase 0 pro SICAR)
+**Requirement**: DOS-07 (repo.intersecoes_de — dado de entrada), DOS-10 (proveniência)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Fixture `.shp` sintética criada em `tests/fixtures/restricao_car/` para cada camada (poucas
+      feições, campos reais descobertos nesta sessão: `cod_tema`, `nom_tema`, `cod_imovel`,
+      `ind_status`), incluindo ao menos uma feição `ind_status != 'AT'` para provar o filtro
+- [ ] `ingerir_app_car`/`ingerir_reserva_legal_car` leem a fixture, filtram `AT`, gravam em
+      `restricao` com `tipo` correto
+- [ ] Feição inválida na fixture é corrigida e marcada (`geometria_corrigida`), não descartada
+      silenciosamente (mesmo padrão de T12)
+- [ ] `proveniencia` carimbada para `Camada.APP` e `Camada.RESERVA_LEGAL` com fonte e data
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~6 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): ingere restrições CAR (APP + Reserva Legal) a partir de export local`
+
+---
+
+### T17: Ingestão — materialização de intersecções lote × restrição
+
+**What**: `ingestao/intersecoes.py` — `materializar_intersecoes(versao, conexao) ->
+RelatorioIntersecoes` (novo dataclass em `ingestao/tipos.py`: `versao_base_id`,
+`pares_materializados: int`). Roda em SQL — não em loop Python — um `INSERT INTO
+intersecao_materializada SELECT ...` por `tipo` de restrição, cruzando `lote_rural.geom_sigef`
+com `restricao.geom` via `ST_Intersects` (usa o índice GiST de T15) e gravando
+`ST_Area(ST_Intersection(...)::geography)` como `area_intersecao_m2`.
+**Where**: `src/terrametrica/ingestao/intersecoes.py`
+**Depends on**: T16
+**Reuses**: `lote_rural` (Fatia 2, sem mudança); índice GiST de T15
+**Requirement**: DOS-07 (cruzamentos pré-calculados), AD-007 (materializado na ingestão, não em
+tempo de request)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Lote e restrição posicionados para intersecção plena (>1% da área do lote) geram 1 linha em
+      `intersecao_materializada` com a área correta
+- [ ] Lote e restrição sem sobreposição espacial não geram linha (não é "área zero", é ausência)
+- [ ] Lote e restrição com intersecção <1% da área do lote geram linha (a classificação
+      marginal/plena continua sendo decidida em `montagem.py`/`geometria.classificar_intersecao`,
+      não aqui — esta task só materializa a área bruta)
+- [ ] Rodar `materializar_intersecoes` duas vezes sobre a mesma versão não duplica linhas
+      (idempotência, DOS-26 — mesmo espírito de T8/T13)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~4 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): materializa intersecções lote×restrição via spatial join SQL`
+
+---
+
+### T18: Adapter — `RepositorioLotesPostGIS.intersecoes_de` real
+
+**What**: Substitui o `return []` fixo de `intersecoes_de` por uma leitura real de
+`intersecao_materializada JOIN restricao` para o `lote`/`versao` recebidos, devolvendo
+`list[IntersecaoBruta]` com `tipo`, `nome`, `area_intersecao`, `categoria`,
+`grau_suscetibilidade=None`.
+**Where**: `src/terrametrica/persistencia/repositorio_lotes_postgis.py`
+**Depends on**: T17
+**Reuses**: Protocol `RepositorioLotes` (T4, sem mudança de assinatura); `IntersecaoBruta` (T2)
+**Requirement**: DOS-07
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] `intersecoes_de` devolve as `IntersecaoBruta` reais materializadas por T17 para o lote/versão
+- [ ] Lote sem nenhuma intersecção materializada devolve lista vazia (não erro)
+- [ ] Mesmos ramos de borda do fake em memória (T5) — contrato do Protocol preservado
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(persistencia): intersecoes_de lê intersecao_materializada real (fim do stub [])`
+
+---
+
+### T19: Publicação — guarda de 90% cobre APP e Reserva Legal
+
+**What**: `ingestao/publicar.py` — estende `_CAMADAS_PUBLICADAS` com `Camada.APP.value` e
+`Camada.RESERVA_LEGAL.value`, e `_QUERY_CONTAGEM_POR_CAMADA` com `SELECT COUNT(*) FROM restricao
+WHERE tipo = %(tipo)s AND versao_base_id = %(versao)s` para cada uma. Mesma guarda de 90%, mesma
+decisão "reprova qualquer camada → publicação inteira rejeitada" (T13, sem mudança de lógica).
+**Where**: `src/terrametrica/ingestao/publicar.py`
+**Depends on**: T16
+**Reuses**: `_avaliar_camada`/`publicar_versao` (T13, sem mudança de lógica — só mais 2 entradas
+nos dicionários de configuração)
+**Requirement**: DOS-25 (guarda de 90%), DOS-28 (troca atômica)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Primeira publicação com `restricao` populada (sem versão anterior) passa a guarda para
+      `Camada.APP`/`Camada.RESERVA_LEGAL`, mesmo comportamento de T13 para as camadas já existentes
+- [ ] Segunda versão com <90% das feições de `restricao` (tipo `app` ou `reserva_legal`) da versão
+      anterior reprova a publicação inteira, mesmo com `lote_rural`/`limite_estado` passando
+      (mesma regra "qualquer camada reprova, tudo reprova" de T13)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): guarda de publicação cobre restrição CAR (app, reserva_legal)`
+
+---
+
+### T20: Prova fim-a-fim — dossiê com restrições reais materializadas
+
+**What**: Estende `tests/integration/test_dossie_e2e.py` (T14, sem tocar `montagem.py`): pipeline
+completo `ingerir_limite_rj → ingerir_sigef → ingerir_app_car → ingerir_reserva_legal_car →
+materializar_intersecoes → publicar_versao → montar_dossie(...)` sobre uma fixture SIGEF+CAR
+posicionada para ter intersecção real, e confirma `itens_restricao` populado com área, percentual
+e proveniência corretos.
+**Where**: `tests/integration/test_dossie_e2e.py`
+**Depends on**: T18, T19
+**Reuses**: `dossie/montagem.py` (T5, zero mudança — mesma prova de isolamento fake↔real de T14);
+fixtures de T12/T16
+**Requirement**: prova de DOS-07/08/10 sobre dado real; AD-007
+
+**Tools**:
+- MCP: NONE
+- Skill: `tdd`
+
+**Done when**:
+- [ ] Pipeline completo publica uma versão com `lote_rural` + `restricao` (app e reserva_legal) +
+      `intersecao_materializada`
+- [ ] `montar_dossie` sobre a coordenada da fixture devolve `Dossie` com `itens_restricao`
+      não-vazio, `pct_do_lote` e `marginal` calculados corretamente (via `geometria`, sem mudança)
+- [ ] Coordenada dentro do lote mas sem sobreposição com nenhuma restrição devolve
+      `itens_restricao == ()` (ausência, não erro)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `test(dossie): prova fim-a-fim com restrições CAR materializadas (Fatia 3 fechada)`
+
+---
+
+## Parallel Execution Map — Fatia 3
+
+```
+Phase 1 (Sequential):
+  T15
+
+Phase 2 (Sequential):
+  T15 ──→ T16
+
+Phase 3 (Sequential):
+  T16 ──→ T17 ──→ T18
+  T16 ──→ T19
+
+Phase 4 (Sequential):
+  T18, T19 ──→ T20
+```
+
+Nenhuma task leva `[P]` nesta fatia — mesmo motivo da Fatia 2 (containers Docker concorrentes não
+são seguros numa máquina de um dev só, ver Parallelism Assessment — Fatia 3).
+
+---
+
+## Task Granularity Check — Fatia 3
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| T15: Schema | 1 arquivo de migração | ✅ Granular |
+| T16: Ingestão restrição CAR | 1 arquivo, 2 funções públicas + 1 helper privado compartilhado (mesma lógica, só `tipo` muda) | ✅ Granular — cohesivo, mesmo padrão de "2-3 coisas relacionadas no mesmo arquivo" |
+| T17: Materialização de intersecções | 1 função | ✅ Granular |
+| T18: Adapter intersecoes_de | 1 método de 1 Protocol | ✅ Granular |
+| T19: Guarda de publicação | 2 entradas de configuração em função já existente | ✅ Granular |
+| T20: Prova e2e | 1 teste, zero código de produção novo | ✅ Granular |
+
+## Diagram-Definition Cross-Check — Fatia 3
+
+| Task | Depends On (body) | Diagram Shows | Status |
+| --- | --- | --- | --- |
+| T15 | None | (raiz) | ✅ Match |
+| T16 | T15 | T15 → T16 | ✅ Match |
+| T17 | T16 | T16 → T17 | ✅ Match |
+| T18 | T17 | T17 → T18 | ✅ Match |
+| T19 | T16 | T16 → T19 | ✅ Match |
+| T20 | T18, T19 | T18, T19 → T20 | ✅ Match |
+
+## Test Co-location Validation — Fatia 3
+
+| Task | Code Layer Created/Modified | Matrix Requires | Task Says | Status |
+| --- | --- | --- | --- | --- |
+| T15 | Schema / migrações | none | none | ✅ OK |
+| T16 | Ingestão — restrição CAR | integration | integration | ✅ OK |
+| T17 | Ingestão — materialização | integration | integration | ✅ OK |
+| T18 | Persistência — adapter intersecoes_de | integration | integration | ✅ OK |
+| T19 | Ingestão — publicação | integration | integration | ✅ OK |
+| T20 | Fim-a-fim | integration | integration | ✅ OK |
 
 Nenhuma violação. Nenhum "testado em outra task" — cada task carrega seu próprio teste.

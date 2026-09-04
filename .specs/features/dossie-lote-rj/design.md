@@ -101,6 +101,77 @@ download em si. Isso não é uma decisão nova; é a Fase 0 se refletindo no con
 
 ---
 
+## Fatia 3 — CAR como camada de restrição (escopo desta rodada)
+
+**Decisão de prioridade (não estava no handoff original):** o handoff da Fatia 2 (`.specs/STATE.md`)
+descrevia o próximo candidato "CAR" como "segunda geometria do lote rural" — mas essa leitura
+conflita com a priorização real do `spec.md`. O spec separa CAR em **dois papéis distintos**:
+(1) **P1** (linha 105, story "Restrições ambientais") — CAR como **camada de restrição** (APP +
+Reserva Legal) cruzada com o lote, exatamente o diferencial do produto ("o cruzamento é o que
+ninguém entrega pronto", Problem Statement); (2) **P2** (story "Divergência entre fontes exposta",
+linha 154) — CAR como **segunda geometria/identidade** do imóvel, mostrada lado a lado do SIGEF
+com percentual de divergência (AD-003). A Fatia 3 implementa **só o papel P1**. O papel P2 (nova
+tabela `declaracao_car`, novo tipo `LoteHit`, resolução de clique em terra só-declarada-no-CAR sem
+certificação SIGEF) fica **explicitamente fora** — decisão confirmada com o usuário nesta rodada de
+design, não descoberta tarde.
+
+**Medição real das duas camadas** (mesmos arquivos já baixados na Fase 0, `data/raw/rj/APPS.zip` e
+`RESERVA-LEGAL.zip`, nunca antes abertos/perfilados):
+
+| Camada | Feições totais | `ind_status='AT'` (ativas) | CRS | Geometria |
+| --- | --- | --- | --- | --- |
+| APP (`APPS.zip`) | 416.927 | **383.213** | EPSG:4674 | Polygon/MultiPolygon, 0 nula/vazia (não checado ponto-a-ponto — ver Risks) |
+| Reserva Legal (`RESERVA-LEGAL.zip`) | 52.179 | **47.348** | EPSG:4674 | idem |
+
+Campos (iguais nas duas camadas): `cod_tema` (subtipo, ex. `APP_RIO_ATE_10`, `ARL_PROPOSTA` — 36
+valores distintos em APP, 3 em Reserva Legal), `nom_tema` (descrição legível), `cod_imovel`
+(formato confirmado 100% conforme: `RJ-{código IBGE 7 dígitos}-{uuid32hex}` — mesmo dado usado por
+`AREA-IMOVEL.zip`), `num_area`, `ind_status` (`AT`/`PE`/`CA`/`SU` — mesmo vocabulário do CAR
+"Perímetros dos imóveis", já filtrado para `AT` no design anterior de `ingerir_sigef`-equivalente).
+
+**Entra na Fatia 3**:
+- Tabela genérica `restricao` (já antecipada no Data Models abaixo desde a Fatia 1/2, não usada
+  até agora) e `intersecao_materializada` — concretizadas pela primeira vez, com o schema refinado
+  descrito na seção Data Models.
+- `ingestao/restricao_car.py`: `ingerir_app_car(caminho, versao, conexao)` e
+  `ingerir_reserva_legal_car(caminho, versao, conexao)` — mesmo padrão de `sigef.py` (arquivo local
+  já exportado, sem download programático — decisão herdada da Fase 0, SICAR não automatiza).
+  Filtra `ind_status == 'AT'`; mapeia `tipo` → `Camada.APP`/`Camada.RESERVA_LEGAL`, `nome` →
+  `nom_tema`, `categoria` → `cod_tema`, `grau_suscetibilidade` → `NULL` (não se aplica a estas duas
+  camadas — é campo do INEA, fatia futura).
+- `ingestao/intersecoes.py`: `materializar_intersecoes(versao, conexao) -> RelatorioIntersecoes` —
+  spatial join em SQL (`ST_Intersects` + `ST_Intersection`/`ST_Area`) entre `lote_rural.geom_sigef`
+  e `restricao.geom`, uma linha por par que intersecta. Roda no servidor (PostGIS), não em Python —
+  ver Risks & Concerns sobre volume.
+- `RepositorioLotesPostGIS.intersecoes_de` deixa de devolver `[]` fixo: lê `intersecao_materializada
+  JOIN restricao` para o lote e versão.
+- `publicar.py`: `_CAMADAS_PUBLICADAS` e `_QUERY_CONTAGEM_POR_CAMADA` ganham `Camada.APP.value` e
+  `Camada.RESERVA_LEGAL.value`, contando `restricao WHERE tipo = ...` — mesma guarda de 90%,
+  nenhuma lógica nova.
+- Migração `0003_fatia3_restricoes_car.sql`.
+
+**Confirmação de reuso (Code Reuse, DOS-07/08 já prontos):** `dossie/montagem.py` **não muda uma
+linha**. `_restricoes_esperadas` já inclui `Camada.APP`/`Camada.RESERVA_LEGAL` em
+`_RESTRICOES_RURAIS` desde a Fatia 1; `classificar_intersecao` (marginal <1%) já existe em
+`geometria/regras.py` e já é chamado por `_avaliar_intersecao`. O contrato `IntersecaoBruta` (T4)
+absorve o dado real sem alteração — mesma prova de isolamento fake↔real que T14 fez para SIGEF.
+
+**Fica fora da Fatia 3 (explícito)**:
+- CAR "Perímetros dos imóveis" (`AREA-IMOVEL.zip`) como segunda geometria/identidade — P2, ver
+  decisão de prioridade acima.
+- Seeding de `cobertura` (município × camada) — gap **pré-existente** da Fatia 2: nenhuma camada,
+  nem `lote_rural`/SIGEF, semeia `cobertura` hoje (tabela existe, nunca é escrita por nenhuma
+  ingestão). Não é regressão desta fatia; promovido a `TD-002` (`.specs/TECH-DEBT.md`) porque, sem
+  isso, toda seção de restrição aparece como "sem cobertura no município" (DOS-11) mesmo com dado
+  real ingerido.
+- Malha municipal IBGE / TD-001 — permanece aberto. Não é necessário para esta fatia: o município
+  de cada feição CAR vem do próprio `cod_imovel` (código IBGE embutido), mesmo padrão que
+  `lote_rural.municipios` já usa para o `municipio_` do SIGEF.
+- Camada urbana Niterói (SIGeo) e as demais camadas de restrição (UC/inundação/deslizamento/corpo
+  d'água — INEA/ICMBio) — fontes diferentes, fatias futuras.
+
+---
+
 ## Perspective Sweep (Complex)
 
 - **Structure** — módulos por domínio (`ingestao`, `dossie`, `geometria`, `cobertura`,
@@ -224,12 +295,17 @@ restricao(  -- APP | reserva_legal | uc | inundacao | deslizamento | corpo_dagua
   id, tipo, nome, categoria, grau_suscetibilidade,
   geom geometry(MultiPolygon,4674), versao_base_id
 )
+-- Concretizada na Fatia 3: só tipo IN ('app', 'reserva_legal') populado, fonte CAR
+-- (`nome`=nom_tema, `categoria`=cod_tema). Demais tipos (uc/inundacao/deslizamento/corpo_dagua,
+-- fonte INEA/ICMBio) ficam para fatias futuras, mesma tabela.
 
 -- Read-model: o que faz o clique ser barato (materializado na ingestão)
+-- Fatia 3 concretiza com o shape mínimo que `IntersecaoBruta`/`intersecoes_de` (T4) já exigem —
+-- pct_do_lote e marginal são cálculo puro e barato (`geometria.classificar_intersecao`), rodam em
+-- `montagem.py` na leitura, não precisam ser materializados; lote_kind/tipo_restricao vêm do JOIN
+-- com lote_rural/restricao, não duplicados aqui.
 intersecao_materializada(
-  lote_id, lote_kind /* rural|urbano */, restricao_id, tipo_restricao,
-  area_m2, pct_do_lote, marginal bool,     -- <1% => marginal (DOS-08)
-  versao_base_id
+  lote_id, restricao_id, area_intersecao_m2, versao_base_id
 )
 
 proveniencia(camada, versao_base_id, fonte, data_extracao, link_oficial)  -- (DOS-10/05)
@@ -262,6 +338,17 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 
 ---
 
+## Testing Seams — Fatia 3
+
+| Seam (onde o teste se prende) | Existente ou Novo | O que um teste afirma através dele | Reusa |
+| --- | --- | --- | --- |
+| `RepositorioLotes.intersecoes_de` (Protocol, T4) | Existente — comportamento muda | Contra dado real, devolve `IntersecaoBruta` com área correta em vez de `[]` fixo | Mesmo contrato T4; fixtures de `tests/fakes` para o caso "sem restrição" |
+| `ingerir_app_car(caminho, versao, conexao)` / `ingerir_reserva_legal_car(...)` — assinatura | **Novo** | Validação + reprojeção + staging a partir de arquivo local, filtro `ind_status='AT'`, mapeamento tipo/nome/categoria | Mesmo padrão de `ingerir_sigef` (T12); fixture `.shp` sintética com os campos reais descobertos aqui (`cod_tema`, `nom_tema`, `ind_status`) |
+| `materializar_intersecoes(versao, conexao)` — assinatura | **Novo** | Contra PostGIS real: lote + restrição posicionados para intersectar (plena), não intersectar, e intersectar <1% (marginal) — 3 mutantes mínimos | Container PostGIS efêmero (T8); `classificar_intersecao` (T4/geometria) para o limiar |
+| `publicar_versao` — guarda de 90% | Existente — extensão | `Camada.APP`/`Camada.RESERVA_LEGAL` entram na guarda e bloqueiam publicação junto das demais camadas se reprovarem | Mesmo mecanismo de `_avaliar_camada` (T13), só mais 2 entradas em `_CAMADAS_PUBLICADAS` |
+
+---
+
 ## Error Handling Strategy
 
 | Error Scenario | Handling | User Impact |
@@ -289,6 +376,9 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 | SIGEF/CAR não têm download programático (login GOV.BR + captcha, ver Fase 0) | `.specs/STATE.md` (Fase 0) | `ingerir_sigef` não pode buscar a fonte sozinho | Recebe caminho de arquivo já exportado por ação humana periódica; documentado como pendência operacional recorrente, não bug |
 | Testes de integração exigem Docker rodando localmente (testcontainers) | (Fatia 2, novo) | Suíte de integração falha silenciosamente sem Docker | `Done when` de cada task de integração inclui checar `docker info` antes; documentar em `docs/DEV-SETUP.md` |
 | Containers Docker concorrentes podem disputar recursos numa máquina de um dev só | (Fatia 2, novo) | Testes de integração paralelos podem ficar instáveis | Testes de integração marcados **não paralelo-seguros** nesta fatia (ver `tasks.md`); paralelizar fica para quando houver CI dedicado |
+| Volume real ~30x maior que o SIGEF: 383.213 (APP) + 47.348 (Reserva Legal) feições ativas, vs 14.664 do SIGEF | `data/raw/rj/APPS.zip`, `RESERVA-LEGAL.zip` (medido nesta sessão) | O padrão de `sigef.py` (loop `for _, linha in feicoes.iterrows(): cursor.execute(...)`, uma linha por vez) escala mal em ~430k features — ingestão lenta, possível timeout de teste | Tasks especifica inserção em lote (`executemany`/`copy` do psycopg3, não uma chamada `execute` por feição); `materializar_intersecoes` roda o cruzamento espacial em SQL (índice GiST), nunca em loop Python |
+| Geometria zero-área/degenerada não é um caso conhecido do SIGEF (Fase 0 mediu 0 casos), mas não foi medida ponto-a-ponto para APP/Reserva Legal (só contagem por `ind_status`/`cod_tema`) — a amostra já mostra pelo menos um `nom_tema` com `num_area=0.0000` (`APP_VAZIO`) | `data/raw/rj/APPS.zip` (amostra) | Se a geometria em si (não só o atributo `num_area`) for vazia/degenerada, `corrigir_geometria`/`para_multipolygon` (`validacao_geometria.py`) não filtram isso hoje — só corrigem inválida | Tasks inclui medir `geometry.is_empty`/área real antes de decidir; se houver casos reais, estender `validacao_geometria.py` (função compartilhada, não duplicar) para pular geometria vazia em vez de inserir um `MultiPolygon` sem conteúdo |
+| `cobertura` nunca é semeada por nenhuma ingestão (nem `lote_rural`/SIGEF hoje) | `persistencia/migracoes/0001_fatia2_sigef.sql:54` (schema existe, nunca é escrito) | Toda seção de restrição aparece "sem cobertura no município" (DOS-11) mesmo com dado real ingerido, para qualquer camada | Aceito, não mitigado nesta fatia — promovido a `TD-002` (`.specs/TECH-DEBT.md`) |
 
 ---
 
@@ -311,3 +401,11 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 > As desta fatia (driver, migração, leitura de shapefile, testcontainers) ficam registradas aqui como
 > convenção de implementação — promovidas a `AD-009` no handoff quando a Fatia 2 fechar, se
 > continuarem valendo além dela.
+
+| Decision (Fatia 3) | Choice | Rationale |
+| --- | --- | --- |
+| Escopo do papel de CAR nesta fatia | Só P1 (restrição APP+Reserva Legal); P2 (segunda geometria/divergência) explicitamente adiado | `spec.md` prioriza os dois papéis de forma diferente; construir P2 antes do P1 estar fechado quebra a disciplina de MVP do AGENTS.md — decisão confirmada com o usuário, não assumida |
+| Filtro de status CAR | Só `ind_status='AT'` (ativo) | `PE`/`CA`/`SU` não são declaração vigente; mesmo raciocínio já aplicado ao `status='CERTIFICADA'` do SIGEF. Confirmado: filtrar para `AT` elimina 100% das duplicatas de `cod_imovel` na camada "Perímetros" (24 pares AT+CA → 0 duplicata) |
+| Schema de restrição | Uma tabela genérica `restricao(tipo, ...)`, já sketchada desde a Fatia 1, em vez de uma tabela por camada | Reuse-first: a tabela já existe no design, nunca foi criada; criar `restricao_app`/`restricao_reserva_legal` separadas duplicaria schema que as próximas camadas (UC/INEA) reusariam de graça |
+| Cálculo de área da intersecção | `ST_Intersection`/`ST_Area` em SQL, spatial join contra índice GiST — nunca em loop Python/Shapely | Volume ~430k × 14.664 inviabiliza `STRtree` em Python no caminho de ingestão sem otimização; PostGIS já paga esse custo bem numa junção indexada |
+| `pct_do_lote`/`marginal` não materializados | Ficam em `montagem.py` (cálculo puro, `geometria.classificar_intersecao`), só `area_intersecao_m2` é persistida | Já é o contrato real de `IntersecaoBruta`/`intersecoes_de` (T4/T5); materializar de novo duplicaria uma conta barata que já roda na leitura — o sketch original da Fatia 1 (`pct_do_lote`, `marginal` na tabela) nunca foi implementado dessa forma |

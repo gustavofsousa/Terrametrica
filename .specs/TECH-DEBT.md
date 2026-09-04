@@ -37,3 +37,36 @@ só pra fechar este TD.
 grava o código IBGE bruto do campo `municipio_` do shapefile (ex. `3304557`), não o nome do
 município, porque não há malha código→nome disponível nesta fatia. Some junto quando a malha
 municipal for ingerida.
+
+---
+
+## TD-002 — `cobertura` nunca é semeada por nenhuma ingestão
+
+**Status:** open
+**Opened:** 2026-09-04
+**Origin:** Encontrado durante o design da Fatia 3 (`.specs/features/dossie-lote-rj/design.md`,
+seção "Fatia 3"). A tabela `cobertura` (município × camada → tem dado / data de extração) existe
+desde a migração `0001_fatia2_sigef.sql`, mas **nenhuma ingestão até agora a escreve** — nem
+`ingerir_limite_rj`, nem `ingerir_sigef`, e a Fatia 3 (CAR como restrição) também não vai escrevê-la
+(fora do escopo desta rodada, ver design.md). `montagem.py:_montar_do_lote` lê `cobertura_de` e
+trata `registro is None` como "sem cobertura" (DOS-11) — então, hoje, **toda** camada não-lote de
+**todo** dossiê aparece marcada "sem cobertura no município", mesmo quando o dado foi realmente
+ingerido para o estado inteiro.
+
+**What to investigate / change:**
+1. Decidir onde a seed de `cobertura` deveria acontecer: por camada (cada `ingerir_*` grava sua
+   própria cobertura por município) ou centralizado (um passo separado que varre o que foi
+   publicado). A primeira opção é mais simples mas replica a decisão N vezes; a segunda precisa
+   de uma lista de municípios do RJ (já existe: `docs/research/municipios-rj/`), independente da
+   malha geométrica de TD-001.
+2. Cobertura estadual (SIGEF, CAR-restrição) e cobertura municipal (Niterói/urbano) têm
+   granularidade diferente — o design de seed precisa cobrir os dois casos, não só copiar o padrão
+   de um pros dois.
+
+**Impact if ignored:** Nenhum dossiê real mostra "camada disponível" para nada além do lote em si
+— a proveniência funciona (DOS-10), mas a UX de "sem cobertura" (DOS-11) mente sistematicamente
+sobre camadas que na verdade têm dado.
+
+**Revisit trigger:** Antes de qualquer fatia que dependa de `cobertura_de` para uma decisão visível
+ao usuário no P1 real (não só em teste) — o mais tardar quando o painel web (`web/`) for construído
+e precisar renderizar esse estado de verdade.
