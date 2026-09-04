@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "uc": "APA de Teste Sobreposta",
+        "categoria": "APA",
+        "jurisdicao": "Estadual",
+        "tipo": "US",
+        "cod_cnuc": "0000.00.0001",
+        "ano_criacao": "2001",
+        "uf_abrang": "RJ",
+        "dt_atualiz": "09/2024"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.103, -22.903], [-43.099, -22.903], [-43.099, -22.899], [-43.103, -22.899], [-43.103, -22.903]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "uc": "Reserva Biológica de Teste Distante",
+        "categoria": "REBIO",
+        "jurisdicao": "Federal",
+        "tipo": "PI",
+        "cod_cnuc": "0000.00.0002",
+        "ano_criacao": "1998",
+        "uf_abrang": "RJ",
+        "dt_atualiz": "09/2024"
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [[[[-43.51, -22.71], [-43.49, -22.71], [-43.49, -22.69], [-43.51, -22.69], [-43.51, -22.71]]]]
+      }
+    }
+  ]
+}
