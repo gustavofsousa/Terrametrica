@@ -5,7 +5,8 @@ fronteira de negócio), regra "validate at the boundary" e "make illegal states
 unrepresentable" do AGENTS.md.
 """
 
-from datetime import date
+from dataclasses import fields
+from datetime import date, datetime
 
 import pytest
 
@@ -14,15 +15,21 @@ from terrametrica.dominio.modelos import (
     AreaM2,
     Camada,
     CampoComProveniencia,
+    Conta,
     Coordenada,
+    EntradaAuditoria,
     ErroValidacao,
     ForaDoRJ,
+    Indisponivel,
     LoteRural,
+    Negado,
     PapelConta,
+    Permitido,
     Proveniencia,
     SemLote,
     SituacaoCertificacao,
     Sobreposicao,
+    TipoEventoAuditoria,
     TipoRestricao,
     VersaoBase,
 )
@@ -122,3 +129,65 @@ class TestTiposResultado:
         )
         with pytest.raises(ErroValidacao, match="sobreposição"):
             Sobreposicao(candidatos=(lote,))
+
+
+class TestGateJuridico:
+    """GATE-01, 02, 04, 05, 06 — value objects do gate jurídico (P2)."""
+
+    def test_conta_guarda_id_e_papel(self) -> None:
+        conta = Conta(id="c1", papel=PapelConta.HABILITADO_JURIDICAMENTE)
+        assert conta.id == "c1"
+        assert conta.papel is PapelConta.HABILITADO_JURIDICAMENTE
+
+    def test_conta_nao_representa_dado_pessoal_de_proprietario(self) -> None:
+        # GATE-06: garantia estrutural — nenhum campo pode carregar nome/CPF/CNPJ
+        nomes_de_campo = {f.name for f in fields(Conta)}
+        assert nomes_de_campo == {"id", "papel"}
+        assert not nomes_de_campo & {"nome", "cpf", "cnpj"}
+
+    def test_tipo_evento_auditoria_e_fechado(self) -> None:
+        assert {t.value for t in TipoEventoAuditoria} == {"consulta_registral", "promocao"}
+
+    def test_entrada_auditoria_de_consulta_guarda_finalidade_e_lote(self) -> None:
+        # GATE-05: identidade, finalidade declarada, lote e instante
+        instante = datetime(2026, 9, 3, 12, 0)
+        entrada = EntradaAuditoria(
+            id="log1",
+            ts=instante,
+            conta_id="c1",
+            tipo=TipoEventoAuditoria.CONSULTA_REGISTRAL,
+            finalidade="due diligence de compra",
+            lote_id="RJ-123",
+        )
+        assert entrada.conta_id == "c1"
+        assert entrada.finalidade == "due diligence de compra"
+        assert entrada.lote_id == "RJ-123"
+        assert entrada.ts == instante
+        assert entrada.promovido_por is None
+        assert entrada.credencial_verificada is None
+
+    def test_entrada_auditoria_de_promocao_guarda_quem_quando_credencial(self) -> None:
+        # GATE-04: quem promoveu, quando e sob qual credencial verificada
+        instante = datetime(2026, 9, 3, 13, 30)
+        entrada = EntradaAuditoria(
+            id="log2",
+            ts=instante,
+            conta_id="c1",
+            tipo=TipoEventoAuditoria.PROMOCAO,
+            promovido_por="operador-01",
+            credencial_verificada="OAB/RJ 123456",
+        )
+        assert entrada.promovido_por == "operador-01"
+        assert entrada.credencial_verificada == "OAB/RJ 123456"
+        assert entrada.ts == instante
+
+    def test_negado_traz_mensagem_de_recusa(self) -> None:
+        assert Negado().mensagem == "acesso negado: papel da conta não habilita dado registral"
+
+    def test_permitido_e_negado_sao_tipos_distintos(self) -> None:
+        assert isinstance(Permitido(), Permitido)
+        assert not isinstance(Permitido(), Negado)
+
+    def test_indisponivel_traz_mensagem_padrao_da_versao(self) -> None:
+        # GATE-02: "indisponível nesta versão" para todos os papéis
+        assert Indisponivel().mensagem == "indisponível nesta versão"

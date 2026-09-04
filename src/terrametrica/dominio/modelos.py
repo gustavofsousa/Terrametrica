@@ -11,7 +11,7 @@ Princípios aplicados (AGENTS.md):
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
 METROS_QUADRADOS_POR_HECTARE = 10_000.0
@@ -293,3 +293,76 @@ class Dossie:
 
 
 ResultadoDossie = Dossie | SemLote | Sobreposicao | ForaDoRJ
+
+
+# --------------------------------------------------------------------------- #
+# Gate jurídico (P2) — fronteira arquitetada, sem dado pessoal (AD-002)
+# --------------------------------------------------------------------------- #
+
+
+class TipoEventoAuditoria(StrEnum):
+    """Tipo de evento do log de auditoria do gate jurídico (GATE-04/05)."""
+
+    CONSULTA_REGISTRAL = "consulta_registral"
+    PROMOCAO = "promocao"
+
+
+@dataclass(frozen=True, slots=True)
+class Conta:
+    """Conta do produto, com exatamente um papel (GATE-01).
+
+    Não tem campo capaz de carregar nome, CPF ou CNPJ de proprietário — a
+    ausência é garantia estrutural de GATE-06, não uma regra validada em runtime.
+    """
+
+    id: str
+    papel: PapelConta
+
+
+@dataclass(frozen=True, slots=True)
+class EntradaAuditoria:
+    """Uma entrada do log de auditoria: consulta registral ou promoção de papel
+    (GATE-04/05). Campos não aplicáveis ao `tipo` do evento ficam `None`.
+    """
+
+    id: str
+    ts: datetime
+    conta_id: str
+    tipo: TipoEventoAuditoria
+    finalidade: str | None = None
+    lote_id: str | None = None
+    promovido_por: str | None = None
+    credencial_verificada: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Permitido:
+    """Acesso a dado registral permitido (GATE-03)."""
+
+
+@dataclass(frozen=True, slots=True)
+class Negado:
+    """Acesso a dado registral negado (GATE-03)."""
+
+    MENSAGEM = "acesso negado: papel da conta não habilita dado registral"
+
+    @property
+    def mensagem(self) -> str:
+        return self.MENSAGEM
+
+
+ResultadoAcesso = Permitido | Negado
+
+
+@dataclass(frozen=True, slots=True)
+class Indisponivel:
+    """Seção de proprietário indisponível nesta versão (GATE-02, AD-002).
+
+    Única variante enquanto `CAMADA_REGISTRAL_LIGADA` for `False`; o tipo-resultado
+    fica pronto para uma variante `Disponivel` futura sem quebrar a assinatura.
+    """
+
+    mensagem: str = "indisponível nesta versão"
+
+
+EstadoSecao = Indisponivel
