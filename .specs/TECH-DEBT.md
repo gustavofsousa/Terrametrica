@@ -32,3 +32,8 @@ produção contra o adapter real — funciona hoje só no fake em memória (T5).
 **Revisit trigger:** Quando a Fatia 3+ (CAR, camada urbana Niterói, ou qualquer trabalho que
 precise de contexto municipal) começar — ingerir a malha municipal nesse momento, não isoladamente
 só pra fechar este TD.
+
+**Nota (2026-09-03, T12):** mesma causa raiz aparece na ingestão SIGEF — `lote_rural.municipios`
+grava o código IBGE bruto do campo `municipio_` do shapefile (ex. `3304557`), não o nome do
+município, porque não há malha código→nome disponível nesta fatia. Some junto quando a malha
+municipal for ingerida.
