@@ -225,8 +225,8 @@ uma área que ainda não está mapeada nas bases oficiais.
 | DOS-04 | P1: Dossiê do lote | Design | Pending |
 | DOS-05 | P1: Dossiê do lote | Design | Pending |
 | DOS-06 | P1: Restrições | Design | Pending |
-| DOS-07 | P1: Restrições | Design | Pending |
-| DOS-08 | P1: Restrições | Design | Pending |
+| DOS-07 | P1: Restrições | Fatia 3 | ✅ Verified |
+| DOS-08 | P1: Restrições | Fatia 3 | ✅ Verified |
 | DOS-09 | P1: Restrições | Design | Pending |
 | DOS-10 | P1: Proveniência | Design | Pending |
 | DOS-11 | P1: Proveniência | Design | Pending |

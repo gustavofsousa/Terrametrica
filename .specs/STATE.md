@@ -84,38 +84,47 @@ robusto a ambos (CRS é config; camada urbana fica atrás de cobertura declarada
 ## Handoff
 
 **Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 2 — adaptador PostGIS + ingestão SIGEF (walking
-skeleton)** (`tasks.md`, seção Fatia 2, T6–T14). Validação PASS registrada em
-`.specs/features/dossie-lote-rj/validation.md` (seção Fatia 2): gate verde (ruff 0, mypy strict 0,
-94 passed — 30 de integração), sensor de discriminação 3/3 mutantes mortos.
-**Commits (Fatia 2):** `7409f9f` design+tasks · `6bbc532` T6 infra dev · `e7848b5` T7 schema ·
-`745f0a0` T8 conexão/migração · `d62ef3d`+`195321a` T9 adapter lotes · `1de5056` T10 adapter limite
-· `6f26078` T11 ingestão limite RJ (geobr) · `1209f09` T12 ingestão SIGEF · `4fed269` T13
-publicação c/ guarda+swap · `fb27b20` T14 prova e2e · `a8e2037`/`2687fba`/`1770a98` docs/validação.
-Nada pendente de commit no código da Fatia 2. **Nada foi dado push** — só local.
-**O que existe agora, além da Fatia 1:** `persistencia/` (conexão psycopg, runner de migração
-idempotente, schema SQL 0001+0002, adapters reais `RepositorioLotesPostGIS`/`LimiteEstadoPostGIS`
-implementando os *ports* de T4 sem mudá-los) e `ingestao/` (`limite_rj.py` via geobr real,
-`sigef.py` a partir de arquivo local, `publicar.py` com guarda de 90%+swap atômico,
-`tipos.py`/`validacao_geometria.py` compartilhados). `montar_dossie` (T5) roda sem nenhuma mudança
-sobre os adapters reais — prova que os *ports* isolaram fake↔real (T14).
-**Recorte desta fatia:** só SIGEF (rural). CAR, camada urbana (Niterói/SIGeo), qualquer camada de
-restrição e `intersecao_materializada` ficam fora — decisão explícita pra provar o pipeline
-fim-a-fim antes de somar fontes.
-**Tech debt aberto:** `.specs/TECH-DEBT.md` TD-001 — `municipio_em` levanta `NotImplementedError`
-(sem malha municipal IBGE nesta fatia); `lote_rural.municipios` guarda código IBGE bruto, não
-nome. Revisitar quando a malha municipal entrar (provavelmente junto de CAR ou camada urbana).
-**Gaps não-bloqueantes registrados no Verifier:** DOS-04 (`SemLote`) sem cobertura real (cai em
-TD-001); DOS-26 (idempotência) não é asserido por execução dupla nesta fatia — nenhum dos dois
-consta nos "Done when" de T6-T14, ver `validation.md` seção Fatia 2 para detalhe.
-**Achado operacional:** houve uma sessão concorrente de outro Claude Code no mesmo repo durante
-esta execução (feature `gate-juridico-p2`/`autorizacao`, commits intercalados). Sem conflito —
-cada sessão só tocou seus próprios arquivos — mas vale checar com o usuário se as duas frentes
-foram coordenadas.
-**Próximo passo:** Fatia 3 — candidatos, em ordem de valor: (a) CAR (segunda geometria do lote
-rural, AD-003) reusando o mesmo padrão de `ingestao/sigef.py`; (b) camada urbana Niterói via SIGeo
-(já confirmada acessível em Fase 0, 82.199 feições); (c) malha municipal IBGE (fecha TD-001). Sem
-bloqueio técnico — Fase 0 está fechada pras três.
+**Fase atual:** Execute concluído para a **Fatia 3 — CAR como camada de restrição (APP + Reserva
+Legal)** (`tasks.md`, seção Fatia 3, T15–T20). Validação **PASS** por Verifier independente (author
+≠ verifier, worktree isolado) registrada em `.specs/features/dossie-lote-rj/validation.md` (seção
+Fatia 3): gate verde (ruff 0, mypy strict 0, 111 passed — +17 vs baseline 94), sensor 3/4 mutantes
+mortos na 1ª rodada; o 4º sobrevivente (M2, `area_m2 > 0` do `intersecoes.py`) foi fechado com um
+teste de toque-de-borda área-zero (confirmado matar o mutante). DOS-07 e DOS-08 marcados
+`✅ Verified` em `spec.md`.
+**Commits (Fatia 3):** `fe2f2f4` design+tasks+TD-002 · `fd1ebc5` T16 ingestão CAR · `cf11559` T17
+materialização · `db94e68` T18 `intersecoes_de` real · `0a7ffcc` T19 guarda publicação ·
+`b095437` T20 prova e2e · `74eb62e` teste toque-de-borda (mata M2) + validation.md. A migração
+`0003` foi commitada junto de `fe2f2f4`. **Nada foi dado push** — só local (`main` está 30 commits
+à frente de `origin/main`).
+**Escopo desta fatia:** SÓ o papel P1 de CAR — restrição (APP + Reserva Legal) cruzada com o lote,
+materializada na ingestão. O papel P2 (CAR como segunda geometria/identidade, divergência SIGEF×CAR,
+AD-003) foi **deliberadamente adiado** — decisão confirmada com o usuário no design (o handoff da
+Fatia 2 descrevia "CAR = segunda geometria", mas isso conflitava com a priorização do `spec.md`).
+**O que existe agora, além das Fatias 1/2:** `ingestao/restricao_car.py`
+(`ingerir_app_car`/`ingerir_reserva_legal_car`, filtro `ind_status='AT'`, grava em `restricao`),
+`ingestao/intersecoes.py` (`materializar_intersecoes` — spatial join SQL com índice GiST, idempotente
+via `ON CONFLICT`), `RepositorioLotesPostGIS.intersecoes_de` agora lê `intersecao_materializada`
+(fim do stub `[]`), `publicar.py` estende a guarda de 90% a `app`/`reserva_legal`. Schema `0003`
+cria `restricao` + `intersecao_materializada`. `dossie/montagem.py`, `geometria/regras.py` e
+`dominio/modelos.py` **não mudaram uma linha** — a lógica marginal <1% (DOS-08) foi reusada intacta,
+provado pelo Verifier no diff.
+**Dado real medido nesta sessão** (arquivos da Fase 0, antes nunca abertos): APP `APPS.zip` 416.927
+feições (383.213 ativas), Reserva Legal `RESERVA-LEGAL.zip` 52.179 (47.348 ativas), ambos EPSG:4674.
+Filtrar `ind_status='AT'` elimina 100% das duplicatas de `cod_imovel`. A ingestão real ainda não
+rodou sobre esses arquivos de ~430k feições — só sobre fixtures sintéticas; ver Risk em `design.md`
+sobre inserção em lote quando rodar no volume real.
+**Tech debt:** TD-001 (malha municipal, `municipio_em`) segue aberto — não era necessário nesta
+fatia (município vem do `cod_imovel`). **TD-002 aberto nesta fatia** — `cobertura` nunca é semeada
+por nenhuma ingestão, então toda seção de restrição aparece "sem cobertura no município" (DOS-11)
+mesmo com dado ingerido; pré-existente (nem SIGEF semeia), não regressão. Fechar antes do painel web.
+**Lição registrada:** `L-001` (`.specs/LESSONS.md`, status candidate) — testar toque-de-borda
+área-zero em spatial join, o teste de "sem sobreposição" com polígonos disjuntos não cobre isso.
+**Próximo passo:** candidatos para a próxima fatia, em ordem de valor: (a) demais camadas de
+restrição do INEA/ICMBio (UC, inundação, deslizamento, corpo d'água) — mesmo padrão de `restricao`,
+fecha o resto das ACs de "Restrições ambientais"; (b) seed de `cobertura` (fecha TD-002, destrava
+DOS-11 honesto); (c) camada urbana Niterói via SIGeo (82.199 feições, EPSG:31983, reprojeção nova);
+(d) CAR papel P2 (divergência SIGEF×CAR, AD-003); (e) malha municipal IBGE (fecha TD-001). Sem
+bloqueio técnico em nenhuma.
 
 **Fase 0 — FECHADA, verificada por navegação real e dado real (2026-09-03):**
 - **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,

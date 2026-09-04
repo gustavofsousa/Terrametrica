@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 2,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "surviving_mutant::ao materializar interse o espacial em sql st intersection st area teste explicitamente o toque de borda dois pol gonos que s compartilham fronteira t m st intersects true mas rea 0 e o filtro que descarta esse caso n o coberto por um teste de sem sobreposi o que usa pol gonos disjuntos barrados antes pelo st intersects",
+      "text": "Ao materializar interseção espacial em SQL (ST_Intersection/ST_Area), teste explicitamente o toque-de-borda: dois polígonos que só compartilham fronteira têm ST_Intersects=true mas área 0, e o filtro que descarta esse caso não é coberto por um teste de 'sem sobreposição' (que usa polígonos disjuntos, barrados antes pelo ST_Intersects).",
+      "signal": "surviving_mutant",
+      "scope": "ingestao/spatial-join",
+      "status": "candidate",
+      "features": [
+        "dossie-lote-rj"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M2: intersecoes.py area_m2 > 0 (ingestao/spatial-join)"
+      ],
+      "created": "2026-09-04T15:24:48Z",
+      "last_seen": "2026-09-04T15:24:48Z"
+    }
+  ]
+}
