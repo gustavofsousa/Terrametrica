@@ -9,16 +9,21 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/dossie-lote-rj/design.md`
-**Status**: Executada — T1–T5 concluídas e validadas (`validation.md`, PASS, 46 passed). Fatias de
-infra seguem bloqueadas na Fase 0.
+**Status**: Fatia 1 executada e validada (`validation.md`, PASS, 46 passed). **Fatia 2 em Draft,
+tasks abaixo aguardando aprovação — Fase 0 fechada, sem bloqueio técnico restante.**
 
-**Slice**: **Fatia 1 — Núcleo de domínio (rodável agora, sem Fase 0)**. Regras numéricas do produto
+**Slice 1**: **Núcleo de domínio (rodável agora, sem Fase 0)**. Regras numéricas do produto
 + árvore de decisão da montagem do dossiê, atrás de um *port* de repositório, testadas com um fake
 em memória. Puro Python, `pytest` unit — não depende de PostGIS, ingestão nem egress `.gov.br`.
 
-**Fatias seguintes (fora deste tasks.md), bloqueadas em Fase 0 / infra:**
-adaptador PostGIS + ingestão versionada · camada urbana (Niterói) · página de cobertura ·
-API FastAPI + observabilidade · web MapLibre · versionamento atômico real · gate jurídico P2.
+**Slice 2**: **Adaptador PostGIS + ingestão SIGEF (walking skeleton)** — ver seção própria mais
+abaixo. Schema mínimo, adapters reais dos *ports* de T4, ingestão de limite RJ + SIGEF, publicação
+com guarda e swap atômico, prova fim-a-fim.
+
+**Fatias seguintes (fora deste tasks.md ainda):**
+CAR (segunda geometria do lote rural) · camada urbana Niterói (SIGeo) · camadas de restrição
+(INEA/ICMBio/ANA) + `intersecao_materializada` · página de cobertura · API FastAPI +
+observabilidade · web MapLibre · gate jurídico P2.
 
 ---
 
@@ -267,3 +272,429 @@ T3 e T4 marcados `[P]` não dependem um do outro. ✅
 | T5 | Dossiê — montagem | unit | unit | ✅ OK |
 
 Nenhuma violação. Testes co-localizados na task que cria a camada — sem deferral.
+
+---
+---
+
+# Fatia 2 — Adaptador PostGIS + Ingestão SIGEF (walking skeleton)
+
+**Design**: `.specs/features/dossie-lote-rj/design.md` (seção "Fatia 2 — Escopo desta rodada" e
+"Testing Seams — Fatia 2")
+**Status**: **Draft — aguardando aprovação do usuário, ainda não executada.**
+
+**Escopo**: schema PostGIS mínimo, adapters reais (`RepositorioLotesPostGIS`,
+`LimiteEstadoPostGIS`) implementando os *ports* já existentes (T4), e ingestão de **só duas
+fontes**: limite estadual do RJ (geobr, fetch programático) e SIGEF (arquivo local já exportado por
+ação humana — SICAR/gov.br não tem download programático, ver Fase 0 em `.specs/STATE.md`). CAR,
+SIGeo (urbano) e camadas de restrição (INEA/ICMBio/ANA) ficam para fatias seguintes — sem uma
+camada de restrição ingerida, `intersecao_materializada` não existe ainda nesta fatia.
+
+**Fora desta fatia**: CAR (segunda geometria do lote rural, AD-003), camada urbana Niterói,
+qualquer camada de restrição, `intersecao_materializada`, API FastAPI, front-end MapLibre.
+
+---
+
+## Test Coverage Matrix — Fatia 2
+
+> Gerado a partir de `pyproject.toml` (sem deps de integração ainda), `tests/unit/` (só unit até
+> aqui) e `~/.claude/CLAUDE.md` ("tests derive from acceptance criteria"). Fatia 2 introduz um tipo
+> de teste novo — **integration** — porque comportamento espacial real (`ST_Intersection`,
+> `ST_MakeValid`, swap atômico em transação) não é verificável contra um fake em memória.
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Dev infra / config (`docker-compose.yml`, deps) | none | Build gate apenas | — | build gate |
+| Schema / migrações SQL (`persistencia/migracoes/*.sql`) | none | Build gate apenas (correção real verificada indiretamente pelas tasks que a usam) | — | build gate |
+| Persistência — conexão + runner de migração (`persistencia/conexao.py`, `persistencia/migrar.py`) | integration | Migração aplica limpo em banco vazio; idempotente ao rodar duas vezes | `tests/integration/persistencia/test_*.py` | `pytest tests/integration -q` |
+| Persistência — adapters (`repositorio_lotes_postgis.py`, `limite_estado_postgis.py`) | integration | Mesmos ramos/casos de borda que o fake em memória de T5 (contrato do Protocol) | `tests/integration/persistencia/test_*.py` | `pytest tests/integration -q` |
+| Ingestão — pipelines (`ingestao/limite_rj.py`, `ingestao/sigef.py`, `ingestao/publicar.py`) | integration | Happy path + validação/correção de geometria + guarda de publicação (DOS-25/28) | `tests/integration/ingestao/test_*.py` | `pytest tests/integration -q` |
+| Fim-a-fim — `montar_dossie` sobre PostGIS real | integration | 1 caso completo: clique → dossiê real com proveniência, usando os adapters desta fatia | `tests/integration/test_dossie_e2e.py` | `pytest tests/integration -q` |
+
+## Parallelism Assessment — Fatia 2
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --- | --- | --- | --- |
+| unit (Fatia 1, inalterado) | Yes | Funções puras, fake em memória por teste | Nenhum I/O; ver matriz da Fatia 1 |
+| integration (novo) | **No** | Container PostGIS efêmero via testcontainers, um por módulo de teste; cada teste roda dentro de uma transação com rollback no teardown — isola dado, mas subir containers Docker concorrentes numa máquina de um dev só é instável/caro | Nenhuma infra de CI dedicada ainda (projeto solo); decisão registrada em design.md Risks & Concerns |
+
+**Consequência**: nenhuma task desta fatia leva `[P]`. O `Depends on` de cada task reflete a
+dependência real de código/schema; a ordem de execução é sempre sequencial.
+
+## Gate Check Commands — Fatia 2
+
+| Gate Level | When to Use | Command |
+| --- | --- | --- |
+| Quick | Tasks só-unit (nenhuma nesta fatia) | `pytest tests/unit -q` |
+| Full | Após qualquer task de integração (checar `docker info` antes) | `pytest tests/unit tests/integration -q` |
+| Build | Fim de fase / tasks de config | `ruff check . && mypy src && pytest tests/unit tests/integration -q` |
+
+---
+
+## Execution Plan — Fatia 2
+
+### Phase 1: Infra e schema (Sequential)
+
+```
+T6 → T7 → T8
+```
+
+### Phase 2: Adapters (Sequential — mesma razão de Parallelism Assessment)
+
+```
+T8 → T9 → T10
+```
+
+### Phase 3: Ingestão (Sequential)
+
+```
+T8 → T11 → T13
+T8 → T12 → T13
+```
+
+### Phase 4: Prova fim-a-fim (Sequential)
+
+```
+T9, T10, T13 → T14
+```
+
+4 fases, todas sequenciais dentro de si — sem paralelismo real nesta fatia (ver Parallelism
+Assessment). Execução inline recomendada; oferta de sub-agente por fase é decisão do momento do
+Execute, não deste documento.
+
+---
+
+## Task Breakdown — Fatia 2
+
+### T6: Infra de dev — PostGIS local + dependências
+
+**What**: `docker-compose.yml` com `postgis/postgis:16-3.4` para dev manual; adiciona ao
+`pyproject.toml` as deps de runtime (`psycopg[binary]`, `geopandas`, `shapely`, `pyproj`) e de dev
+(`testcontainers[postgres]`); documenta pré-requisito Docker em `docs/DEV-SETUP.md`.
+**Where**: `docker-compose.yml`, `pyproject.toml`, `docs/DEV-SETUP.md`
+**Depends on**: None
+**Reuses**: `docs/research/stack-open-source.md` (escolhas de lib já levantadas)
+**Requirement**: infra (habilita Fatia 2)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`
+
+**Done when**:
+- [ ] `docker compose up -d` sobe Postgres 16 + PostGIS na porta configurada (não conflita com
+      outros projetos — checar portas em uso antes de fixar)
+- [ ] `pyproject.toml` tem as 4 deps de runtime + `testcontainers[postgres]` em dev
+- [ ] `docs/DEV-SETUP.md` documenta o pré-requisito Docker e como rodar a suíte de integração
+- [ ] Gate check passa: `ruff check . && mypy src && pytest tests/unit -q` (integração ainda não existe)
+
+**Tests**: none (config)
+**Gate**: build
+
+**Commit**: `chore(fatia2): infra de dev PostGIS + deps de persistência e ingestão`
+
+---
+
+### T7: Schema — migração SQL da Fatia 2
+
+**What**: Migração `persistencia/migracoes/0001_fatia2_sigef.sql` criando `versao_base`,
+`ponteiro_publicado`, `limite_estado`, `lote_rural` (com `geom_sigef` e `geom_car` nullable — dupla
+geometria é invariante do modelo, AD-003, mesmo com `geom_car` vazio nesta fatia), `proveniencia`,
+`cobertura`. Extensão PostGIS habilitada na migração.
+**Where**: `src/terrametrica/persistencia/migracoes/0001_fatia2_sigef.sql`
+**Depends on**: T6
+**Reuses**: modelo de dados de `design.md` (seção Data Models)
+**Requirement**: base p/ DOS-04/10/13/25/28; AD-003, AD-007, AD-008
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`
+
+**Done when**:
+- [ ] `CREATE EXTENSION IF NOT EXISTS postgis` na migração
+- [ ] Todas as 6 tabelas do escopo da fatia criadas com os tipos de `design.md` (geometry em
+      EPSG:4674, `versao_base_id` como FK onde aplicável)
+- [ ] `lote_rural.geom_car` é nullable (AD-003 preservado, mesmo sem CAR nesta fatia)
+- [ ] Gate check passa: `ruff check . && mypy src && pytest tests/unit -q`
+
+**Tests**: none (DDL — verificado funcionalmente por T8)
+**Gate**: build
+
+**Commit**: `feat(persistencia): schema PostGIS mínimo da Fatia 2 (versao_base, limite_estado, lote_rural, proveniencia, cobertura)`
+
+---
+
+### T8: Conexão + runner de migração
+
+**What**: `persistencia/conexao.py` (abre conexão `psycopg` a partir de uma URL de config) e
+`persistencia/migrar.py` (aplica migrações SQL em ordem, idempotente via tabela de controle
+`schema_migrations`).
+**Where**: `src/terrametrica/persistencia/conexao.py`, `src/terrametrica/persistencia/migrar.py`
+**Depends on**: T7
+**Reuses**: nenhuma dep externa além de `psycopg`
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] `aplicar_migracoes(conexao)` roda a 0001 num banco vazio e cria as 6 tabelas
+- [ ] Rodar `aplicar_migracoes` duas vezes seguidas não falha nem duplica (idempotente)
+- [ ] Teste de integração sobe container PostGIS efêmero (testcontainers), aplica migração, faz
+      introspecção (`information_schema`) confirmando as 6 tabelas + extensão PostGIS ativa
+- [ ] `docker info` checado antes da suíte de integração (skip com mensagem clara se Docker não
+      estiver rodando, não falha genérica)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(persistencia): conexão e runner de migração idempotente`
+
+---
+
+### T9: Adapter `RepositorioLotesPostGIS`
+
+**What**: Implementa o Protocol `RepositorioLotes` (T4) contra o schema real: `lote_em`,
+`intersecoes_de` (retorna lista vazia — nenhuma restrição ingerida nesta fatia, comportamento
+documentado, não um placeholder escondido), `proveniencia_de`, `cobertura_de`.
+**Where**: `src/terrametrica/persistencia/repositorio_lotes_postgis.py`
+**Depends on**: T8
+**Reuses**: `dossie/portas.py` (T4, contrato); casos de borda de `tests/fakes/repositorio_fake.py` (T5)
+**Requirement**: DOS-01, DOS-04, DOS-10, DOS-11 sobre dado real
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] `lote_em(coord, versao)` encontra o lote certo via `ST_Contains`/`ST_Intersects` em dado
+      semeado diretamente por SQL (fixture de teste, sem passar pela ingestão)
+- [ ] `intersecoes_de` retorna `[]` de forma explícita e documentada (sem restrição ingerida)
+- [ ] `proveniencia_de` retorna fonte + data carimbadas na ingestão (T12)
+- [ ] `cobertura_de` reflete `cobertura` semeada (camada SIGEF presente, demais ausentes)
+- [ ] Mesmos casos de borda testados no fake em memória (T5) passam aqui contra Postgres real
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~6 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(persistencia): adapter RepositorioLotesPostGIS implementando o port da Fatia 1`
+
+---
+
+### T10: Adapter `LimiteEstadoPostGIS`
+
+**What**: Implementa o Protocol `LimiteEstado` (T4): `contem(coord) -> bool` via `ST_Contains`
+contra o polígono do RJ em `limite_estado`.
+**Where**: `src/terrametrica/persistencia/limite_estado_postgis.py`
+**Depends on**: T8
+**Reuses**: `dossie/portas.py` (T4); coordenadas de teste de fronteira já usadas em T2/T5
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Coordenada claramente dentro do RJ → `True`; claramente fora → `False`
+- [ ] Coordenada na borda (mesmos casos-limite de T2/T5) concorda com o comportamento já testado
+      no domínio
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~4 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(persistencia): adapter LimiteEstadoPostGIS implementando o port da Fatia 1`
+
+---
+
+### T11: Ingestão — limite estadual do RJ
+
+**What**: `ingestao/limite_rj.py` — `ingerir_limite_rj(versao) -> RelatorioCamada`: busca o
+polígono do RJ via `geobr.read_state(code_state=33)` (fetch programático, sem login — S3, não
+`.gov.br`), valida (`ST_MakeValid` equivalente via Shapely `.buffer(0)`/`make_valid`), reprojeta
+para EPSG:4674, grava em `limite_estado` para a versão.
+**Where**: `src/terrametrica/ingestao/limite_rj.py`
+**Depends on**: T8
+**Reuses**: `docs/research/stack-open-source.md` (geobr); `AD-008` (CRS canônico)
+**Requirement**: base p/ `LimiteEstadoPostGIS` (T10) ter dado real
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] `ingerir_limite_rj` grava exatamente 1 polígono/multipolígono válido em EPSG:4674
+- [ ] Teste de integração faz a chamada real ao geobr (rede necessária — documentado como
+      dependência de rede no teste, não mockado; falha com mensagem clara se offline)
+- [ ] Geometria inválida (se ocorrer) é corrigida e o registro é marcado `geometria_corrigida=true`
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): busca e materializa o limite estadual do RJ via geobr`
+
+---
+
+### T12: Ingestão — SIGEF a partir de arquivo local
+
+**What**: `ingestao/sigef.py` — `ingerir_sigef(caminho: Path, versao) -> RelatorioCamada`: lê
+shapefile via GeoPandas (`pyogrio`), valida geometria (`ST_MakeValid` equivalente), confirma/ajusta
+CRS para EPSG:4674, grava cada feição em `lote_rural.geom_sigef` (`geom_car` fica null) e carimba
+`proveniencia` (fonte='SIGEF', data de extração, link oficial).
+**Where**: `src/terrametrica/ingestao/sigef.py`
+**Depends on**: T8
+**Reuses**: campos reais descobertos em Fase 0 (`municipio_`, `status`) — `docs/research/fontes-de-dados-rj.md`
+**Requirement**: DOS-10 (proveniência), AD-003 (dupla geometria, mesmo com CAR vazio)
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Fixture `.shp` sintética criada em `tests/fixtures/sigef/` (poucas feições, mesmos campos
+      reais: `municipio_`, `status`, encoding `.dbf` latin1) — não depende do arquivo real de
+      ~1GB nem de rede/login
+- [ ] `ingerir_sigef` lê a fixture, valida geometria, grava em `lote_rural` com `geom_car` null
+- [ ] `proveniencia` carimbada com fonte='SIGEF' e data de extração
+- [ ] Feição inválida na fixture é corrigida e marcada (`geometria_corrigida=true`), não descartada
+      silenciosamente
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~5 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): ingere SIGEF a partir de export local (sem download programático — Fase 0)`
+
+---
+
+### T13: Publicação de versão — guarda + swap atômico
+
+**What**: `ingestao/publicar.py` — `publicar_versao(versao) -> ResultadoPublicacao`: por camada,
+compara contagem de feições da nova versão contra a publicada anteriormente; se ≥90%, faz swap
+atômico do `ponteiro_publicado` em transação; se <90%, rejeita e mantém a versão anterior (DOS-25).
+**Where**: `src/terrametrica/ingestao/publicar.py`
+**Depends on**: T11, T12
+**Reuses**: `AD-008` (ponteiro atômico); dado real de `limite_estado`/`lote_rural` gravado nesta fatia
+
+**Tools**:
+- MCP: NONE
+- Skill: `python-delivery-stack`, `tdd`
+
+**Done when**:
+- [ ] Primeira publicação (sem versão anterior) sempre passa a guarda e publica
+- [ ] Segunda versão com ≥90% das feições da anterior → swap atômico, ponteiro aponta pra nova
+- [ ] Segunda versão com <90% → publicação rejeitada, ponteiro continua na versão anterior
+      (DOS-25/edge)
+- [ ] Swap roda dentro de uma transação — teste de integração confirma que uma falha no meio não
+      deixa o ponteiro em estado parcial (DOS-28)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~4 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(ingestao): publicação de versão com guarda de 90% e swap atômico de ponteiro`
+
+---
+
+### T14: Prova fim-a-fim — dossiê real sobre PostGIS
+
+**What**: Teste de integração único que injeta `RepositorioLotesPostGIS` (T9) e
+`LimiteEstadoPostGIS` (T10) reais em `montar_dossie` (T5, inalterado) e confirma um dossiê completo
+— com proveniência — para uma coordenada dentro de um lote SIGEF semeado via T12. Sem código novo
+de produção; é o teste que prova a Fatia 2 fim-a-fim.
+**Where**: `tests/integration/test_dossie_e2e.py`
+**Depends on**: T9, T10, T13
+**Reuses**: `dossie/montagem.py` (T5, zero mudança — prova que os *ports* isolaram a troca de fake→real)
+**Requirement**: prova de AD-007 (read-model materializado) e AD-004 (fonte externa fora do request)
+
+**Tools**:
+- MCP: NONE
+- Skill: `tdd`
+
+**Done when**:
+- [ ] Pipeline completo: `ingerir_limite_rj` → `ingerir_sigef` (fixture) → `publicar_versao` →
+      `montar_dossie(coord_dentro_do_lote, versao, RepositorioLotesPostGIS, LimiteEstadoPostGIS)`
+- [ ] Dossiê retornado tem proveniência (fonte + data) no campo SIGEF
+- [ ] Coordenada fora do RJ ainda devolve `ForaDoRJ` (mesmo comportamento de T5, agora sobre dado
+      real)
+- [ ] Gate check passa: `pytest tests/unit tests/integration -q`
+- [ ] Test count: ~2 testes passam (sem deleção silenciosa)
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `test(dossie): prova fim-a-fim do dossiê sobre PostGIS real (Fatia 2 fechada)`
+
+---
+
+## Parallel Execution Map — Fatia 2
+
+```
+Phase 1 (Sequential):
+  T6 ──→ T7 ──→ T8
+
+Phase 2 (Sequential):
+  T8 ──→ T9 ──→ T10
+
+Phase 3 (Sequential):
+  T8 ──→ T11 ──→ T13
+  T8 ──→ T12 ──┘
+
+Phase 4 (Sequential):
+  T9, T10, T13 ──→ T14
+```
+
+Nenhuma task leva `[P]` nesta fatia — ver Parallelism Assessment (containers Docker concorrentes
+não são seguros numa máquina de um dev só).
+
+---
+
+## Task Granularity Check — Fatia 2
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| T6: Infra de dev | 1 concern (compose + deps) | ✅ Granular |
+| T7: Schema | 1 arquivo de migração | ✅ Granular |
+| T8: Conexão + migrar | 2 funções coesas, 1 concern | ✅ Granular |
+| T9: Adapter lotes | 1 Protocol implementado | ✅ Granular |
+| T10: Adapter limite | 1 Protocol implementado | ✅ Granular |
+| T11: Ingestão limite RJ | 1 função | ✅ Granular |
+| T12: Ingestão SIGEF | 1 função | ✅ Granular |
+| T13: Publicação | 1 função | ✅ Granular |
+| T14: Prova e2e | 1 teste, zero código de produção novo | ✅ Granular |
+
+## Diagram-Definition Cross-Check — Fatia 2
+
+| Task | Depends On (body) | Diagram Shows | Status |
+| --- | --- | --- | --- |
+| T6 | None | (raiz) | ✅ Match |
+| T7 | T6 | T6 → T7 | ✅ Match |
+| T8 | T7 | T7 → T8 | ✅ Match |
+| T9 | T8 | T8 → T9 | ✅ Match |
+| T10 | T8 | T8 → T10 (via T9 na Phase 2, sequencial) | ✅ Match |
+| T11 | T8 | T8 → T11 | ✅ Match |
+| T12 | T8 | T8 → T12 | ✅ Match |
+| T13 | T11, T12 | T11 → T13, T12 → T13 | ✅ Match |
+| T14 | T9, T10, T13 | T9, T10, T13 → T14 | ✅ Match |
+
+## Test Co-location Validation — Fatia 2
+
+| Task | Code Layer Created/Modified | Matrix Requires | Task Says | Status |
+| --- | --- | --- | --- | --- |
+| T6 | Dev infra / config | none | none | ✅ OK |
+| T7 | Schema / migrações | none | none | ✅ OK |
+| T8 | Persistência — conexão/migrar | integration | integration | ✅ OK |
+| T9 | Persistência — adapter lotes | integration | integration | ✅ OK |
+| T10 | Persistência — adapter limite | integration | integration | ✅ OK |
+| T11 | Ingestão — limite RJ | integration | integration | ✅ OK |
+| T12 | Ingestão — SIGEF | integration | integration | ✅ OK |
+| T13 | Ingestão — publicação | integration | integration | ✅ OK |
+| T14 | Fim-a-fim | integration | integration | ✅ OK |
+
+Nenhuma violação. Nenhum "testado em outra task" — cada task carrega seu próprio teste.

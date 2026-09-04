@@ -78,6 +78,29 @@ graph TD
 
 ---
 
+## Fatia 2 — Escopo desta rodada (walking skeleton)
+
+O restante deste documento descreve a arquitetura completa do P1 (todas as fontes). A **Fatia 2**
+implementa um recorte deliberadamente menor para provar o pipeline fim-a-fim antes de somar fontes:
+**só SIGEF** (rural certificado). CAR, SIGeo (urbano) e as camadas de restrição (INEA/ICMBio/ANA)
+ficam para fatias seguintes — sem eles, `intersecao_materializada` não tem o que cruzar, então essa
+tabela **não é criada nesta fatia**.
+
+**Entra na Fatia 2**: schema PostGIS mínimo (`versao_base`, `ponteiro_publicado`, `limite_estado`,
+`lote_rural` com as duas colunas de geometria previstas no modelo canônico — `geom_car` fica nula
+por enquanto —, `proveniencia`, `cobertura`), os adapters `RepositorioLotesPostGIS` e
+`LimiteEstadoPostGIS` implementando os *ports* já existentes (T4/Fatia 1), e a ingestão de duas
+fontes: o limite estadual do RJ (via geobr/IBGE, fetch programático) e o SIGEF (a partir de um
+arquivo de export já baixado por ação humana — ver decisão abaixo).
+
+**Decisão herdada de Fase 0, não revisitada aqui**: o SICAR e o SIGEF **não têm download
+programático** — exigem login GOV.BR e (SICAR) captcha resolvidos por humano numa sessão de
+navegador (ver `.specs/STATE.md`, Fase 0). Por isso `ingerir_sigef` recebe **um caminho de arquivo
+já exportado**, não uma URL — a ingestão automatiza validação/reprojeção/publicação, não o
+download em si. Isso não é uma decisão nova; é a Fase 0 se refletindo no contrato da função.
+
+---
+
 ## Perspective Sweep (Complex)
 
 - **Structure** — módulos por domínio (`ingestao`, `dossie`, `geometria`, `cobertura`,
@@ -223,6 +246,22 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 
 ---
 
+## Testing Seams — Fatia 2
+
+| Seam (onde o teste se prende) | Existente ou Novo | O que um teste afirma através dele | Reusa |
+| --- | --- | --- | --- |
+| `RepositorioLotes` (Protocol, `dossie/portas.py`, T4) | Existente | `RepositorioLotesPostGIS` cumpre o mesmo contrato que o fake em memória (T5) — mesmos casos de borda, dado real no Postgres | Contrato já definido; casos de borda de `tests/fakes/repositorio_fake.py` |
+| `LimiteEstado` (Protocol, `dossie/portas.py`, T4) | Existente | `LimiteEstadoPostGIS.contem` concorda com os testes de fronteira do RJ já usados em T2/T5 | Mesmas coordenadas de teste (dentro/fora/limite) |
+| Container PostGIS efêmero (testcontainers) | **Novo** | Toda asserção de schema, adapter e publicação atômica roda contra Postgres+PostGIS real, não mock | Nenhuma alternativa razoável — `ST_Intersection`/`ST_MakeValid`/swap atômico são comportamento do banco, não emulável em SQLite/fake |
+| `ingerir_sigef(caminho, versao)` — assinatura de função | **Novo** | Validação + reprojeção + staging a partir de um arquivo local (não de rede) | Fixture `.shp` sintética com os mesmos campos reais descobertos em Fase 0 (`municipio_`, `status`) |
+
+> Container efêmero é seam novo porque não havia nenhuma infraestrutura de teste além de `pytest`
+> unit puro (Fatia 1, sem I/O). Justificativa: é a única forma de testar comportamento específico do
+> PostGIS sem reescrever a lógica espacial em Python só para viabilizar teste — isso violaria "reuse
+> before invent" na direção contrária (inventar uma segunda implementação só para ser testável).
+
+---
+
 ## Error Handling Strategy
 
 | Error Scenario | Handling | User Impact |
@@ -247,6 +286,9 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 | Crescimento de armazenamento do read-model por versão | (data model) | Custo de disco cresce a cada reingestão | Política de retenção de N versões; base map imutável fora do versionamento (PMTiles) |
 | Projeto greenfield sem infra de teste | (repo) | Sem rede de segurança para as regras de geometria | Fase Tasks instala pytest + fixtures espaciais antes de qualquer código de regra |
 | Egress `.gov.br` bloqueado no ambiente remoto | `docs/DEV-SETUP.md:36` | Ingestão não roda aqui | Ingestão é entrypoint separado, rodável onde há egress; serviço não depende dela em request |
+| SIGEF/CAR não têm download programático (login GOV.BR + captcha, ver Fase 0) | `.specs/STATE.md` (Fase 0) | `ingerir_sigef` não pode buscar a fonte sozinho | Recebe caminho de arquivo já exportado por ação humana periódica; documentado como pendência operacional recorrente, não bug |
+| Testes de integração exigem Docker rodando localmente (testcontainers) | (Fatia 2, novo) | Suíte de integração falha silenciosamente sem Docker | `Done when` de cada task de integração inclui checar `docker info` antes; documentar em `docs/DEV-SETUP.md` |
+| Containers Docker concorrentes podem disputar recursos numa máquina de um dev só | (Fatia 2, novo) | Testes de integração paralelos podem ficar instáveis | Testes de integração marcados **não paralelo-seguros** nesta fatia (ver `tasks.md`); paralelizar fica para quando houver CI dedicado |
 
 ---
 
@@ -260,4 +302,12 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 | CRS canônico | EPSG:4674 storage · projeção equivalente para área · 3857 tiles | Padrão oficial BR; área correta independe do SRID de exibição (→ AD-008) |
 | Versionamento de base | Ponteiro `published` + swap atômico por transação | Nunca serve base meio atualizada; reingestão não mistura versões (→ AD-008) |
 
+| Driver Postgres | `psycopg` (v3), sem ORM | Domínio já é funcional/ports-based (T2-T5); um ORM ativo-record contradiria "regra de negócio nunca mora na rota/modelo". `psycopg3` tem tipagem nativa (mypy strict sem stubs extras) |
+| Migração de schema | Arquivos SQL numerados (`persistencia/migracoes/NNNN_*.sql`) + runner próprio (~30 linhas) | Só 1 migração nesta fatia; Alembic exige metadata SQLAlchemy que não existe aqui — trocar quando o schema começar a divergir/precisar rollback real |
+| Leitura de shapefile → PostGIS | GeoPandas (`read_file` via `pyogrio` + `to_postgis`) | Evita depender de `ogr2ogr` como binário de sistema nesta fatia (shapefile simples); `ogr2ogr`/OWSLib entram quando WFS (SIGeo/INEA/ICMBio) virar fonte, em fatia futura |
+| Teste do adapter PostGIS | `testcontainers-python` + imagem `postgis/postgis` | Único jeito de validar `ST_Intersection`/`ST_MakeValid`/swap atômico contra comportamento real do banco, não uma reimplementação em memória |
+
 > Decisões que viram convenção de projeto foram registradas em `.specs/STATE.md` como AD-007 e AD-008.
+> As desta fatia (driver, migração, leitura de shapefile, testcontainers) ficam registradas aqui como
+> convenção de implementação — promovidas a `AD-009` no handoff quando a Fatia 2 fechar, se
+> continuarem valendo além dela.
