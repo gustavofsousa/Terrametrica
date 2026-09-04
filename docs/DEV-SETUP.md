@@ -33,6 +33,39 @@ python3 .claude/skills/tlc-spec-driven/scripts/validate_state.py <feature>
 
 Requer Python 3 (sem dependências externas).
 
+## Ambiente Python
+
+Requer Python 3.12. Crie o `.venv` e instale o projeto em modo editável com os extras de dev:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+```
+
+## Banco de dados (Docker + PostGIS)
+
+A persistência (Fatia 2 em diante) requer PostgreSQL com PostGIS. Pré-requisito: **Docker**
+instalado e rodando (`docker info` deve retornar sem erro).
+
+Para dev manual (subir um Postgres persistente local na porta 5433, fora dos testes):
+
+```bash
+docker compose up -d
+```
+
+Os testes de integração (`tests/integration/`) **não** usam o `docker-compose.yml` acima — eles
+sobem um container PostGIS efêmero por módulo de teste via `testcontainers`, que gerencia sua
+própria porta automaticamente. Antes de rodar a suíte de integração, confirme que o Docker está
+disponível:
+
+```bash
+docker info
+pytest tests/unit tests/integration -q
+```
+
+Se o Docker não estiver rodando, os testes de integração falham com uma mensagem clara em vez de
+um erro genérico de conexão.
+
 ## Restrição conhecida do ambiente remoto
 
 O ambiente de execução remota deste projeto bloqueia HTTPS para hosts `.gov.br` por política

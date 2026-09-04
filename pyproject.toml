@@ -4,10 +4,15 @@ version = "0.1.0"
 description = "Dossiê de lote do RJ — núcleo de domínio (Fatia 1)"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11", "testcontainers[postgres]>=4.8"]
 
 [build-system]
 requires = ["hatchling"]
