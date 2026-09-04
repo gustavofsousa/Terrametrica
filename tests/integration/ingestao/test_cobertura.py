@@ -154,3 +154,54 @@ class TestSemearCobertura:
 
         cobertura = _cobertura(conexao)
         assert len(cobertura) == 4
+
+    def test_reseed_atualiza_data_extracao_da_cobertura(
+        self, conexao: psycopg.Connection, versao_com_dado: VersaoBase
+    ) -> None:
+        # AD-009/DOS-13: o upsert é DO UPDATE, não DO NOTHING — uma reingestão que corrige a data
+        # de extração da proveniência TEM de refrescar a data carimbada na cobertura, senão o
+        # dossiê mostraria uma data obsoleta para uma camada que na verdade foi reingerida.
+        semear_cobertura(versao_com_dado, conexao)
+        data_corrigida = date(2026, 10, 20)
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "UPDATE proveniencia SET data_extracao = %s "
+                "WHERE camada = 'app' AND versao_base_id = %s",
+                (data_corrigida, versao_com_dado.id),
+            )
+
+        semear_cobertura(versao_com_dado, conexao)
+
+        cobertura = _cobertura(conexao)
+        assert cobertura[(MUNICIPIO_A, "app")][1] == data_corrigida
+        assert cobertura[(MUNICIPIO_B, "app")][1] == data_corrigida
+
+    def test_restricao_sem_proveniencia_nao_gera_cobertura(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        # Boundary DOS-11 vs DOS-12 (AD-009/AD-005): sem data de extração (proveniência) não se
+        # declara cobertura — o JOIN interno descarta a camada, que cai em "sem cobertura", nunca
+        # é carimbada com data nula. Prova que o JOIN é INNER, não LEFT.
+        versao_id = "2026-09-sem-proveniencia"
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO versao_base (id, criada_em, status) VALUES (%s, %s, 'draft')",
+                (versao_id, date(2026, 9, 4)),
+            )
+            cursor.execute(
+                "INSERT INTO lote_rural (id, uf, municipios, codigo_sigef, situacao_certificacao, "
+                "geom_sigef, versao_base_id) VALUES ('L-A', 'RJ', %s, 'SIGEF-L-A', 'CERTIFICADA', "
+                "ST_GeomFromText(%s, 4674), %s)",
+                ([MUNICIPIO_A], _GEOM_MINIMA, versao_id),
+            )
+            cursor.execute(
+                "INSERT INTO restricao (id, tipo, nome, geom, versao_base_id) "
+                "VALUES ('R-APP', 'app', 'app', ST_GeomFromText(%s, 4674), %s)",
+                (_GEOM_MINIMA, versao_id),
+            )
+            # deliberadamente NÃO inserimos proveniencia para 'app'
+
+        relatorio = semear_cobertura(VersaoBase(id=versao_id, criada_em=date(2026, 9, 4)), conexao)
+
+        assert relatorio.linhas_semeadas == 0
+        assert _cobertura(conexao) == {}

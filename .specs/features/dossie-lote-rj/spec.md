@@ -229,7 +229,7 @@ uma área que ainda não está mapeada nas bases oficiais.
 | DOS-08 | P1: Restrições | Fatia 3 | ✅ Verified |
 | DOS-09 | P1: Restrições | Design | Pending |
 | DOS-10 | P1: Proveniência | Design | Pending |
-| DOS-11 | P1: Proveniência | Design | Pending |
+| DOS-11 | P1: Proveniência | Execute (Fatia 4) | ✅ Verified |
 | DOS-12 | P1: Proveniência | Design | Pending |
 | DOS-13 | P1: Proveniência | Design | Pending |
 | DOS-14 | P2: Exportação PDF | - | Pending |

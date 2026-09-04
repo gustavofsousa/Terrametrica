@@ -283,3 +283,73 @@ provar.
 sensor 3/4 mortos (M2 sobrevivente = linha defensiva `area_m2 > 0` sem teste, impacto baixo). AC1
 (área+% de APP e Reserva Legal) provada fim-a-fim; DOS-08 marginal reusa `geometria` inalterado;
 `montagem.py`/`geometria`/`modelos` confirmados sem uma linha de mudança no diff.
+
+---
+
+## Fatia 4 — Seed de cobertura (TD-002 / AD-009) — Verificação independente
+
+**Diff verificado:** `722835b..HEAD` (3 commits: `c36ac88` feat, `5243d54` e2e, `eb44d65` docs).
+Verificador ≠ autor; cobertura re-derivada por mutação, evidência-ou-zero.
+
+### Gate (saída observada)
+- `ruff check src tests` → `All checks passed!`
+- `mypy src` → `Success: no issues found in 26 source files`
+- `pytest tests/integration/ingestao/test_cobertura.py tests/integration/test_dossie_e2e.py -q`
+  → `10 passed in 13.53s` (5 cobertura + 5 e2e, PostGIS efêmero via testcontainers + geobr real).
+
+### Âncoras de spec
+- **DOS-11 honesto (inverso) — PASS.** `test_restricoes_ingeridas_aparecem_com_cobertura_e_proveniencia_honesta`
+  (e2e, PostGIS real) prova que APP e Reserva Legal ingeridas NÃO aparecem em
+  `camadas_sem_cobertura` e trazem `proveniencia` (`fonte="CAR/SICAR"`, `data_extracao=DATA_EXTRACAO_CAR`);
+  e que UC/Inundação (não ingeridas) permanecem honestamente em `camadas_sem_cobertura`. Mutante A
+  (`tem_dado true→false`) mata este par: sem o seed honesto o dossiê se contradiria.
+- **AD-009 derivação — PARCIAL.** Municípios do produto `lote_rural.municipios` e camadas de
+  `restricao.tipo` provados pelo dict exato de 4 linhas; `data_extracao` da proveniência da camada
+  provado por datas distintas por camada (mutante E morto). DISTINCT-de-municípios, filtro
+  INNER-JOIN (camada sem proveniência) e semântica de refresh do upsert NÃO exercitados (ver sensor).
+
+### Sensor de discriminação (mutação em `cobertura.py`, revertida)
+Alvo: `test_cobertura.py` (suíte rápida, mesma que cobre a SQL).
+
+| # | Mutante | Resultado |
+|---|---------|-----------|
+| A | `true → false` em `tem_dado` | **MORTO** (test_semeia_produto) |
+| E | `p.data_extracao → DATE literal fixa` | **MORTO** (test_semeia_produto + test_carimba) |
+| B | `JOIN → LEFT JOIN proveniencia` (remove filtro sem-proveniência) | **SOBREVIVE** |
+| C | remove `DISTINCT` do subselect de municípios | **SOBREVIVE** |
+| D | `ON CONFLICT DO UPDATE → DO NOTHING` | **SOBREVIVE** |
+
+Placar: 2 mortos / 3 sobreviventes. Análise dos sobreviventes:
+- **B** — nenhum teste monta uma `restricao` SEM `proveniencia`; o INNER JOIN (razão-de-ser
+  declarada na docstring: "sem data não se declara cobertura", distinção DOS-11 vs DOS-12) é
+  não-provado. Severidade baixa: `restricao_car` sempre grava proveniência (INSERT incondicional),
+  logo o caso não ocorre no pipeline atual — mas o filtro fica sem rede.
+- **C** — dados de teste não têm dois lotes no mesmo município, então DISTINCT nunca deduplica.
+  Impacto de correção baixo (o `ON CONFLICT` deduplica a tabela final de qualquer forma); só
+  `linhas_semeadas` inflaria sem DISTINCT. Falta assert com lotes co-municipais.
+- **D** — `test_idempotente` só verifica `len==4` e ausência de erro na 2ª rodada; NÃO prova que o
+  `DO UPDATE` **atualiza** `data_extracao`/`tem_dado` quando a proveniência muda entre execuções.
+  Gap real de correção (DOS-13): re-seed após nova data manteria data obsoleta com `DO NOTHING`.
+  **Assert faltante:** re-rodar `semear_cobertura` após atualizar `proveniencia.data_extracao` e
+  afirmar que a linha de `cobertura` passou a carregar a nova data.
+
+### Veredito
+**PASS ✅** para o objetivo central (DOS-11 honesto + derivação município×camada×data), gate verde,
+mutantes A/E mortos. Ressalvas: 3 mutantes sobreviventes são gaps de precisão/borda (refresh do
+upsert = maior deles), nenhum contradiz um "Done when" de T21-T22 nem regride Fatia 2/3.
+Árvore limpa após reversão de todas as mutações (`git status` clean).
+
+### Fix task T23 — mutantes D e B fechados (2026-09-04, pós-Verifier)
+Loop fix→re-verify (bounded), dois testes novos em `test_cobertura.py`:
+- **Mutante D (MORTO agora):** `test_reseed_atualiza_data_extracao_da_cobertura` — semeia, corrige
+  `proveniencia.data_extracao`, re-semeia e afirma que a linha de `cobertura` carrega a nova data.
+  Injeção de `DO NOTHING` faz o teste falhar (confirmado por observação, revertido).
+- **Mutante B (MORTO agora):** `test_restricao_sem_proveniencia_nao_gera_cobertura` — `restricao`
+  sem `proveniencia` ⇒ `linhas_semeadas == 0` e `cobertura` vazia. Injeção de `LEFT JOIN` faz o
+  teste falhar (confirmado, revertido).
+- **Mutante C — deliberadamente NÃO testado:** um assert de DISTINCT exercitaria a deduplicação do
+  próprio `ON CONFLICT` do PostgreSQL, não a lógica do produto; `linhas_semeadas` é contador
+  diagnóstico, não um outcome de spec. Registrado como escolha, não esquecimento.
+
+Sensor pós-fix: 4 mortos / 1 sobrevivente-por-escolha (C). Gate: ruff 0, mypy strict 0,
+`test_cobertura.py` 7 passed. Commit do fix: `a91604b`.
