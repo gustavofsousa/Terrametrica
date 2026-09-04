@@ -6,8 +6,9 @@ adapter só produz `LoteRural`. `area`/`perimetro_m` do value object não existe
 colunas: são derivados de `geom_sigef` via `ST_Area`/`ST_Perimeter` sobre `geography`
 (cálculo correto no elipsoide, não em graus).
 
-`intersecoes_de` sempre devolve `[]`: nenhuma camada de restrição (APP, UC, ...) foi
-ingerida nesta fatia — ver design.md, "Fatia 2 — Escopo desta rodada".
+`intersecoes_de` lê `intersecao_materializada JOIN restricao` (Fatia 3) — só `app`/`reserva_legal`
+estão populados nesta fatia; as demais camadas de restrição (UC, inundação, deslizamento, corpo
+d'água — INEA/ICMBio) ficam para fatias futuras, mesma tabela.
 
 `municipio_em` levanta `NotImplementedError` — TD-001 (`.specs/TECH-DEBT.md`): resolver
 uma coordenada em município exige a malha municipal do IBGE, fora do escopo desta fatia.
@@ -28,6 +29,7 @@ from terrametrica.dominio.modelos import (
     Proveniencia,
     SituacaoCertificacao,
     Sobreposicao,
+    TipoRestricao,
     VersaoBase,
 )
 
@@ -45,6 +47,14 @@ _SELECT_LOTE_NO_PONTO = """
     WHERE versao_base_id = %(versao)s
       AND ST_Contains(geom_sigef, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
     ORDER BY id
+"""
+
+_SELECT_INTERSECOES_DO_LOTE = """
+    SELECT r.tipo, r.nome, im.area_intersecao_m2, r.categoria, r.grau_suscetibilidade
+    FROM intersecao_materializada im
+    JOIN restricao r ON r.id = im.restricao_id AND r.versao_base_id = im.versao_base_id
+    WHERE im.lote_id = %(lote_id)s AND im.versao_base_id = %(versao)s
+    ORDER BY r.id
 """
 
 _SELECT_PROVENIENCIA = """
@@ -82,10 +92,23 @@ class RepositorioLotesPostGIS:
         return Sobreposicao(candidatos=candidatos)
 
     def intersecoes_de(self, lote: LoteHit, versao: VersaoBase) -> list[IntersecaoBruta]:
-        # Nenhuma camada de restrição (APP, reserva legal, UC, ...) foi ingerida nesta
-        # fatia — escopo é só o lote SIGEF em si (ver design.md). Sempre [] até a fatia
-        # que ingerir as camadas de restrição.
-        return []
+        with self.conexao.cursor() as cursor:
+            cursor.execute(
+                _SELECT_INTERSECOES_DO_LOTE,
+                {"lote_id": lote.lote_id, "versao": versao.id},
+            )
+            linhas = cursor.fetchall()
+
+        return [
+            IntersecaoBruta(
+                tipo=TipoRestricao(tipo),
+                nome=nome,
+                area_intersecao=AreaM2(area_m2),
+                categoria=categoria,
+                grau_suscetibilidade=grau_suscetibilidade,
+            )
+            for tipo, nome, area_m2, categoria, grau_suscetibilidade in linhas
+        ]
 
     def proveniencia_de(self, camada: Camada, versao: VersaoBase) -> Proveniencia | None:
         with self.conexao.cursor() as cursor:

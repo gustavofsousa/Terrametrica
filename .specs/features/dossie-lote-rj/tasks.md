@@ -910,7 +910,8 @@ tempo de request)
 - [ ] Lote sem nenhuma intersecção materializada devolve lista vazia (não erro)
 - [ ] Mesmos ramos de borda do fake em memória (T5) — contrato do Protocol preservado
 - [ ] Gate check passa: `pytest tests/unit tests/integration -q`
-- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+- [ ] Test count: 2 testes novos em `TestIntersecoesDe` (dado real + isolamento entre lotes) + o
+      teste de lista vazia já existente (T9), sem deleção silenciosa
 
 **Tests**: integration
 **Gate**: full

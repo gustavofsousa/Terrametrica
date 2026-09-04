@@ -20,6 +20,7 @@ from terrametrica.dominio.modelos import (
     Coordenada,
     LoteRural,
     Sobreposicao,
+    TipoRestricao,
     VersaoBase,
 )
 from terrametrica.persistencia.migrar import aplicar_migracoes
@@ -169,8 +170,47 @@ class TestLoteEm:
         assert resultado is None
 
 
+def _inserir_restricao(
+    conexao: psycopg.Connection,
+    versao: VersaoBase,
+    *,
+    id_: str,
+    tipo: str,
+    nome: str,
+    categoria: str | None,
+    wkt: str,
+) -> None:
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO restricao (id, tipo, nome, categoria, geom, versao_base_id)
+            VALUES (%s, %s, %s, %s, ST_GeomFromText(%s, 4674), %s)
+            """,
+            (id_, tipo, nome, categoria, wkt, versao.id),
+        )
+
+
+def _inserir_intersecao_materializada(
+    conexao: psycopg.Connection,
+    versao: VersaoBase,
+    *,
+    lote_id: str,
+    restricao_id: str,
+    area_m2: float,
+) -> None:
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO intersecao_materializada
+                (lote_id, restricao_id, area_intersecao_m2, versao_base_id)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (lote_id, restricao_id, area_m2, versao.id),
+        )
+
+
 class TestIntersecoesDe:
-    def test_retorna_lista_vazia(
+    def test_retorna_lista_vazia_quando_nada_foi_materializado(
         self,
         repositorio: RepositorioLotesPostGIS,
         conexao: psycopg.Connection,
@@ -181,6 +221,64 @@ class TestIntersecoesDe:
         assert isinstance(lote, LoteRural)
 
         assert repositorio.intersecoes_de(lote, versao) == []
+
+    def test_retorna_intersecoes_materializadas_do_lote(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        _inserir_lote(conexao, versao, id_="RJ-1", wkt=_quadrado_wkt(-43.1, -22.9))
+        _inserir_restricao(
+            conexao,
+            versao,
+            id_="app-1",
+            tipo=TipoRestricao.APP.value,
+            nome="Area de Preservacao Permanente em area consolidada",
+            categoria="APP_AREA_AC",
+            wkt=_quadrado_wkt(-43.1, -22.9, lado=0.005),
+        )
+        _inserir_intersecao_materializada(
+            conexao, versao, lote_id="RJ-1", restricao_id="app-1", area_m2=12345.0
+        )
+
+        lote = repositorio.lote_em(Coordenada(lat=-22.9, lon=-43.1), versao)
+        assert isinstance(lote, LoteRural)
+
+        (item,) = repositorio.intersecoes_de(lote, versao)
+        assert item.tipo is TipoRestricao.APP
+        assert item.nome == "Area de Preservacao Permanente em area consolidada"
+        assert item.categoria == "APP_AREA_AC"
+        assert item.area_intersecao.valor == 12345.0
+        assert item.grau_suscetibilidade is None
+
+    def test_nao_mistura_intersecoes_de_outro_lote(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        _inserir_lote(conexao, versao, id_="RJ-1", wkt=_quadrado_wkt(-43.1, -22.9))
+        _inserir_lote(
+            conexao, versao, id_="RJ-2", wkt=_quadrado_wkt(-44.0, -23.0), codigo_sigef="SIGEF-2"
+        )
+        _inserir_restricao(
+            conexao,
+            versao,
+            id_="rl-1",
+            tipo=TipoRestricao.RESERVA_LEGAL.value,
+            nome="Reserva Legal Proposta",
+            categoria="ARL_PROPOSTA",
+            wkt=_quadrado_wkt(-44.0, -23.0, lado=0.005),
+        )
+        _inserir_intersecao_materializada(
+            conexao, versao, lote_id="RJ-2", restricao_id="rl-1", area_m2=500.0
+        )
+
+        lote_rj1 = repositorio.lote_em(Coordenada(lat=-22.9, lon=-43.1), versao)
+        assert isinstance(lote_rj1, LoteRural)
+
+        assert repositorio.intersecoes_de(lote_rj1, versao) == []
 
 
 class TestProvenienciaDe:
