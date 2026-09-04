@@ -98,17 +98,35 @@ Resumo do que a lei sustenta hoje:
 > a Fase 0 era do ambiente remoto e **não se aplica aqui**. As linhas abaixo agora carregam
 > resultado real onde foi testado.
 
-- [ ] Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos
-      — **investigado por navegação real 2026-09-03 (Playwright).** No catálogo `dados.gov.br`, o
-      dataset SIGEF está catalogado como **ACESSO PÚBLICO**, licença **Creative Commons
-      Attribution**, formatos CSV/JSON/PDF/SHP, atualização diária. O recurso SHP ("Acervo
-      Fundiário") aponta para `certificacao.incra.gov.br/csv_shp/export_shp.py`, que **agora exige
-      login GOV.BR** (SSO `sso.acesso.gov.br`) — qualquer conta de cidadão serve, não precisa ser
-      credencial institucional. Confirma o que o doc já suspeitava ("desde out/2023 exige login").
-      Existe também uma **API ConectaGov** (JSON) para o SIGEF, mas é restrita a **órgãos públicos
-      federais/estaduais** — não disponível para uso de terceiro/desenvolvedor. **Bloqueio real:
-      alguém precisa logar manualmente com conta gov.br para baixar o shapefile** — ver item 1 de
-      `pendencias-humano.md`. Download+medição ainda não feitos.
+- [x] **Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos** —
+      **FEITO 2026-09-03.** Login GOV.BR realizado pelo usuário (conta de cidadão comum,
+      confirmando que não precisa de credencial institucional); export via
+      `certificacao.incra.gov.br/csv_shp/export_shp.py`, camada "Imóvel certificado SIGEF Total",
+      estado RJ. Resultado medido (pyshp + shapely):
+      - **14.664 feições**, 100% `Polygon`
+      - **0 geometrias inválidas, 0 vazias, 0 com área zero**
+      - CRS do `.prj`: `GEOGCS["SIRGAS 2000", ...]` — geográfico, equivalente a **EPSG:4674**
+        (bate com o CRS canônico decidido em AD-008)
+      - bbox coerente com o território do RJ (lon -44.82 a -40.96, lat -23.37 a -20.77)
+      - Campos: `status` (ex.: `CERTIFICADA`), `nome_area`, `municipio_` (código IBGE do
+        município — útil para DOS-04), `codigo_imo`, `registro_m`/`registro_d`,
+        `data_submi`/`data_aprov`. **`.dbf` está em encoding `latin1`, não UTF-8** — atenção na
+        ingestão (nomes de área com acento quebram em UTF-8 estrito).
+      - Existe também uma **API ConectaGov** (JSON) para o SIGEF, mas é restrita a órgãos
+        públicos federais/estaduais — não serve para o projeto.
+      Arquivo baixado fica fora do repo (dado derivado, regenerável); ingestão real acontece na
+      Fatia 2.
+- [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
+      — **investigado por navegação real 2026-09-03 (Playwright).** A "Base de Downloads"
+      (`consultapublica.car.gov.br/publico/estados/downloads`) **não exige login** e lista todas as
+      27 UFs com data de disponibilização (RJ: 03/09/2026, dado fresco). Ao abrir RJ, o modal expõe
+      download por camada: Perímetros dos imóveis (`AREA_IMOVEL`), APP, Remanescente de Vegetação
+      Nativa, Área Consolidada, Área de Pousio, Hidrografia, Uso Restrito, Servidão Administrativa,
+      Reserva Legal — exatamente as camadas do catálogo. **Cada botão de download é gated por
+      reCAPTCHA** (`class="btn-abrir-modal-recaptcha"`) — não tentei contornar (fora de escopo e
+      antiético driblar anti-bot). **Bloqueio real: alguém precisa clicar Download + resolver o
+      captcha manualmente** para a camada "Perímetros dos imóveis" — ver item 6 de
+      `pendencias-humano.md`. Depois disso, a medição de feições/CRS/sobreposição é automatizável.
 - [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
       — **investigado por navegação real 2026-09-03 (Playwright).** A "Base de Downloads"
       (`consultapublica.car.gov.br/publico/estados/downloads`) **não exige login** e lista todas as

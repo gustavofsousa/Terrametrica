@@ -44,20 +44,12 @@ Fase 0 de hoje). Eu não faço push sem pedido explícito.
 **Ação:** `git push` quando você quiser publicar. Aviso: nenhum desses commits é destrutivo, é
 seguro fazer a qualquer momento.
 
-## 5. Baixar shapefile SIGEF (Acervo Fundiário RJ) — precisa login GOV.BR
+## 5. ~~Baixar shapefile SIGEF (Acervo Fundiário RJ)~~ — RESOLVIDO 2026-09-03
 
-**Link:** [certificacao.incra.gov.br/csv_shp/export_shp.py](https://certificacao.incra.gov.br/csv_shp/export_shp.py)
-(pede login GOV.BR na hora) · página do dataset em
-[dados.gov.br](https://dados.gov.br/dados/conjuntos-dados/sistema-de-gestao-fundiaria---sigef)
-
-**O quê:** confirmado por navegação real (2026-09-03) que o dataset SIGEF é **ACESSO PÚBLICO,
-licença CC-BY**, mas o recurso SHP exige login via SSO `sso.acesso.gov.br` — **qualquer conta
-gov.br de cidadão comum serve**, não é credencial institucional.
-**Por quê importa:** é o primeiro item pendente da checklist de Fase 0 (medir nº de feições, CRS,
-validade dos polígonos do SIGEF filtrado por RJ) — pré-requisito antes de escrever código de
-ingestão rural.
-**Ação:** abrir o link, logar com sua conta gov.br, filtrar por RJ, baixar o shapefile e me passar
-o arquivo (ou o caminho local) para eu medir feições/CRS/validade.
+**Como foi feito:** navegamos juntos — eu abri o link, você logou com sua conta gov.br na sessão
+de browser compartilhada, eu segui filtrando por RJ (camada "Imóvel certificado SIGEF Total") e
+baixei o shapefile. Resultado medido: **14.664 feições, 0 inválidas, CRS EPSG:4674**. Detalhe
+completo em `fontes-de-dados-rj.md` (item 1 da checklist). Não precisa refazer.
 
 ## 6. Baixar shapefile CAR (Perímetros dos imóveis, RJ) — precisa resolver reCAPTCHA
 
