@@ -98,10 +98,10 @@ enums fechados, união de resultados), `geometria/regras.py` (marginal 1% + dive
 **Escopo entregue:** apenas a lógica de domínio. As ACs de usuário (DOS-01/03 fim-a-fim) **não**
 estão demonstráveis ainda — faltam as fatias de infra. `spec.md` mantido em Pending de propósito
 (não superdeclarar).
-**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada). Depois: página de cobertura,
-API FastAPI + observabilidade, web MapLibre.
+**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada) — **Fase 0 rural e urbana
+fechadas**, sem bloqueio técnico restante para começar o design da ingestão.
 
-**Fase 0 — destravada e verificada por navegação real (2026-09-03):**
+**Fase 0 — FECHADA, verificada por navegação real e dado real (2026-09-03):**
 - **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,
   CAR 302, INCRA export_shp 200.
 - **Piloto urbano confirmado por acesso real:** SIGeo Niterói expõe camada `Lotes` lote-a-lote —
@@ -114,13 +114,18 @@ API FastAPI + observabilidade, web MapLibre.
   Campos incluem `municipio_` (código IBGE) e `status` (`CERTIFICADA`); `.dbf` em encoding
   `latin1`. Detalhe completo em `fontes-de-dados-rj.md`. API ConectaGov existe mas é restrita a
   órgãos públicos, não serve para o projeto.
-- **CAR — ainda pendente:** "Base de Downloads" não exige login e tem RJ disponível (dado de
-  2026-09-03), com as 9 camadas do catálogo (perímetro, APP, reserva legal etc.) — mas cada
-  download é **gated por reCAPTCHA**, resolvido manualmente pelo usuário — ver
-  `docs/research/pendencias-humano.md` item 6. Depois de baixado, medir feições/CRS/validade e a
-  **sobreposição SIGEF×CAR** (AD-003) fica automatizável.
+- **CAR — baixado e medido (2026-09-03):** captcha (imagem de texto) resolvido pelo usuário na
+  sessão compartilhada; baixadas as 9 camadas do estado inteiro (~1 GB). Camada "Perímetros dos
+  imóveis": **69.105 feições, CRS EPSG:4674**.
+- **Sobreposição SIGEF × CAR medida de verdade (STRtree, 14.664 × 69.105 polígonos):** só **35,1%**
+  dos imóveis CAR têm qualquer sobreposição espacial com um SIGEF certificado; entre os que
+  sobrepõem, a mediana de cobertura é só **6,9%** (só 22,3% são pares quase idênticos >99%).
+  **Confirma AD-003 empiricamente** — SIGEF e CAR realmente divergem na maioria dos casos; mostrar
+  os dois lados sem reconciliar é a decisão certa, não cautela excessiva.
 - **Licença SIGeo Niterói confirmada:** liberada, com atribuição obrigatória (item 1 de
   `pendencias-humano.md`, fechado).
+- **Todos os dados baixados ficam fora do repo** (scratchpad local, ~1GB, regeneráveis via
+  navegação real — não versionados). A ingestão real (Fatia 2) lê da fonte, não desses arquivos.
 
 **Bloqueios conhecidos:** nenhum bloqueio de egress na máquina local. Fontes rurais exigem ação
 humana pontual para baixar o arquivo (login gov.br p/ SIGEF; resolver captcha p/ CAR) — depois

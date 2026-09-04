@@ -51,19 +51,14 @@ de browser compartilhada, eu segui filtrando por RJ (camada "Imóvel certificado
 baixei o shapefile. Resultado medido: **14.664 feições, 0 inválidas, CRS EPSG:4674**. Detalhe
 completo em `fontes-de-dados-rj.md` (item 1 da checklist). Não precisa refazer.
 
-## 6. Baixar shapefile CAR (Perímetros dos imóveis, RJ) — precisa resolver reCAPTCHA
+## 6. ~~Baixar shapefile CAR (Perímetros dos imóveis, RJ)~~ — RESOLVIDO 2026-09-03
 
-**Link:** [consultapublica.car.gov.br/publico/estados/downloads](https://consultapublica.car.gov.br/publico/estados/downloads)
-(sem login)
-
-**O quê:** confirmado por navegação real (2026-09-03) que a página acima **não exige login** e
-lista RJ com dado fresco (disponibilizado 03/09/2026). O modal de download por camada (Perímetros
-dos imóveis, APP, Reserva Legal etc.) é protegido por **reCAPTCHA por clique** — não tentei
-contornar, é controle anti-bot legítimo.
-**Por quê importa:** é o segundo item pendente da checklist de Fase 0 — preciso do perímetro CAR
-de RJ para medir a sobreposição SIGEF × CAR (AD-003, o achado de maior valor do produto).
-**Ação:** no link acima, clicar RJ → "Perímetros dos imóveis" → Download, resolver o captcha,
-baixar o shapefile e me passar o arquivo para eu medir a sobreposição.
+**Como foi feito:** navegamos juntos até o modal de RJ; o captcha era imagem de texto distorcido
+(não Google reCAPTCHA), você resolveu na sessão de browser compartilhada e baixou as 9 camadas do
+estado inteiro (~1 GB). Medi a camada "Perímetros dos imóveis": **69.105 feições, CRS EPSG:4674**,
+e calculei a sobreposição espacial real com o SIGEF — só **35,1%** dos imóveis CAR têm alguma
+sobreposição com o SIGEF certificado, e entre esses a mediana de cobertura é só **6,9%**. Confirma
+AD-003 empiricamente. Detalhe completo em `fontes-de-dados-rj.md`. Não precisa refazer.
 
 ## 7. Inventário dos 92 municípios (cobertura urbana)
 

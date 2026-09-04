@@ -116,28 +116,33 @@ Resumo do que a lei sustenta hoje:
         públicos federais/estaduais — não serve para o projeto.
       Arquivo baixado fica fora do repo (dado derivado, regenerável); ingestão real acontece na
       Fatia 2.
-- [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
-      — **investigado por navegação real 2026-09-03 (Playwright).** A "Base de Downloads"
-      (`consultapublica.car.gov.br/publico/estados/downloads`) **não exige login** e lista todas as
-      27 UFs com data de disponibilização (RJ: 03/09/2026, dado fresco). Ao abrir RJ, o modal expõe
-      download por camada: Perímetros dos imóveis (`AREA_IMOVEL`), APP, Remanescente de Vegetação
-      Nativa, Área Consolidada, Área de Pousio, Hidrografia, Uso Restrito, Servidão Administrativa,
-      Reserva Legal — exatamente as camadas do catálogo. **Cada botão de download é gated por
-      reCAPTCHA** (`class="btn-abrir-modal-recaptcha"`) — não tentei contornar (fora de escopo e
-      antiético driblar anti-bot). **Bloqueio real: alguém precisa clicar Download + resolver o
-      captcha manualmente** para a camada "Perímetros dos imóveis" — ver item 6 de
-      `pendencias-humano.md`. Depois disso, a medição de feições/CRS/sobreposição é automatizável.
-- [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
-      — **investigado por navegação real 2026-09-03 (Playwright).** A "Base de Downloads"
-      (`consultapublica.car.gov.br/publico/estados/downloads`) **não exige login** e lista todas as
-      27 UFs com data de disponibilização (RJ: 03/09/2026, dado fresco). Ao abrir RJ, o modal expõe
-      download por camada: Perímetros dos imóveis (`AREA_IMOVEL`), APP, Remanescente de Vegetação
-      Nativa, Área Consolidada, Área de Pousio, Hidrografia, Uso Restrito, Servidão Administrativa,
-      Reserva Legal — exatamente as camadas do catálogo. **Cada botão de download é gated por
-      reCAPTCHA** (`class="btn-abrir-modal-recaptcha"`) — não tentei contornar (fora de escopo e
-      antiético driblar anti-bot). **Bloqueio real: alguém precisa clicar Download + resolver o
-      captcha manualmente** para a camada "Perímetros dos imóveis" — ver item 6 de
-      `pendencias-humano.md`. Depois disso, a medição de feições/CRS/sobreposição é automatizável.
+- [x] **Baixar CAR do RJ e medir sobreposição SIGEF × CAR** — **FEITO 2026-09-03.** A "Base de
+      Downloads" (`consultapublica.car.gov.br/publico/estados/downloads`) não exige login; RJ
+      disponível com dado de 03/09/2026. Captcha (imagem de texto distorcido, não Google
+      reCAPTCHA) resolvido pelo usuário na sessão de browser compartilhada — baixamos as **9
+      camadas** do estado inteiro: Perímetros dos imóveis (`AREA_IMOVEL`), APP, Remanescente de
+      Vegetação Nativa, Área Consolidada, Área de Pousio, Hidrografia, Uso Restrito, Servidão
+      Administrativa, Reserva Legal (658 MB no total; a maior, APP, tem 659 MB sozinha).
+      **Perímetros dos imóveis** (camada usada para o cruzamento):
+      - **69.105 feições**, CRS explícito no `.prj`: **EPSG:4674** (SIRGAS 2000 geográfico — igual
+        ao SIGEF, decisão de AD-008 confirmada nas duas fontes)
+      - bbox quase idêntico ao do SIGEF (RJ inteiro)
+      - Campos: `cod_imovel`, `mod_fiscal`, `num_area`, `ind_status`, `ind_tipo`, `municipio`,
+        `dat_criaca`/`dat_atuali`
+      **Sobreposição espacial SIGEF × CAR (índice `STRtree`, 14.664 × 69.105 polígonos, ~33s):**
+      - Só **35,1%** dos imóveis CAR (24.287 de 69.105) têm **qualquer** sobreposição espacial
+        com um polígono SIGEF certificado — os outros 64,9% são declarações CAR sem certificação
+        SIGEF correspondente (esperado: CAR cobre todo imóvel declarado, SIGEF só o certificado)
+      - Entre os que sobrepõem, a **fração média da área CAR coberta pelo SIGEF é 41%, mas a
+        mediana é só 6,9%** — a maioria das sobreposições é parcial/pequena, não um par 1:1
+      - Só **22,3%** dos que sobrepõem (5.409 imóveis, ~7,8% do total CAR) têm >99% de cobertura
+        (par quase idêntico SIGEF≈CAR); **59,6%** dos que sobrepõem têm <50% de cobertura
+        (divergência forte)
+      - **Confirma empiricamente AD-003**: SIGEF e CAR raramente descrevem o mesmo perímetro de
+        forma idêntica — mostrar os dois lados a lado (nunca reconciliar em silêncio) é a decisão
+        certa, não uma cautela excessiva.
+      Arquivos ficam fora do repo (dado derivado, ~1GB no total); ingestão real acontece na
+      Fatia 2. Script de medição descartável, não versionado (era exploratório).
 - [x] **Confirmar se o SIGeo de Niterói expõe camada de lote (não só quadra) e em qual endpoint** —
       **SIM, confirmado 2026-09-03.** Feature Service hospedado:
       `https://sig.niteroi.rj.gov.br/server/rest/services/Hosted/NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`
