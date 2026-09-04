@@ -122,10 +122,18 @@ fechadas**, sem bloqueio técnico restante para começar o design da ingestão.
   sobrepõem, a mediana de cobertura é só **6,9%** (só 22,3% são pares quase idênticos >99%).
   **Confirma AD-003 empiricamente** — SIGEF e CAR realmente divergem na maioria dos casos; mostrar
   os dois lados sem reconciliar é a decisão certa, não cautela excessiva.
-- **Licença SIGeo Niterói confirmada:** liberada, com atribuição obrigatória (item 1 de
-  `pendencias-humano.md`, fechado).
-- **Todos os dados baixados ficam fora do repo** (scratchpad local, ~1GB, regeneráveis via
-  navegação real — não versionados). A ingestão real (Fatia 2) lê da fonte, não desses arquivos.
+- **Licença SIGeo Niterói confirmada:** liberada, com atribuição obrigatória.
+- **Dados brutos baixados ficam em `data/raw/rj/`** (fora do git, `.gitignore` cobre `data/raw/`,
+  ~1,1GB, regeneráveis via navegação real). A ingestão real (Fatia 2) lê da fonte, não desses
+  arquivos. Ver `data/raw/rj/README.md`.
+- **Inventário urbano dos 92 municípios fechado:** 0 municípios (fora Niterói) com download
+  vetorial de lote confirmado; 75 sem nenhuma fonte espacial aberta; 6 "Parcial" (WebGIS sem
+  export, ex.: Macaé/GeoMacaé é o mais promissor) + 9 "Ambíguo" ainda precisam verificação manual
+  direta (não bloqueia MVP, fica em `pendencias-humano.md` item 4). Detalhe e CSVs em
+  `docs/research/municipios-rj/`.
+- **`pendencias-humano.md` reduzido** — itens totalmente resolvidos (licença Niterói, download
+  SIGEF, download CAR) foram removidos; só ficam ONR (futuro), revisão jurídica AD-002
+  (pré-publicação), política de push, e verificação manual dos 15 municípios urbanos.
 
 **Bloqueios conhecidos:** nenhum bloqueio de egress na máquina local. Fontes rurais exigem ação
 humana pontual para baixar o arquivo (login gov.br p/ SIGEF; resolver captcha p/ CAR) — depois

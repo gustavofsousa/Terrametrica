@@ -1,0 +1,10 @@
+Municipio,Regiao,Status,Formato_Via,URL,Observacoes
+Campos dos Goytacazes,Norte Fluminense,Parcial,WebGIS restrito (Planta On-line - login exige cadastro profissional),https://campos.mitraonline.com.br/plantaonline/index.php,"Contém lotes/quadras/zoneamento, mas exige login profissional (engenheiro/arquiteto cadastrado); geo.campos.rj.gov.br também identificado como portal de geoprocessamento"
+Macaé,Norte Fluminense,Parcial,"Shapefiles (GeoMacaé) - seção específica, alguns dados PDF",https://macae.rj.gov.br/geomacae/conteudo/titulo/shapefiles,Portal GeoMacaé oferece shapefiles para download em diversos temas; verificar se camada de lotes/parcelas está incluída - mapas de bairros disponíveis majoritariamente em PDF
+São Fidélis,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São João da Barra,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Quissamã,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Carapebus,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cardoso Moreira,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Conceição de Macabu,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Macuco,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada

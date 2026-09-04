@@ -159,7 +159,15 @@ Resumo do que a lei sustenta hoje:
 - [x] **Confirmar formato de saída do SIGeo Niterói** — GeoJSON e demais formatos ArcGIS via
       endpoint `query` (confirmado). **Licença/termos de uso ainda a confirmar** no portal do hub.
 - [ ] Confirmar se DATA.RIO expõe camada de **lote**, para o segundo município
-- [ ] Inventariar os 92 municípios: quem publica lote cadastral aberto (planilha de cobertura)
+- [x] **Inventariar os 92 municípios: quem publica lote cadastral aberto** — **FEITO 2026-09-03.**
+      Pesquisa entregue pelo usuário (84 municípios) + lacuna de 6 preenchida por pesquisa
+      adicional (Aperibé, Engenheiro Paulo de Frontin, Itaocara, Mendes, Rio das Flores, São
+      Francisco de Itabapoana — todos "Não", via ArcGIS Online + `dadosabertos.rj.gov.br`).
+      **91 dos 92 municípios cobertos** (+ Niterói, tratado à parte; RJ capital excluído do escopo
+      desta pesquisa, ver DATA.RIO acima). Resultado: **0 municípios com download vetorial
+      confirmado, 6 Parcial (WebGIS sem export), 9 Ambíguo (precisa verificação manual), 75 Não**.
+      Confirma AD-006 com número, não suposição. Detalhe completo, tabela e CSVs em
+      `docs/research/municipios-rj/`.
 - [ ] Contatar ONR sobre existência/condições de API para terceiros
 - [ ] Definir CRS canônico do projeto (candidato: SIRGAS 2000 / EPSG:4674 para armazenamento, 3857 para tiles) — decidir em Design
       — nota: SIGeo Niterói chega em **EPSG:31983**; a ingestão reprojeta p/ o CRS canônico (AD-008).

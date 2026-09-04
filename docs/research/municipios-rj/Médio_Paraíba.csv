@@ -1,0 +1,12 @@
+Municipio,Regiao,Status,Formato_Via,URL,Observacoes
+Volta Redonda,Médio Paraíba,Parcial,"WebGIS (Portal Geo VR) - consulta por lote com popup, sem export identificado",https://www2.voltaredonda.rj.gov.br/geo/index.php,"Sistema permite clicar em lote e ver inscrição, mas não há botão de exportação vetorial confirmado"
+Barra Mansa,Médio Paraíba,Parcial,"ArcGIS Hub (GEO Barra Mansa) - aplicativos temáticos, zoneamento em PDF",https://geo-barra-mansa-smmadsbm.hub.arcgis.com/,"Hub ArcGIS ativo com several apps (arborização, gestão territorial); camada específica de lotes cadastrais não confirmada como baixável - zoneamento disponível apenas em PDF no portal de transparência"
+Resende,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itatiaia,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Porto Real,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Quatis,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Pinheiral,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Piraí,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Rio Claro,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Valença,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Barra do Piraí,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada

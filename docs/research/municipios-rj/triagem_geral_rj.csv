@@ -1,0 +1,92 @@
+Municipio,Regiao,Status,Formato_Via,URL,Observacoes
+Rio de Janeiro (referência),Metropolitana,N/A - excluído do escopo,-,-,Excluído da análise por instrução do usuário
+São Gonçalo,Metropolitana,Parcial,WebGIS (Topovision) - sem exportação clara,https://topovision.pmsg.rj.gov.br/,Visualizador de mapa/bairros; não identificado botão de download de shapefile de lotes
+Duque de Caxias,Metropolitana,Não,PDF/Formulário cadastral (IPTU),https://portalcontribuinte.duquedecaxias.rj.gov.br/,Apenas formulário de coleta cadastral em PDF; sem geoportal público de lotes identificado
+Nova Iguaçu,Metropolitana,Ambíguo,Não identificado geoportal público,-,Nenhum portal de dados espaciais municipal localizado nas buscas
+Belford Roxo,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São João de Meriti,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Nilópolis,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Mesquita,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itaboraí,Metropolitana,Não,Não identificado (apenas dado CNES/saúde indexado),-,Não localizado geoportal municipal; necessita revisão manual
+Maricá,Metropolitana,Ambíguo,Não verificado - possível ArcGIS Hub,-,Requer verificação manual adicional
+Magé,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Guapimirim,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itaguaí,Metropolitana,Ambíguo,Não verificado,-,Requer revisão manual
+Seropédica,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Japeri,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Queimados,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Paracambi,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Tanguá,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Rio Bonito,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cachoeiras de Macacu,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cabo Frio,Baixadas Litorâneas,Ambíguo,Não verificado,-,Requer revisão manual
+Armação dos Búzios,Baixadas Litorâneas,Ambíguo,Não verificado,-,Requer revisão manual
+São Pedro da Aldeia,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Araruama,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Saquarema,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Iguaba Grande,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Arraial do Cabo,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Casimiro de Abreu,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Rio das Ostras,Baixadas Litorâneas,Ambíguo,Não verificado,-,Requer revisão manual - possível SIG municipal
+Silva Jardim,Baixadas Litorâneas,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Campos dos Goytacazes,Norte Fluminense,Parcial,WebGIS restrito (Planta On-line - login exige cadastro profissional),https://campos.mitraonline.com.br/plantaonline/index.php,"Contém lotes/quadras/zoneamento, mas exige login profissional (engenheiro/arquiteto cadastrado); geo.campos.rj.gov.br também identificado como portal de geoprocessamento"
+Macaé,Norte Fluminense,Parcial,"Shapefiles (GeoMacaé) - seção específica, alguns dados PDF",https://macae.rj.gov.br/geomacae/conteudo/titulo/shapefiles,Portal GeoMacaé oferece shapefiles para download em diversos temas; verificar se camada de lotes/parcelas está incluída - mapas de bairros disponíveis majoritariamente em PDF
+São Fidélis,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São João da Barra,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Quissamã,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Carapebus,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cardoso Moreira,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Conceição de Macabu,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Macuco,Norte Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Volta Redonda,Médio Paraíba,Parcial,"WebGIS (Portal Geo VR) - consulta por lote com popup, sem export identificado",https://www2.voltaredonda.rj.gov.br/geo/index.php,"Sistema permite clicar em lote e ver inscrição, mas não há botão de exportação vetorial confirmado"
+Barra Mansa,Médio Paraíba,Parcial,"ArcGIS Hub (GEO Barra Mansa) - aplicativos temáticos, zoneamento em PDF",https://geo-barra-mansa-smmadsbm.hub.arcgis.com/,"Hub ArcGIS ativo com several apps (arborização, gestão territorial); camada específica de lotes cadastrais não confirmada como baixável - zoneamento disponível apenas em PDF no portal de transparência"
+Resende,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itatiaia,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Porto Real,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Quatis,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Pinheiral,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Piraí,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Rio Claro,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Valença,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Barra do Piraí,Médio Paraíba,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Petrópolis,Serrana,Parcial,"SigWeb (múltiplos projetos: LUPOS, arruamento, mapa base 1:10.000 em PDF/WMF)",https://sig.petropolis.rj.gov.br/,"Sistema robusto com várias camadas (uso do solo LUPOS, arruamento), mas exportação vetorial de lotes individuais não confirmada; mapa base disponível em PDF/WMF"
+Nova Friburgo,Serrana,Ambíguo,Dado citado em dataset (Carta de Aptidão Urbana) mas não vetorial,https://dadosabertos.rj.gov.br/pt_PT/dataset/carta-de-aptidao-urbana-nova-friburgo,"Dataset descreve carta de aptidão por lote, mas não confirma formato vetorial baixável"
+Teresópolis,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São José do Vale do Rio Preto,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Bom Jardim,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cantagalo,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cordeiro,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Duas Barras,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Santa Maria Madalena,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São Sebastião do Alto,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Sumidouro,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Trajano de Moraes,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Carmo,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Sapucaia,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Angra dos Reis,Costa Verde,Ambíguo,Não verificado,-,Requer revisão manual - alta relevância turística/imobiliária
+Paraty,Costa Verde,Ambíguo,Não verificado,-,Requer revisão manual
+Mangaratiba,Costa Verde,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Três Rios,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Paraíba do Sul,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Comendador Levy Gasparian,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Areal,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Vassouras,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Miguel Pereira,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Paty do Alferes,Centro-Sul Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itaperuna,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Santo Antônio de Pádua,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Bom Jesus do Itabapoana,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cambuci,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Italva,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Miracema,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Natividade,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Porciúncula,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Varre-Sai,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Laje do Muriaé,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São José de Ubá,Noroeste Fluminense,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Aperibé,Noroeste Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br só tem datasets estaduais que citam o município (EMATER-RIO/carta de risco) sem dado cadastral
+Itaocara,Noroeste Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br só tem datasets estaduais que citam o município
+Engenheiro Paulo de Frontin,Centro-Sul Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br só tem datasets estaduais que citam o município
+Mendes,Centro-Sul Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br tem só dados institucionais (organograma/pessoal)
+Rio das Flores,Centro-Sul Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br só tem sinalização turística e datasets estaduais que citam o município
+São Francisco de Itabapoana,Norte Fluminense,Não,Não identificado,-,Completado por pesquisa adicional 2026-09-03: 0 resultados em ArcGIS Online; dadosabertos.rj.gov.br só tem datasets estaduais pesqueiros/geológicos que citam o município

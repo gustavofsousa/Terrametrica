@@ -1,0 +1,21 @@
+Municipio,Regiao,Status,Formato_Via,URL,Observacoes
+Rio de Janeiro (referência),Metropolitana,N/A - excluído do escopo,-,-,Excluído da análise por instrução do usuário
+São Gonçalo,Metropolitana,Parcial,WebGIS (Topovision) - sem exportação clara,https://topovision.pmsg.rj.gov.br/,Visualizador de mapa/bairros; não identificado botão de download de shapefile de lotes
+Duque de Caxias,Metropolitana,Não,PDF/Formulário cadastral (IPTU),https://portalcontribuinte.duquedecaxias.rj.gov.br/,Apenas formulário de coleta cadastral em PDF; sem geoportal público de lotes identificado
+Nova Iguaçu,Metropolitana,Ambíguo,Não identificado geoportal público,-,Nenhum portal de dados espaciais municipal localizado nas buscas
+Belford Roxo,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São João de Meriti,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Nilópolis,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Mesquita,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itaboraí,Metropolitana,Não,Não identificado (apenas dado CNES/saúde indexado),-,Não localizado geoportal municipal; necessita revisão manual
+Maricá,Metropolitana,Ambíguo,Não verificado - possível ArcGIS Hub,-,Requer verificação manual adicional
+Magé,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Guapimirim,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Itaguaí,Metropolitana,Ambíguo,Não verificado,-,Requer revisão manual
+Seropédica,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Japeri,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Queimados,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Paracambi,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Tanguá,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Rio Bonito,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cachoeiras de Macacu,Metropolitana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada

@@ -1,0 +1,15 @@
+Municipio,Regiao,Status,Formato_Via,URL,Observacoes
+Petrópolis,Serrana,Parcial,"SigWeb (múltiplos projetos: LUPOS, arruamento, mapa base 1:10.000 em PDF/WMF)",https://sig.petropolis.rj.gov.br/,"Sistema robusto com várias camadas (uso do solo LUPOS, arruamento), mas exportação vetorial de lotes individuais não confirmada; mapa base disponível em PDF/WMF"
+Nova Friburgo,Serrana,Ambíguo,Dado citado em dataset (Carta de Aptidão Urbana) mas não vetorial,https://dadosabertos.rj.gov.br/pt_PT/dataset/carta-de-aptidao-urbana-nova-friburgo,"Dataset descreve carta de aptidão por lote, mas não confirma formato vetorial baixável"
+Teresópolis,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São José do Vale do Rio Preto,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Bom Jardim,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cantagalo,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Cordeiro,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Duas Barras,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Santa Maria Madalena,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+São Sebastião do Alto,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Sumidouro,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Trajano de Moraes,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Carmo,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada
+Sapucaia,Serrana,Não,Não identificado,-,Nenhuma fonte de dados espaciais aberta localizada

@@ -2,17 +2,11 @@
 
 > Itens da Fase 0 (e correlatos) que não dão para fechar por agente — exigem login, contato
 > humano, decisão de negócio/jurídica, ou navegação manual em portal sem API. Atualizado conforme
-> a Fase 0 avança; ver checklist completa em `docs/research/fontes-de-dados-rj.md`.
+> a Fase 0 avança; ver checklist completa em `docs/research/fontes-de-dados-rj.md`. Itens
+> totalmente resolvidos (licença SIGeo, download SIGEF, download CAR) foram removidos daqui — o
+> resultado deles fica registrado em `fontes-de-dados-rj.md` e `.specs/STATE.md`, não aqui.
 
-## 1. ~~Confirmar licença/termos de uso do SIGeo Niterói~~ — RESOLVIDO 2026-09-03
-
-**Resultado (confirmado pelo usuário):** termos de uso e redistribuição **liberados** — a API é
-pública e o dado pode ser usado por inteiro. **Atribuição é obrigatória**: citar a origem do dado
-(SIGeo Niterói) em todo campo derivado dessa camada. Coerente com **AD-005** (proveniência é
-requisito, não enfeite) — não muda a arquitetura, só confirma que redistribuir a camada de lote é
-permitido desde que a fonte apareça.
-
-## 2. Contatar ONR sobre API para terceiros — TRABALHO FUTURO
+## 1. Contatar ONR sobre API para terceiros — TRABALHO FUTURO
 
 **Link:** [registrodeimoveis.org.br](https://www.registrodeimoveis.org.br/) (site do ONR — canal
 de contato/atendimento fica lá)
@@ -25,7 +19,7 @@ programática para consulta de certidão, ou se é 100% manual por portal.
 **Por quê importa:** é o único caminho técnico-jurídico que poderia, no futuro, sustentar a camada
 de proprietário. Sem isso confirmado, a camada de proprietário permanece bloqueada por design.
 
-## 3. Validar a interpretação jurídica de AD-002 com um advogado — FAZER ANTES DA PUBLICAÇÃO PÚBLICA
+## 2. Validar a interpretação jurídica de AD-002 com um advogado — FAZER ANTES DA PUBLICAÇÃO PÚBLICA
 
 **Status:** adiado de propósito — **não é bloqueio do MVP/desenvolvimento**, mas é
 **pré-requisito obrigatório antes de publicar o produto publicamente** (lançamento, abrir para
@@ -37,38 +31,26 @@ proprietário for ligada um dia (ver `docs/produto/riscos.md`, risco jurídico a
 **Ação:** revisão por advogado antes de qualquer publicação pública do produto. Sem link — é uma
 consulta offline.
 
-## 4. Push dos commits locais para o remoto
+## 3. Push dos commits locais para o remoto
 
-**O quê:** a branch `main` está à frente de `origin/main` (inclui os commits de verificação da
-Fase 0 de hoje). Eu não faço push sem pedido explícito.
-**Ação:** `git push` quando você quiser publicar. Aviso: nenhum desses commits é destrutivo, é
-seguro fazer a qualquer momento.
+**Status:** política permanente, não pendência pontual — releio a cada rodada de trabalho.
+**O quê:** eu nunca faço `git push` sem pedido explícito na sessão, mesmo que uma autorização
+anterior tenha liberado um push específico (autorização não se estende automaticamente a commits
+futuros).
+**Ação:** avisar quando quiser publicar. Nenhum commit deste projeto até agora foi destrutivo — é
+seguro autorizar a qualquer momento.
 
-## 5. ~~Baixar shapefile SIGEF (Acervo Fundiário RJ)~~ — RESOLVIDO 2026-09-03
+## 4. Verificação manual dos 15 municípios "Parcial"/"Ambíguo" (cobertura urbana)
 
-**Como foi feito:** navegamos juntos — eu abri o link, você logou com sua conta gov.br na sessão
-de browser compartilhada, eu segui filtrando por RJ (camada "Imóvel certificado SIGEF Total") e
-baixei o shapefile. Resultado medido: **14.664 feições, 0 inválidas, CRS EPSG:4674**. Detalhe
-completo em `fontes-de-dados-rj.md` (item 1 da checklist). Não precisa refazer.
-
-## 6. ~~Baixar shapefile CAR (Perímetros dos imóveis, RJ)~~ — RESOLVIDO 2026-09-03
-
-**Como foi feito:** navegamos juntos até o modal de RJ; o captcha era imagem de texto distorcido
-(não Google reCAPTCHA), você resolveu na sessão de browser compartilhada e baixou as 9 camadas do
-estado inteiro (~1 GB). Medi a camada "Perímetros dos imóveis": **69.105 feições, CRS EPSG:4674**,
-e calculei a sobreposição espacial real com o SIGEF — só **35,1%** dos imóveis CAR têm alguma
-sobreposição com o SIGEF certificado, e entre esses a mediana de cobertura é só **6,9%**. Confirma
-AD-003 empiricamente. Detalhe completo em `fontes-de-dados-rj.md`. Não precisa refazer.
-
-## 7. Inventário dos 92 municípios (cobertura urbana)
-
-**O quê:** levantar quais dos 91 municípios restantes (fora Niterói) publicam lote cadastral
-aberto, e em qual formato/via.
-**Por quê importa:** é o maior ponto cego do produto (AD-006 já assume que a maioria não publica).
-**Por que fica aqui e não é 100% automatizável:** dá para automatizar parte (varrer ArcGIS Online
-por prefeitura), mas boa parte dos portais municipais do RJ não tem API — exige navegação manual
-página a página. Posso rodar a varredura automatizável como próximo passo técnico separado; a
-parte manual (sites sem padrão, PDFs, portais quebrados) precisa de alguém revisando.
-**Ação sugerida:** eu rodo uma primeira varredura automatizada (ArcGIS Online + busca por
-"prefeitura + cadastro + lote" por município) e te devolvo uma planilha de triagem; você confirma
-os casos ambíguos.
+**Status:** não urgente, não bloqueia o MVP (a fatia urbana atual é só Niterói). Fica registrado
+para quando expandir a cobertura urbana virar prioridade.
+**O quê:** o inventário dos 92 municípios está fechado (`docs/research/municipios-rj/`) — 0 com
+download vetorial confirmado, 75 sem nenhuma fonte, e **6 "Parcial" + 9 "Ambíguo" (15 no total)**
+que têm algum sinal de geoprocessamento mas sem export vetorial confirmado por pesquisa remota.
+**Por quê importa:** são os únicos 15 com chance real de virar fonte de dado urbano além de
+Niterói. **Macaé** é o mais promissor (portal GeoMacaé tem seção de shapefiles, não confirmado se
+cobre lote).
+**Ação sugerida:** abrir cada um dos 15 portais manualmente (ver lista e links em
+`docs/research/municipios-rj/README.md`) e testar se existe export vetorial ou REST Service
+ArcGIS oculto; para os que continuarem sem sinal, contato via LAI com a secretaria de
+planejamento/fazenda do município.
