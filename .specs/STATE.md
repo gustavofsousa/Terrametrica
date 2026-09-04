@@ -98,9 +98,20 @@ enums fechados, união de resultados), `geometria/regras.py` (marginal 1% + dive
 **Escopo entregue:** apenas a lógica de domínio. As ACs de usuário (DOS-01/03 fim-a-fim) **não**
 estão demonstráveis ainda — faltam as fatias de infra. `spec.md` mantido em Pending de propósito
 (não superdeclarar).
-**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada) — **bloqueada na Fase 0**,
-que exige egress `.gov.br` liberado (checklist em `docs/research/fontes-de-dados-rj.md`). Depois:
-camada urbana (Niterói), página de cobertura, API FastAPI + observabilidade, web MapLibre.
-**Bloqueios conhecidos:** o ambiente bloqueia HTTPS para hosts `.gov.br`; nenhum endpoint de fonte
-foi testado por requisição real. A checklist de verificação precisa rodar em ambiente com egress
-liberado antes de qualquer código de ingestão.
+**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada). Depois: página de cobertura,
+API FastAPI + observabilidade, web MapLibre.
+
+**Fase 0 — destravada e parcialmente verificada (2026-09-03):**
+- **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,
+  CAR 302, INCRA export_shp 200.
+- **Piloto urbano confirmado por acesso real:** SIGeo Niterói expõe camada `Lotes` lote-a-lote —
+  Feature Service `NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`, **82.199 feições**, CRS nativo
+  **EPSG:31983**, atributos cadastrais sem PII de proprietário, GeoJSON via `query`. Amostra
+  validada (polígono 8 vértices, Caramujo). Detalhe na checklist de `docs/research/fontes-de-dados-rj.md`.
+- **Ainda pendente antes da ingestão rural:** baixar+medir 1 shapefile SIGEF (RJ) e 1 CAR
+  (município piloto) e quantificar sobreposição SIGEF×CAR; confirmar licença do SIGeo; DATA.RIO
+  (2º município); inventário de cobertura dos 92 municípios.
+
+**Bloqueios conhecidos:** nenhum bloqueio de egress na máquina local. As fontes rurais (SIGEF/CAR)
+têm reachability confirmada mas **ainda não foram baixadas e medidas** — fazer isso antes do código
+de ingestão rural. A camada urbana (Niterói) já está pronta para prototipar ingestão real.

@@ -88,14 +88,32 @@ Resumo do que a lei sustenta hoje:
 
 ## 5. Checklist de verificação (fazer antes de qualquer código de ingestão)
 
+> **Atualização 2026-09-03 — egress `.gov.br` destravado.** Rodando na máquina local (não no
+> ambiente remoto), o acesso HTTPS a hosts `.gov.br` funciona: `sigef.incra.gov.br` → 200,
+> `consultapublica.car.gov.br` → 302, `certificacao.incra.gov.br` → 200. O bloqueio que travava
+> a Fase 0 era do ambiente remoto e **não se aplica aqui**. As linhas abaixo agora carregam
+> resultado real onde foi testado.
+
 - [ ] Baixar 1 shapefile do Acervo Fundiário/SIGEF filtrado por RJ e medir: nº de feições, CRS, validade dos polígonos
+      — *reachability confirmada* (`certificacao.incra.gov.br/csv_shp/export_shp.py` → 200);
+      download+medição ainda **não** feitos.
 - [ ] Baixar CAR do RJ (1 município piloto) e medir sobreposição SIGEF × CAR
-- [ ] Confirmar se o SIGeo de Niterói expõe camada de **lote** (não só quadra) e em qual endpoint WFS
-- [ ] Confirmar formato e licença de saída do SIGeo Niterói
+      — *reachability confirmada* (`consultapublica.car.gov.br` → 302); download ainda **não** feito.
+- [x] **Confirmar se o SIGeo de Niterói expõe camada de lote (não só quadra) e em qual endpoint** —
+      **SIM, confirmado 2026-09-03.** Feature Service hospedado:
+      `https://sig.niteroi.rj.gov.br/server/rest/services/Hosted/NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`
+      (camada `Lotes`). **82.199 feições** de polígono, granularidade de **lote** (uma feição por
+      lote, não quadra). CRS nativo **EPSG:31983** (SIRGAS 2000 / UTM 23S — projetado, bom p/ área).
+      Atributos: `tx_insct` (inscrição cadastral), `tx_logrado`, `tx_nroport`, `tx_bairro` — **sem
+      dado pessoal de proprietário** (coerente com AD-002). API `query` suporta `f=geojson` com
+      reprojeção automática p/ WGS84. Amostra validada: polígono de 8 vértices, bairro Caramujo.
+- [x] **Confirmar formato de saída do SIGeo Niterói** — GeoJSON e demais formatos ArcGIS via
+      endpoint `query` (confirmado). **Licença/termos de uso ainda a confirmar** no portal do hub.
 - [ ] Confirmar se DATA.RIO expõe camada de **lote**, para o segundo município
 - [ ] Inventariar os 92 municípios: quem publica lote cadastral aberto (planilha de cobertura)
 - [ ] Contatar ONR sobre existência/condições de API para terceiros
 - [ ] Definir CRS canônico do projeto (candidato: SIRGAS 2000 / EPSG:4674 para armazenamento, 3857 para tiles) — decidir em Design
+      — nota: SIGeo Niterói chega em **EPSG:31983**; a ingestão reprojeta p/ o CRS canônico (AD-008).
 
 ## Fontes
 
