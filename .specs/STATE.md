@@ -81,6 +81,27 @@ reingestão não misture versões dentro de um dossiê.
 e a granularidade de lote do SIGeo permanecem **pendentes de confirmação na Fase 0** — o design é
 robusto a ambos (CRS é config; camada urbana fica atrás de cobertura declarada).
 
+### AD-009 — `cobertura` semeada na ingestão, derivada do que foi publicado
+**Data:** 2026-09-04
+**Decisão:** A tabela `cobertura` (município × camada → tem dado / data) é semeada por um passo de
+ingestão dedicado, `semear_cobertura(versao, conexao)`, chamado **depois** de `materializar_intersecoes`
+e **antes** de `publicar_versao` (rida a mesma transação — só persiste se a versão publicar). O
+conjunto de municípios vem de `lote_rural.municipios` DISTINCT da versão (não de uma lista externa
+de municípios nem da malha municipal do IBGE — TD-001 fica independente); o conjunto de camadas vem
+de `restricao.tipo` DISTINCT (genérico — INEA/ICMBio futuras entram sem tocar este passo); a
+`data_extracao` vem de `proveniencia` (fonte única da data, AD-005).
+**Razão:** Fecha TD-002 sem puxar a malha municipal (TD-001) nem uma lista de 92 códigos IBGE: as
+camadas de restrição APP/Reserva Legal são estaduais, logo cobrem todo município que contenha um
+lote — e o único caminho de dossiê que hoje consulta `cobertura_de` é o do lote achado, cujo
+município já vem do próprio `lote_rural`. Derivar de `restricao` mantém o passo genérico para as
+próximas camadas. Rodar dentro da transação de publicação torna a cobertura consistente com a base
+publicada por construção (mesmo espírito de atomicidade do AD-008/DOS-28).
+**Consequência:** `cobertura` é keyed por código IBGE bruto (mesmo valor de `lote_rural.municipios`,
+herda a limitação código-vs-nome de TD-001). O passo é idempotente (`ON CONFLICT DO UPDATE`). Um
+concern novo: como `cobertura` não é versionada e o passo só faz upsert, um município que perca
+todos os lotes numa reingestão mantém a linha antiga (staleness) — aceitável no MVP, anotado como
+concern em TD-002 ao fechá-lo. O caminho `SemLote` (DOS-04) segue quebrado por TD-001 (independente).
+
 ## Handoff
 
 **Branch:** `main`

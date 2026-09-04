@@ -42,7 +42,7 @@ municipal for ingerida.
 
 ## TD-002 — `cobertura` nunca é semeada por nenhuma ingestão
 
-**Status:** open
+**Status:** resolved (Fatia 4, 2026-09-04 — commits `c36ac88`/`5243d54`)
 **Opened:** 2026-09-04
 **Origin:** Encontrado durante o design da Fatia 3 (`.specs/features/dossie-lote-rj/design.md`,
 seção "Fatia 3"). A tabela `cobertura` (município × camada → tem dado / data de extração) existe
@@ -70,3 +70,14 @@ sobre camadas que na verdade têm dado.
 **Revisit trigger:** Antes de qualquer fatia que dependa de `cobertura_de` para uma decisão visível
 ao usuário no P1 real (não só em teste) — o mais tardar quando o painel web (`web/`) for construído
 e precisar renderizar esse estado de verdade.
+
+**Resolução (Fatia 4, AD-009):** `ingestao/cobertura.py::semear_cobertura` deriva o produto
+(município do lote × camada de restrição) de `lote_rural`/`restricao`/`proveniencia` num único
+upsert idempotente, chamado antes de `publicar_versao` (mesma transação). Escolhida a opção
+centralizada, mas **derivando os municípios do próprio `lote_rural`** em vez de uma lista externa —
+o único caminho de dossiê que consulta `cobertura_de` hoje é o do lote achado, então não precisou da
+malha municipal (TD-001 segue independente). Fica **um concern menor herdado**: `cobertura` não é
+versionada e o passo só faz upsert, então um município que perca todos os lotes numa reingestão
+mantém a linha antiga (staleness). Aceito no MVP; revisitar se/quando reingestão com perda de
+cobertura municipal virar caso real (provavelmente junto da política de retenção de N versões do
+AD-007).

@@ -1043,3 +1043,23 @@ são seguros numa máquina de um dev só, ver Parallelism Assessment — Fatia 3
 | T20 | Fim-a-fim | integration | integration | ✅ OK |
 
 Nenhuma violação. Nenhum "testado em outra task" — cada task carrega seu próprio teste.
+
+---
+
+## Fatia 4 — Seed de cobertura (fecha TD-002, torna DOS-11 honesto)
+
+**Escopo:** semear a tabela `cobertura` (município × camada de restrição) na ingestão, para que o
+dossiê pare de marcar toda camada de restrição como "sem cobertura no município" (DOS-11) mesmo com
+o dado ingerido no estado inteiro. Decisão de design em **AD-009** (`.specs/STATE.md`). Nenhuma
+mudança em `montagem.py`/`geometria`/`dominio` — só um passo de ingestão novo + fiação no pipeline.
+
+| Task | Escopo | Teste | Commit | Status |
+| --- | --- | --- | --- | --- |
+| T21: `semear_cobertura` | 1 módulo novo (`ingestao/cobertura.py`) + 1 tipo-resultado (`RelatorioCobertura`) — upsert SQL único, idempotente | integration (`test_cobertura.py`, 5 testes) | `c36ac88` | ✅ |
+| T22: Fiação e2e + DOS-11 honesto | liga `semear_cobertura` no pipeline (`versao_publicada`) + 1 teste provando cobertura+proveniência das restrições ingeridas | integration (`test_dossie_e2e.py`) | `5243d54` | ✅ |
+
+**Derivação (AD-009):** municípios de `lote_rural.municipios` DISTINCT; camadas de `restricao.tipo`
+DISTINCT (genérico p/ INEA/ICMBio futuras); `data_extracao` de `proveniencia`. Sem malha municipal
+(TD-001 independente), sem lista externa de códigos IBGE.
+
+**Gate:** ruff 0, mypy strict 0, suíte 117 passed (+6 vs baseline 111 da Fatia 3).
