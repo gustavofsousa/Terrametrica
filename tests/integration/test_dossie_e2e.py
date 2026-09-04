@@ -32,6 +32,7 @@ from terrametrica.dominio.modelos import (
     VersaoBase,
 )
 from terrametrica.dossie.montagem import montar_dossie
+from terrametrica.ingestao.cobertura import semear_cobertura
 from terrametrica.ingestao.intersecoes import materializar_intersecoes
 from terrametrica.ingestao.limite_rj import ingerir_limite_rj
 from terrametrica.ingestao.publicar import publicar_versao
@@ -92,8 +93,8 @@ def versao_publicada(container: PostgresContainer) -> VersaoBase:
     """Roda o pipeline completo (limite RJ real via geobr + SIGEF fixture + publicação) uma
     única vez por módulo e devolve a `VersaoBase` já publicada. Ordem do contrato de transação
     (ver docstrings de `limite_rj.py`/`sigef.py`/`publicar.py`): cria `versao_base` (draft) →
-    persiste essa linha → ingestões (staging, sem commit) → `publicar_versao` (comita o swap e,
-    transitivamente, o staging, só se a guarda passar).
+    persiste essa linha → ingestões (staging, sem commit) → `semear_cobertura` (Fatia 4, AD-009)
+    → `publicar_versao` (comita o swap e, transitivamente, o staging, só se a guarda passar).
     """
     versao = VersaoBase(id=VERSAO_ID, criada_em=date(2026, 9, 1))
     conexao = psycopg.connect(container.get_connection_url(driver=None))
@@ -112,6 +113,7 @@ def versao_publicada(container: PostgresContainer) -> VersaoBase:
             FIXTURE_RESERVA_LEGAL, versao, conexao, data_extracao=DATA_EXTRACAO_CAR
         )
         materializar_intersecoes(versao, conexao)
+        semear_cobertura(versao, conexao)
         resultado = publicar_versao(versao, conexao)
 
         assert resultado.publicada is True, (
@@ -149,6 +151,31 @@ class TestDossieFimAFimSobrePostGISReal:
         proveniencia_lote = resultado.proveniencia[Camada.LOTE_RURAL]
         assert proveniencia_lote.fonte == "SIGEF"
         assert proveniencia_lote.data_extracao == DATA_EXTRACAO_SIGEF
+
+    def test_restricoes_ingeridas_aparecem_com_cobertura_e_proveniencia_honesta(
+        self, conexao: psycopg.Connection, versao_publicada: VersaoBase
+    ) -> None:
+        # DOS-11 honesto (Fatia 4, TD-002/AD-009): as camadas de restrição realmente ingeridas
+        # (APP, Reserva Legal — estaduais via CAR) NÃO podem aparecer como "sem cobertura" no
+        # município do lote; devem trazer proveniência. As não ingeridas (UC/inundação/
+        # deslizamento/corpo-d'água) seguem honestamente marcadas sem cobertura.
+        repo = RepositorioLotesPostGIS(conexao)
+        limite = LimiteEstadoPostGIS(conexao)
+
+        resultado = montar_dossie(COORD_DENTRO_DO_LOTE_SIGEF_001, versao_publicada, repo, limite)
+
+        assert isinstance(resultado, Dossie)
+
+        assert Camada.APP not in resultado.camadas_sem_cobertura
+        assert Camada.RESERVA_LEGAL not in resultado.camadas_sem_cobertura
+
+        assert resultado.proveniencia[Camada.APP].fonte == "CAR/SICAR"
+        assert resultado.proveniencia[Camada.APP].data_extracao == DATA_EXTRACAO_CAR
+        assert resultado.proveniencia[Camada.RESERVA_LEGAL].data_extracao == DATA_EXTRACAO_CAR
+
+        # Camadas ainda não ingeridas continuam honestamente sem cobertura, não silenciadas.
+        assert Camada.UNIDADE_CONSERVACAO in resultado.camadas_sem_cobertura
+        assert Camada.INUNDACAO in resultado.camadas_sem_cobertura
 
     def test_coordenada_fora_do_rj_devolve_fora_do_rj_sobre_limite_real(
         self, conexao: psycopg.Connection, versao_publicada: VersaoBase
