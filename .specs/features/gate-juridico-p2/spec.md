@@ -110,18 +110,18 @@ promovido_por, instante e credencial.
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| GATE-01 | P1: Decisão de acesso registral | Implementing | Implemented |
-| GATE-02 | P1: Decisão de acesso registral | Implementing | Implemented |
-| GATE-03 | P1: Decisão de acesso registral | Implementing | Implemented |
-| GATE-04 | P1: Decisão de acesso registral | Implementing | Implemented |
-| GATE-05 | P1: Decisão de acesso registral | Implementing | Implemented |
-| GATE-06 | P1: Decisão de acesso registral | Implementing | Implemented |
+| GATE-01 | P1: Decisão de acesso registral | Verified | Verified |
+| GATE-02 | P1: Decisão de acesso registral | Verified | Verified |
+| GATE-03 | P1: Decisão de acesso registral | Verified | Verified |
+| GATE-04 | P1: Decisão de acesso registral | Verified | Verified |
+| GATE-05 | P1: Decisão de acesso registral | Verified | Verified |
+| GATE-06 | P1: Decisão de acesso registral | Verified | Verified |
 
 **ID format:** `GATE-[NUMBER]` — 1:1 com as 6 ACs da história "P2: Gate de permissão jurídica" em
 `dossie-lote-rj/spec.md` (lá rastreada em bloco só como DOS-20/21/22; aqui cada AC ganha ID próprio
 para rastreabilidade fina dentro desta feature).
 
-**Coverage:** 6 total, 6 mapeados para tasks (T1-T4), 0 não mapeados. Aguardando Verifier para status `Verified`.
+**Coverage:** 6 total, 6 mapeados para tasks (T1-T4), 0 não mapeados. Verifier PASS 2026-09-03 (`validation.md`).
 
 ---
 

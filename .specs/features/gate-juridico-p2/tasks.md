@@ -12,7 +12,7 @@ Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/gate-juridico-p2/design.md`
-**Status**: Done — T1-T4 executadas e commitadas (2026-09-03). Aguardando Verifier.
+**Status**: Verificado — PASS do Verifier em 2026-09-03 (`validation.md`); 1 gap não-bloqueante corrigido pós-verificação (commit `3f9d614`, id único via uuid4 + teste de consultas duplicadas).
 
 **Isolamento operacional**: nenhuma task abaixo toca `src/terrametrica/persistencia/` ou
 `src/terrametrica/ingestao/` — esses diretórios estão em execução (Fatia 2 de `dossie-lote-rj`) em
