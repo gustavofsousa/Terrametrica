@@ -7,6 +7,7 @@ devolvido sem o registro correspondente.
 """
 
 from datetime import datetime
+from uuid import uuid4
 
 from terrametrica.autorizacao.portas import LogAuditoria, RepositorioContas
 from terrametrica.autorizacao.regras import avaliar_acesso_registral
@@ -36,7 +37,7 @@ def solicitar_dado_registral(
     resultado = avaliar_acesso_registral(papel)
     log.registrar(
         EntradaAuditoria(
-            id=f"{conta_id}:{instante.isoformat()}",
+            id=str(uuid4()),
             ts=instante,
             conta_id=conta_id,
             tipo=TipoEventoAuditoria.CONSULTA_REGISTRAL,
@@ -60,7 +61,7 @@ def promover_conta(
     conta = repo.promover(conta_id, PapelConta.HABILITADO_JURIDICAMENTE)
     log.registrar(
         EntradaAuditoria(
-            id=f"{conta_id}:{instante.isoformat()}",
+            id=str(uuid4()),
             ts=instante,
             conta_id=conta_id,
             tipo=TipoEventoAuditoria.PROMOCAO,

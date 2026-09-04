@@ -65,6 +65,26 @@ class TestSolicitarDadoRegistral:
         assert len(log.entradas) == 1
         assert log.entradas[0].tipo is TipoEventoAuditoria.CONSULTA_REGISTRAL
 
+    def test_duas_consultas_no_mesmo_instante_geram_duas_entradas_distintas(self) -> None:
+        # Edge case do spec.md: auditoria nunca deduplica, mesmo com timestamp igual
+        repo = FakeRepositorioContas(
+            contas={"c1": Conta(id="c1", papel=PapelConta.HABILITADO_JURIDICAMENTE)}
+        )
+        log = FakeLogAuditoria()
+
+        for _ in range(2):
+            solicitar_dado_registral(
+                conta_id="c1",
+                finalidade="due diligence",
+                lote_id="RJ-1",
+                instante=INSTANTE,
+                repo=repo,
+                log=log,
+            )
+
+        assert len(log.entradas) == 2
+        assert log.entradas[0].id != log.entradas[1].id
+
     def test_conta_desconhecida_propaga_erro_sem_gerar_log(self) -> None:
         repo = FakeRepositorioContas(contas={})
         log = FakeLogAuditoria()
