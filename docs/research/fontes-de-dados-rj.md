@@ -38,6 +38,10 @@ dossiê precisa mostrar as duas versões e a divergência, não escolher uma sil
 de um conceito de **cobertura declarada** por camada/município, exibido ao usuário — senão o
 silêncio vira erro percebido ("o app está errado" quando na verdade é "não há dado ali").
 
+**Licença SIGeo Niterói — confirmado 2026-09-03:** termos de uso e redistribuição **liberados**,
+API pública, dado utilizável por inteiro, **com atribuição obrigatória** (citar SIGeo Niterói como
+fonte). Coerente com AD-005 (proveniência já é requisito em todo campo).
+
 ---
 
 ## 3. Camada de restrições e contexto

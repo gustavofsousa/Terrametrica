@@ -4,40 +4,38 @@
 > humano, decisão de negócio/jurídica, ou navegação manual em portal sem API. Atualizado conforme
 > a Fase 0 avança; ver checklist completa em `docs/research/fontes-de-dados-rj.md`.
 
-## 1. Confirmar licença/termos de uso do SIGeo Niterói
+## 1. ~~Confirmar licença/termos de uso do SIGeo Niterói~~ — RESOLVIDO 2026-09-03
 
-**Link:** [dados-geoniteroi.opendata.arcgis.com](https://dados-geoniteroi.opendata.arcgis.com/) ·
-página oficial [sigeo.niteroi.rj.gov.br](https://www.sigeo.niteroi.rj.gov.br/)
+**Resultado (confirmado pelo usuário):** termos de uso e redistribuição **liberados** — a API é
+pública e o dado pode ser usado por inteiro. **Atribuição é obrigatória**: citar a origem do dado
+(SIGeo Niterói) em todo campo derivado dessa camada. Coerente com **AD-005** (proveniência é
+requisito, não enfeite) — não muda a arquitetura, só confirma que redistribuir a camada de lote é
+permitido desde que a fonte apareça.
 
-**O quê:** o Feature Service `Lotes` (`NGP_SMF_SEREC_A_LOTES_PUBLICO/FeatureServer/30`) foi
-verificado por acesso real — 82.199 feições, sem PII — mas os **termos de uso/licença de
-redistribuição** não estão no payload da API. Precisa checar a página do dataset no ArcGIS Hub.
-**Por quê importa:** AD-004 monta base própria (baixa, valida, materializa) — se a licença
-restringir redistribuição/uso comercial, muda a estratégia de ingestão dessa camada.
-**Ação:** abrir o link do dataset no navegador, ler a seção de licença/termos, colar aqui o
-resultado (ou uma captura) para eu registrar em `fontes-de-dados-rj.md`.
-
-## 2. Contatar ONR sobre API para terceiros
+## 2. Contatar ONR sobre API para terceiros — TRABALHO FUTURO
 
 **Link:** [registrodeimoveis.org.br](https://www.registrodeimoveis.org.br/) (site do ONR — canal
 de contato/atendimento fica lá)
 
+**Status:** contato tentado, **sem resposta ainda**. Movido para trabalho futuro — não bloqueia
+nada do MVP atual (a camada de proprietário já está fora de escopo por AD-002). Retomar quando
+houver tempo/prioridade, sem prazo definido.
 **O quê:** confirmar se o Operador Nacional de Registro (ONR/SREI) tem alguma via de integração
 programática para consulta de certidão, ou se é 100% manual por portal.
 **Por quê importa:** é o único caminho técnico-jurídico que poderia, no futuro, sustentar a camada
-de proprietário (hoje fora do MVP por AD-002). Sem isso confirmado, a camada de proprietário
-permanece bloqueada por design — não é código faltando, é decisão jurídica pendente.
-**Ação:** contato institucional (e-mail/atendimento do ONR) perguntando sobre API de terceiros
-para consulta de certidão/matrícula. Não é algo que um agente possa fazer.
+de proprietário. Sem isso confirmado, a camada de proprietário permanece bloqueada por design.
 
-## 3. Validar a interpretação jurídica de AD-002 com um advogado
+## 3. Validar a interpretação jurídica de AD-002 com um advogado — FAZER ANTES DA PUBLICAÇÃO PÚBLICA
 
+**Status:** adiado de propósito — **não é bloqueio do MVP/desenvolvimento**, mas é
+**pré-requisito obrigatório antes de publicar o produto publicamente** (lançamento, abrir para
+usuários reais). Fica registrado aqui para não ser esquecido nessa fase.
 **O quê:** AD-002 se apoia em leitura própria da Lei 6.015/73 art. 17 (publicidade registral) e da
 LGPD sobre agregação de dado público. É uma leitura razoável, mas não é parecer jurídico.
 **Por quê importa:** é a decisão que mais expõe o produto a risco regulatório se a camada de
 proprietário for ligada um dia (ver `docs/produto/riscos.md`, risco jurídico alto).
-**Ação:** revisão por advogado antes de qualquer código que toque dado de proprietário — mesmo
-que isso só aconteça bem depois do MVP. Sem link — é uma consulta offline.
+**Ação:** revisão por advogado antes de qualquer publicação pública do produto. Sem link — é uma
+consulta offline.
 
 ## 4. Push dos commits locais para o remoto
 
