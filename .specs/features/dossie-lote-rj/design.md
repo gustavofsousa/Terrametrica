@@ -281,7 +281,7 @@ e `cobertura` chaveiam por `(camada, versao_base_id)`; o serviço só lê a vers
 
 | Concern | Location | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Fase 0 não verificada: SIGeo pode expor só quadra, não lote; CRS não confirmado | `docs/research/fontes-de-dados-rj.md:89` | Camada urbana pode não existir na granularidade prometida | Camada urbana fica atrás de `cobertura` declarada; CRS é config, área é calculada em projeção equivalente independente do SRID de storage; ingestão **mede antes de publicar** |
+| ~~Fase 0 não verificada: SIGeo pode expor só quadra, não lote; CRS não confirmado~~ — **Resolvido em 2026-09-03** (`.specs/STATE.md`, Fase 0 FECHADA): SIGeo Niterói expõe camada `Lotes` lote-a-lote (82.199 feições, EPSG:31983 nativo, sem PII); mitigação abaixo confirmada correta por construção | `.specs/STATE.md` (Fase 0 FECHADA) | Nenhum — risco extinto | Camada urbana fica atrás de `cobertura` declarada; CRS é config, área é calculada em projeção equivalente independente do SRID de storage; ingestão **mede antes de publicar** |
 | Matemática planar do protótipo não vale para área geodésica na escala do RJ | `prototipos/mapa-dossie/index.html:420` | Área/perímetro errados se reusar o cálculo | Produção usa PostGIS (`ST_Area` geografia / projeção equivalente); só limiares e layout são reusados |
 | Crescimento de armazenamento do read-model por versão | (data model) | Custo de disco cresce a cada reingestão | Política de retenção de N versões; base map imutável fora do versionamento (PMTiles) |
 | Projeto greenfield sem infra de teste | (repo) | Sem rede de segurança para as regras de geometria | Fase Tasks instala pytest + fixtures espaciais antes de qualquer código de regra |

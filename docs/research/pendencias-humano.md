@@ -31,16 +31,7 @@ proprietário for ligada um dia (ver `docs/produto/riscos.md`, risco jurídico a
 **Ação:** revisão por advogado antes de qualquer publicação pública do produto. Sem link — é uma
 consulta offline.
 
-## 3. Push dos commits locais para o remoto
-
-**Status:** política permanente, não pendência pontual — releio a cada rodada de trabalho.
-**O quê:** eu nunca faço `git push` sem pedido explícito na sessão, mesmo que uma autorização
-anterior tenha liberado um push específico (autorização não se estende automaticamente a commits
-futuros).
-**Ação:** avisar quando quiser publicar. Nenhum commit deste projeto até agora foi destrutivo — é
-seguro autorizar a qualquer momento.
-
-## 4. Verificação manual dos 15 municípios "Parcial"/"Ambíguo" (cobertura urbana)
+## 3. Verificação manual dos 15 municípios "Parcial"/"Ambíguo" (cobertura urbana)
 
 **Status:** não urgente, não bloqueia o MVP (a fatia urbana atual é só Niterói). Fica registrado
 para quando expandir a cobertura urbana virar prioridade.
