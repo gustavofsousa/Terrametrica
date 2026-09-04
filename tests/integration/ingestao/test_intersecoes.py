@@ -146,6 +146,42 @@ class TestMaterializarIntersecoes:
 
         assert total == 0
 
+    def test_toque_de_borda_sem_area_nao_gera_linha(
+        self, conexao: psycopg.Connection, versao_com_lote_e_restricoes: VersaoBase
+    ) -> None:
+        # Restrição que compartilha SÓ a borda direita do lote SIGEF-001 (x = -43.095):
+        # ST_Intersects é verdadeiro (fronteira em comum), mas ST_Intersection é uma linha,
+        # área = 0. O filtro `area_m2 > 0` de `materializar_intersecoes` tem que descartá-la —
+        # senão o dossiê mostraria uma restrição de 0% que não cobre nada do lote (ruído).
+        versao = versao_com_lote_e_restricoes
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO restricao (id, tipo, nome, categoria, geom, versao_base_id)
+                VALUES (%s, 'app', %s, %s, ST_GeomFromText(%s, 4674), %s)
+                """,
+                (
+                    "app-toque-borda",
+                    "APP que só toca a borda",
+                    "APP_RIO_ATE_10",
+                    "MULTIPOLYGON(((-43.095 -22.905, -43.090 -22.905, "
+                    "-43.090 -22.895, -43.095 -22.895, -43.095 -22.905)))",
+                    versao.id,
+                ),
+            )
+
+        materializar_intersecoes(versao, conexao)
+
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM intersecao_materializada "
+                "WHERE restricao_id = %s AND versao_base_id = %s",
+                ("app-toque-borda", versao.id),
+            )
+            (total,) = cursor.fetchone()  # type: ignore[misc]
+
+        assert total == 0
+
     def test_rodar_duas_vezes_nao_duplica_linhas(
         self, conexao: psycopg.Connection, versao_com_lote_e_restricoes: VersaoBase
     ) -> None:

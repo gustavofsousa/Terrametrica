@@ -169,3 +169,117 @@ a provar. Fatia 2 fecha em PASS.
 **PASS ✅** — 9 tasks (T6-T14), gate verde (ruff 0, mypy 0, 94 passed / 30 integração), sensor
 3/3 mortos. Desvios de escopo (municipio_em / nome de município) documentados em TD-001; DOS-04 e
 DOS-26 fora dos critérios binários desta fatia.
+
+---
+
+# Validação — Dossiê de Lote RJ (Fatia 3: CAR como camada de restrição — APP + Reserva Legal)
+
+**Verdict:** ✅ PASS
+**Escopo coberto (commits, não range genérico):** `4c0c6a5..b095437` (branch `main`) →
+`a19cdd2` (docs/arquitetura) · `fe2f2f4` (design/tasks) · `fd1ebc5` (T16 `restricao_car.py`) ·
+`cf11559` (T17 `intersecoes.py`) · `db94e68` (T18 `intersecoes_de` real) · `0a7ffcc` (T19 guarda
+publicar) · `b095437` (T20 e2e). T15 (migração `0003`) entrou junto de `fd1ebc5`/`cf11559`.
+**Gate:** `ruff check .` ✅ (All checks passed) · `mypy src` ✅ (strict, 25 arquivos, no issues) ·
+`pytest tests/unit tests/integration -q` → **110 passed** ✅ (0 falhas, 59s).
+**Ambiente:** Docker OK (`docker info` ✅) · rede OK (chamada real ao geobr em e2e executou) ·
+venv `/home/gustavo/projects/08_Terrametrica/.venv`. Verificado a partir do checkout detached de
+`b095437` no worktree isolado (o worktree nascia num commit pré-Fatia-3; Fatia 3 vive em `main`).
+**Modo:** Verifier independente (author≠verifier honrado — não escrevi nenhuma linha desta fatia).
+
+## Escopo
+
+CAR como **camada de restrição** (papel P1): APP + Reserva Legal cruzadas contra o lote SIGEF.
+Fecha a AC1 da story "Restrições ambientais" (`spec.md:105`): `RepositorioLotes.intersecoes_de`
+deixa de devolver `[]` fixo. Entra: migração `0003` (`restricao` + `intersecao_materializada`),
+`ingestao/restricao_car.py`, `ingestao/intersecoes.py`, `intersecoes_de` real, extensão da guarda
+de publicação para `Camada.APP`/`RESERVA_LEGAL`, e prova e2e. **Fora (confirmado ausente):** CAR
+"Perímetros dos imóveis" como 2ª geometria/identidade (P2, divergência SIGEF×CAR) — deferido.
+
+**Reuso confirmado por evidência:** `dossie/montagem.py`, `geometria/regras.py` e
+`dominio/modelos.py` **não aparecem** no `git diff 4c0c6a5..b095437 --stat` — zero mudança,
+exatamente como `design.md` (Tech Decisions Fatia 3) afirma. `pct_do_lote`/`marginal` seguem
+calculados na leitura por `montagem.py` via `geometria.classificar_intersecao` (DOS-08), não
+materializados — schema `0003` grava só `area_intersecao_m2` (confirmado em
+`0003_fatia3_restricoes_car.sql:19-24`).
+
+## Cobertura por AC / "Done when" (spec-anchored, evidence-or-zero)
+
+| Task / DOS / AC | Critério (spec/task) | Evidência (`file:line` + asserção) | ✓ |
+| --- | --- | --- | --- |
+| T15 schema | `restricao` + `intersecao_materializada` com tipos de design.md | `0003_fatia3_restricoes_car.sql:5-29` — ambas as tabelas criadas | ✅ |
+| T15 CHECK tipo | vocabulário fechado `'app'`/`'reserva_legal'` | `0003_...sql:7` — `CHECK (tipo IN ('app', 'reserva_legal'))` | ✅ |
+| T15 índice GiST | GiST em `restricao.geom` | `0003_...sql:16` — `CREATE INDEX ... USING GIST (geom)` | ✅ |
+| T15 FK composta | `intersecao_materializada(lote_id, versao_base_id) → lote_rural(id, versao_base_id)` | `0003_...sql:27` — `FOREIGN KEY (lote_id, versao_base_id) REFERENCES lote_rural (id, versao_base_id)` | ✅ |
+| T16 filtro `ind_status='AT'` (APP) | grava só ativas, `tipo='app'` | `test_restricao_car.py:93,95` — `len(linhas) == 4` (5 na fixture, 1 `CA` filtrada), `tipo == "app"` | ✅ |
+| T16 filtro `AT` (Reserva Legal) | grava só ativas, `tipo='reserva_legal'` | `test_restricao_car.py:174-176` — `len(linhas) == 1` (2 na fixture, 1 `PE` filtrada), `== "reserva_legal"`, `feicoes_gravadas == 1` | ✅ |
+| T16 correção geometria | feição inválida corrigida (não descartada), contada no relatório | `test_restricao_car.py:129,156` — `feicoes_corrigidas == 1`, geom `ST_IsValid True` | ✅ |
+| T16 proveniência (DOS-10) | fonte `CAR/SICAR` + data para APP e RL | `test_restricao_car.py:146` (`fonte == "CAR/SICAR"`) + `:186-189` (RL, fonte+data) | ✅ |
+| T17 intersecção plena | 1 linha com área correta (>0, plausível) | `test_intersecoes.py:106` — `area_m2 > 400_000.0` (SIGEF-001 × APP_AREA_AC) | ✅ |
+| T17 intersecção marginal <1% (DOS-08) | linha materializada (classificação fica em montagem) | `test_intersecoes.py:128` — `0.0 < area_m2 < 10_000.0` (APP_ESCADINHA) | ✅ |
+| T17 sem sobreposição | nenhuma linha (ausência, não área-zero) | `test_intersecoes.py:147` — `total == 0` (APP_RIO_ATE_10) | ✅ |
+| T17 idempotência (DOS-26) | 2ª execução não duplica | `test_intersecoes.py:168-169` — `total_segunda_vez == total_primeira_vez`, `pares_materializados == 0` | ✅ |
+| T18 `intersecoes_de` real (DOS-07) | devolve `IntersecaoBruta` reais, não `[]` | `test_repositorio_lotes_postgis.py:249-253` — `tipo is TipoRestricao.APP`, `area_intersecao.valor == 12345.0`, `grau_suscetibilidade is None` | ✅ |
+| T18 isolamento entre lotes | lote sem intersecção → `[]` | `test_repositorio_lotes_postgis.py:281` — `intersecoes_de(lote_rj1, versao) == []` (intersecção só de RJ-2) | ✅ |
+| T18 lista vazia preservada (T9) | nada materializado → `[]` (não erro) | `test_repositorio_lotes_postgis.py:223` — `== []` (teste T9 renomeado, não deletado) | ✅ |
+| T19 guarda cobre APP/RL (DOS-25) | 1ª publicação com restrição passa a guarda | `test_publicar.py:280-281` — `publicada is True`, `_versao_apontada(APP) == "carguard-v1"` | ✅ |
+| T19 <90% de APP reprova tudo (DOS-25/28) | qualquer camada reprova → publicação inteira rejeitada | `test_publicar.py:304,310` — `publicada is False`, `_versao_apontada(APP) == "carguard80-v1"` (mantém anterior) | ✅ |
+| T20 e2e AC1 (DOS-07/08/10) | dossiê com `itens_restricao` (área+pct+marginal) sobre dado real | `test_dossie_e2e.py:172-181` — `len(itens_restricao) >= 2`, `item_app.pct_do_lote > 1.0`, `item_app.marginal is False`, `item_rl.pct_do_lote > 1.0` | ✅ |
+| T20 e2e sem sobreposição | lote sem restrição → `itens_restricao == ()` | `test_dossie_e2e.py:195` — `resultado.itens_restricao == ()` | ✅ |
+| spec AC1 (`spec.md:105`) | área + percentual em APP e Reserva Legal segundo CAR | provado fim-a-fim por T20 (`itens_restricao` com `pct_do_lote` para APP e RL); pipeline `ingerir_app_car → ingerir_reserva_legal_car → materializar_intersecoes → montar_dossie` | ✅ |
+| spec AC5 (`spec.md:109`) | <1% → "toque marginal" | DOS-08 reusa `geometria.classificar_intersecao` (inalterado, `regras.py:53-63`, `LIMIAR_MARGINAL_PCT = 1.0`); T17 materializa o caso marginal (`test_intersecoes.py:128`) e T20 assere `marginal is False` no caso pleno | ✅ |
+
+Contagens de "Done when" batidas: T16=6 (6 métodos), T17=4 (4), T18=3 (2 novos + 1 T9 renomeado),
+T19=2 (2), T20=4 (2 novos + 2 T14 preservados). Baseline vs HEAD confirmado por `pytest
+--collect-only`: **94 (`4c0c6a5`, checkout limpo) → 110 (`b095437`) = +16, nenhuma deleção
+silenciosa** (T16 6 + T17 4 + T18 2 + T19 2 + T20 2 = 16).
+
+## Sensor de discriminação (mutação comportamental em estado descartável)
+
+Mutações aplicadas via script em `src/` do worktree isolado, medidas contra o teste guardião com
+`PYTHONPATH` apontando pro `src/` do worktree, e revertidas com `git checkout -- <file>`. Árvore
+final limpa (`git diff b095437 --stat` vazio; nenhum literal `MUTATION` remanescente).
+**3/4 mutantes mortos; 1 sobrevivente (linha defensiva não coberta — ver Gaps).**
+
+| # | Mutação | Efeito esperado | Teste guardião | Resultado |
+| --- | --- | --- | --- | --- |
+| M1 | `restricao_car.py`: remove filtro `ind_status=='AT'` | grava feições canceladas/pendentes | `test_restricao_car.py::test_grava_so_feicoes_ativas_*` (APP+RL) | `2 == 1`/`4` vs esperado, 2 failed ✅ morto |
+| M2 | `intersecoes.py`: `WHERE area_m2 > 0` → `>= 0` | materializa toques de área zero | `test_intersecoes.py::test_sem_sobreposicao_nao_gera_linha` | **1 passed — SOBREVIVEU** ⚠️ |
+| M3 | `intersecoes.py`: remove `ON CONFLICT ... DO NOTHING` | 2ª execução duplica → violação de PK | `test_intersecoes.py::test_rodar_duas_vezes_nao_duplica_linhas` | `UniqueViolation`, 1 failed ✅ morto |
+| M4 | `publicar.py`: remove `Camada.APP`/`RESERVA_LEGAL` de `_CAMADAS_PUBLICADAS` | guarda deixa de cobrir CAR | `test_publicar.py::TestGuardaCobreRestricaoCar` | `publicada True` vs `is False`, 2 failed ✅ morto |
+
+M1/M3/M4 matam os invariantes centrais da fatia: filtro de vigência do CAR, idempotência da
+materialização (DOS-26) e cobertura da guarda de 90% (DOS-25). M2 sobreviveu — ver Gaps.
+
+## Qualidade do gate
+
+- `ruff check .` → All checks passed (0 violações).
+- `mypy src` (strict) → no issues in 25 source files.
+- `pytest tests/unit tests/integration -q` → **110 passed**, 0 failed (59s). Container PostGIS
+  efêmero (`postgis/postgis:16-3.4`) via testcontainers, sequencial; e2e fez chamada real ao geobr
+  (rede presente). Nota de ambiente: o pacote `terrametrica` é editable-install apontando pro `src/`
+  do worktree `main` (mesmo commit `b095437` do checkout detached), então o código exercido é
+  bit-a-bit o da Fatia 3; para o sensor, `PYTHONPATH` forçou o `src/` do worktree isolado.
+
+## Gaps / observações (ranqueadas, não bloqueantes desta fatia)
+
+1. **`area_m2 > 0` (defensivo) não coberto por teste — sensor M2 sobreviveu.** O guarda existe
+   para descartar toques de fronteira com intersecção de área exatamente zero (`ST_Intersects`
+   verdadeiro, `ST_Area(ST_Intersection)` = 0). Nenhum teste posiciona esse caso: o
+   `test_sem_sobreposicao_nao_gera_linha` usa uma restrição **espacialmente disjunta** (excluída já
+   pelo `ST_Intersects` do JOIN, independente do `> 0`). Impacto real: baixo — se relaxado, um toque
+   de divisa geraria uma `IntersecaoBruta` com pct=0 (marginal) no dossiê, ruído, não dado errado.
+   Nenhum "Done when" de T17 exige esse caso de borda (o critério é "sem sobreposição espacial não
+   gera linha", que É coberto). Registrado como lacuna de cobertura defensiva, não regressão.
+2. **DOS-11 "sem cobertura no município" ainda dispara mesmo com restrição real** — `cobertura`
+   nunca é semeada por nenhuma ingestão (`TD-002`, pré-existente, aberto no design desta fatia). Não
+   é regressão da Fatia 3; o e2e prova `itens_restricao` populado apesar disso.
+
+Nenhum dos itens contradiz um "Done when" de T15-T20 nem a AC1/AC5 que a fatia se comprometeu a
+provar.
+
+## Sumário
+
+**PASS ✅** — 6 tasks (T15-T20), gate verde (ruff 0, mypy 0, 110 passed / +16 vs baseline 94),
+sensor 3/4 mortos (M2 sobrevivente = linha defensiva `area_m2 > 0` sem teste, impacto baixo). AC1
+(área+% de APP e Reserva Legal) provada fim-a-fim; DOS-08 marginal reusa `geometria` inalterado;
+`montagem.py`/`geometria`/`modelos` confirmados sem uma linha de mudança no diff.
