@@ -124,8 +124,34 @@ exige medição por acesso real antes do código, como esta teve.
 ## Handoff
 
 **Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 4 — Seed de cobertura (fecha TD-002, torna DOS-11
-honesto)** (`tasks.md`, seção Fatia 4, T21–T22 + fix task T23). Validação **PASS** por Verifier
+**Fase atual:** Execute concluído para a **Fatia 5 — Unidade de Conservação (UC) como camada de
+restrição** (`tasks.md`, seção Fatia 5, T24–T26 + fix task T27). Validação **PASS** por Verifier
+independente (`validation.md`, seção Fatia 5): gate verde (ruff 0, mypy strict 0, **124 passed** —
++1 vs 123 após o fix), sensor **5 mortos / 0 sobreviventes** após o fix (o Verifier achou 1
+sobrevivente — a reprojeção AD-008 não era sensorizada porque o SRID vinha hardcoded do SQL; T27
+adicionou fixture em EPSG:31983/metros que mata o mutante de `to_crs`). **Pré-requisito cumprido:**
+a fonte de UC **não estava verificada** (só CAR estava) — foi feita a verificação Fase-0 por acesso
+real (455 feições MPRJ, EPSG:4326, 3 esferas) ANTES do código, decisão em **AD-010**.
+**Commits (Fatia 5):** `f027efe` T24+T25 (migração 0004 + `ingerir_uc`) · `45afce7` T26 (guarda de
+publicação + e2e) · `64316e7` docs (AD-010 + research + tasks) · `360162d` T27 (sensor de
+reprojeção + TD-003). **Nada em push** — `main` está **18 commits à frente de `origin/main`**
+(medido por `git rev-list --count origin/main..main`; números anteriores no handoff estavam
+desatualizados — este é o real).
+**O que existe agora, além das Fatias 1-4:** `ingestao/restricao_uc.py::ingerir_uc` (lê GeoJSON da
+camada consolidada UC ERJ do MPRJ, reprojeta 4326→4674, grava genérico em `restricao` com
+`tipo='unidade_conservacao'` + proveniência), migração `0004` (estende o CHECK do `tipo`), UC na
+guarda de publicação (DOS-25). A cobertura da Fatia 4 faz a UC aparecer sozinha no dossiê —
+`montagem.py`/`geometria`/`dominio` **não mudaram**. Entrega o AC#2 de "P1: Restrições" (UC com
+nome+categoria); traceability por DOS ainda em aberto (**TD-003** — DOS-09 sem texto no repo).
+**Dado real baixado (gitignored):** `data/raw/rj/uc/uc_erj.geojson` (40 MB, 455 UCs, regenerável
+via `.../FeatureServer/12/query?f=geojson`).
+
+---
+
+**Handoff anterior (Fatia 4 — Seed de cobertura):** Execute PASS (T21-T23), 119 passed, TD-002
+resolvido. Detalhe abaixo, preservado.
+
+**Fase atual (Fatia 4):** Execute concluído para a **Fatia 4 — Seed de cobertura** (T21–T22 + T23). Validação **PASS** por Verifier
 independente registrada em `validation.md` (seção Fatia 4): gate verde (ruff 0, mypy strict 0,
 **119 passed** — +8 vs baseline 111 da Fatia 3), sensor pós-fix **4 mortos / 1 sobrevivente por
 escolha** (mutante C = DISTINCT, testaria o `ON CONFLICT` do próprio PostgreSQL). O Verifier passou
@@ -180,15 +206,19 @@ o adapter real; a Fatia 4 não dependeu dele (município vem do próprio `lote_r
 área-zero em spatial join. (Fatia 4 gerou um padrão candidato adicional: ao materializar tabela por
 upsert, testar explicitamente o *refresh* — `len` estável + ausência de erro NÃO provam que
 `DO UPDATE` atualiza valores; `DO NOTHING` passaria. Registrar via `scripts/lessons.py` se recorrer.)
-**Próximo passo:** candidatos para a próxima fatia, em ordem de valor: (a) demais camadas de
-restrição do INEA/ICMBio (UC, inundação, deslizamento, corpo d'água) — mesmo padrão de `restricao`,
-e **agora aparecem honestamente no dossiê assim que ingeridas** (o seed de cobertura é genérico,
-pega qualquer `restricao.tipo` novo automaticamente); fecha o resto das ACs de "Restrições
-ambientais"; (b) camada urbana Niterói via SIGeo (82.199 feições, EPSG:31983, reprojeção nova) —
-note que o seed de cobertura atual só cobre municípios *com lote rural*; a cobertura urbana de
-Niterói precisará estender `semear_cobertura` para a camada `lote_urbano`/municipal; (c) CAR papel
-P2 (divergência SIGEF×CAR, AD-003); (d) malha municipal IBGE (fecha TD-001, destrava DOS-04). Sem
-bloqueio técnico em nenhuma.
+**Próximo passo:** **usuário pediu revisão de TODA a roadmap futura antes de escolher a próxima
+fatia** (2026-09-04) — fazer isso primeiro. Candidatos remanescentes, para alimentar essa revisão:
+(a) camada de inundação/deslizamento do INEA (AC#3, `grau_suscetibilidade`) — **fonte ainda NÃO
+verificada**, exige Fase-0 por acesso real antes do código (lição da Fatia 5); mesmo padrão de
+`restricao` + extensão do CHECK; força resolver TD-003 (mapa AC→DOS); (b) corpo d'água (INEA) —
+idem, fonte não verificada; (c) camada urbana Niterói via SIGeo (82.199 feições, EPSG:31983) — o
+seed de cobertura (Fatia 4) só cobre municípios *com lote rural*, então precisará estender
+`semear_cobertura` para `lote_urbano`/municipal; (d) CAR papel P2 (divergência SIGEF×CAR, AD-003);
+(e) malha municipal IBGE (fecha TD-001, destrava DOS-04); (f) fechar TD-003 (traceability DOS-09).
+**Lição estrutural da Fatia 5:** o roadmap tratava "demais restrições INEA/ICMBio" como "mesmo
+padrão, já pronto", mas **as fontes nunca foram verificadas** (só CAR/SIGEF/SIGeo estavam) — cada
+nova camada de restrição carrega um custo de Fase-0 (achar endpoint, medir schema/CRS/contagem)
+que o roadmap não precificava. A revisão de roadmap deve embutir esse custo por camada.
 
 **Fase 0 — FECHADA, verificada por navegação real e dado real (2026-09-03):**
 - **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,
