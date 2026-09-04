@@ -353,3 +353,89 @@ Loop fix→re-verify (bounded), dois testes novos em `test_cobertura.py`:
 
 Sensor pós-fix: 4 mortos / 1 sobrevivente-por-escolha (C). Gate: ruff 0, mypy strict 0,
 `test_cobertura.py` 7 passed. Commit do fix: `a91604b`.
+
+---
+
+## Fatia 5 — Unidade de Conservação (UC) como camada de restrição
+
+**Verifier independente (autor ≠ verificador), 2026-09-04.** Diff verificado: `242d049..HEAD`
+(`f027efe`, `45afce7`, `64316e7`). Ambiente: `.venv/bin/`, Docker (PostGIS efêmero via
+testcontainers + geobr por rede real no e2e).
+
+### Veredito: PASS (com 1 gap de sensor)
+
+### Gate (saída real observada)
+- `.venv/bin/ruff check src tests` → `All checks passed!` (exit 0)
+- `.venv/bin/mypy src` → `Success: no issues found in 27 source files`
+- `.venv/bin/python -m pytest tests/integration/ingestao/test_restricao_uc.py
+  tests/integration/test_dossie_e2e.py tests/integration/ingestao/test_publicar.py
+  tests/integration/persistencia/test_migrar.py -q` → **18 passed in 31.26s**
+
+### Reuso genérico (restrição imposta pela spec) — CONFIRMADO
+`git diff 242d049..HEAD` NÃO toca `dossie/montagem.py`, `geometria/`, nem `dominio/`. UC anda
+100% pelo caminho genérico `restricao` + cobertura da Fatia 4. Arquivos alterados: só
+`ingestao/restricao_uc.py` (novo), `ingestao/publicar.py` (+1 camada na guarda), migração 0004,
+fixture e testes.
+
+### Evidência por âncora de spec
+| Âncora | Outcome exigido | Evidência (teste + observação) | Resultado |
+|---|---|---|---|
+| P1 AC#2 (spec.md:106) — intersecção UC com nome+categoria | item de restrição UC surge com `nome` e `categoria` da unidade | `test_dossie_e2e.py::test_lote_sobre_unidade_de_conservacao_mostra_item_e_cobertura` — `item_uc.tipo is UNIDADE_CONSERVACAO`, `item_uc.nome == "APA de Teste Sobreposta"`; `test_restricao_uc.py` afirma `categoria in {APA,REBIO}` e `nome == "APA de Teste Sobreposta"` | ✅ |
+| AD-008 — armazenar no canônico EPSG:4674 | SRID gravado = 4674 | `test_restricao_uc.py` afirma `ST_SRID(geom)==4674` — MAS ver gap de sensor: o SRID é fixado no SQL (`ST_GeomFromText(wkt,4674)`), não deriva do `to_crs` | ⚠️ (label ok, reprojeção não sensível) |
+| AD-010 — UC via camada consolidada MPRJ, tabela genérica | grava em `restricao` com `tipo='unidade_conservacao'` | `test_restricao_uc.py::test_grava_ucs...` — `tipo==UNIDADE_CONSERVACAO.value`; migração 0004 aplica CHECK estendido em DB fresco (inserts passam) | ✅ |
+| Fatia 4 cobertura marca UC coberta | UC sai de `camadas_sem_cobertura`, traz proveniência | e2e — `UNIDADE_CONSERVACAO not in camadas_sem_cobertura`; `proveniencia[UC].data_extracao == 2026-09-04` | ✅ |
+| UC participa da guarda de publicação | UC no relatório de `publicar_versao` | e2e fixture `versao_publicada` — `UNIDADE_CONSERVACAO.value in {c.camada}` | ✅ |
+
+### Sensor de discriminação (mutation testing) — 4 mortos / 1 SOBREVIVENTE
+Cada mutação foi injetada, os testes rodados e a mutação revertida (`git status` clean ao final).
+- **(a) remover `to_crs(CRS_CANONICO)`** → **SOBREVIVEU.** `test_restricao_uc.py` (3 passed) E
+  `test_dossie_e2e.py` (6 passed) passam sem a reprojeção. Causa-raiz: o SRID é *hardcoded* no
+  SQL (`ST_GeomFromText(%(wkt)s, 4674)`), então `ST_SRID(geom)==4674` continua verdadeiro mesmo
+  sem reprojetar; e 4326 vs 4674 diferem <1 m no RJ, então a intersecção e a cobertura também não
+  mudam. **A reprojeção AD-008 NÃO está coberta por assert comportamental** — o `srid==4674` é um
+  sensor falso. **Assert faltante:** afirmar uma coordenada reprojetada (ex.: comparar
+  `ST_X/ST_Y` pós-gravação contra o valor esperado em 4674, ou usar uma fixture cujo CRS de
+  origem seja projetado/em metros, onde pular `to_crs` produziria geometria claramente errada).
+- **(b) `tipo` errado (`Camada.APP.value`)** → **MORTO.** `test_grava_ucs...` falha:
+  `assert 'app' == 'unidade_conservacao'`.
+- **(c) `nome` mapeado de `categoria`** → **MORTO** (unit + e2e). `test_nome_da_uc...` e o e2e
+  falham: `assert 'APA' == 'APA de Teste Sobreposta'`.
+- **(d) remover `unidade_conservacao` de `_CAMADAS_PUBLICADAS`** → **MORTO.** fixture do e2e
+  falha: `'unidade_conservacao' not in {'app','limite_estado','lote_rural','reserva_legal'}`.
+- **(e) pular `_INSERIR_PROVENIENCIA`** → **MORTO** (unit + e2e). `test_proveniencia...` falha e o
+  e2e falha em `UNIDADE_CONSERVACAO not in camadas_sem_cobertura` (a cobertura da Fatia 4 é
+  derivada da proveniência — sem proveniência não há cobertura).
+
+### Migração 0004 — idempotente e aplica em DB fresco
+- `test_migrar.py::test_rodar_duas_vezes_e_idempotente` passa: o runner registra em
+  `schema_migrations` e pula reaplicação; e o próprio SQL usa `DROP CONSTRAINT IF EXISTS` + `ADD`,
+  reaplicável por construção.
+- Aplicação limpa em DB fresco provada transitivamente: os testes de UC inserem
+  `tipo='unidade_conservacao'` num container recém-migrado — só possível se 0004 estendeu o CHECK
+  (a 0003 só admitia `app`/`reserva_legal`). O bug histórico de `;`-em-comentário não está na
+  versão commitada (não há `;` nos comentários de 0004).
+
+### DOS id para AC#2 (UC) — concordo com a decisão de não marcar nada Verified
+Nenhum DOS tem texto definido no repo para "intersecção com UC (nome+categoria)". Sob "P1:
+Restrições": DOS-06 = sobreposição de lotes (não é restrição-camada; confirmado em validation.md:23),
+DOS-07/08 = Verified na Fatia 3 (APP / marginal <1%). Sobra **DOS-09** (Pending) como único
+candidato de restrição sem dono — mas **DOS-09 não tem definição textual em lugar nenhum das
+specs**, e AC#3 (inundação/deslizamento) também disputa esse slot. Sem a fonte do texto de DOS-09,
+marcar DOS-09 como Verified seria um chute. **Concordo com a call honesta.** Ressalva de rastreio:
+se a fonte original definir DOS-09 = UC, a Fatia 5 deixa DOS-09 por marcar (dívida de rastreio a
+fechar) — recomendo recuperar o texto de DOS-09 e decidir explicitamente.
+
+### Gaps ranqueados
+1. **(Médio) Reprojeção AD-008 sem sensor** — mutante (a) sobrevive; `to_crs` pode ser removido
+   sem quebrar teste algum. O `srid==4674` é falso-positivo (SRID vem do SQL, não do `to_crs`).
+2. **(Baixo) DOS-09 sem texto** — traceabilidade de AC#2 fica sem DOS confirmado; decisão honesta,
+   mas registrar a origem de DOS-09 fecharia a dúvida.
+
+### Fix task T27 — mutante (a) reprojeção fechado (2026-09-04, pós-Verifier)
+Loop fix→re-verify (bounded). Adicionada fixture `uc_amostra_utm.geojson` em **EPSG:31983 (metros)**
++ teste `test_reprojeta_de_fonte_projetada_para_lonlat_canonico`: ingere a fonte projetada e afirma
+que o centróide gravado cai em faixa lon/lat do RJ (`-45<lon<-40`, `-24<lat<-20`). Sem `to_crs`, a
+longitude gravada seria ~674492 (metro carimbado como grau) e o teste falha — **confirmado por
+injeção+reversão observadas** (`to_crs` removido → 1 failed; revertido → 4 passed). Sensor de
+reprojeção agora real, não mais falso-positivo de SRID. Gap (Baixo) DOS-09 promovido a **TD-003**.
+Commit do fix: `2ffadf5`.

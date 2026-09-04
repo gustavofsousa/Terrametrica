@@ -81,3 +81,28 @@ versionada e o passo só faz upsert, então um município que perca todos os lot
 mantém a linha antiga (staleness). Aceito no MVP; revisitar se/quando reingestão com perda de
 cobertura municipal virar caso real (provavelmente junto da política de retenção de N versões do
 AD-007).
+
+---
+
+## TD-003 — DOS-09 sem texto definido; AC#2 (UC) sem DOS confirmado
+
+**Status:** open
+**Opened:** 2026-09-04 (Fatia 5)
+**Origin:** A Fatia 5 entrega o AC#2 de "P1: Restrições ambientais" (`spec.md` ~linha 106 —
+"indicar se o lote intersecta unidade de conservação, informando nome e categoria"). Mas o mapa
+AC→DOS não é resolúvel no repo: DOS-06 = sobreposição de lotes, DOS-07/08 = Verified na Fatia 3
+(APP / marginal). Sobra **DOS-09** (`Pending`) como único slot de restrição sem dono — porém
+**DOS-09 não tem definição textual em lugar nenhum das specs**, e o AC#3 (inundação/deslizamento)
+também disputa esse slot. Verifier independente concordou que marcar DOS-09 Verified sem a fonte
+seria chute (ver `validation.md`, Fatia 5).
+
+**What to investigate / change:**
+1. Recuperar o texto original de DOS-09 (e conferir se há um DOS separado para AC#2 vs AC#3).
+2. Decidir explicitamente o mapa: AC#2 (UC) → qual DOS, AC#3 (inundação/deslizamento) → qual DOS.
+3. Marcar o DOS de UC como `✅ Verified` (Fatia 5) na tabela de traceability quando confirmado.
+
+**Impact if ignored:** A entrega de UC fica sem linha na traceability por DOS — rastreio
+Requisito→Fatia incompleto, embora a entrega esteja provada por teste (e2e + unit) e por AD-010.
+
+**Revisit trigger:** No próximo doc-sync das specs, ou ao ingerir a camada de inundação/
+deslizamento (AC#3), que força resolver o mesmo mapa AC→DOS.

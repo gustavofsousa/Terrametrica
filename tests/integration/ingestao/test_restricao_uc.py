@@ -24,6 +24,12 @@ IMAGEM_POSTGIS = "postgis/postgis:16-3.4"
 FIXTURE_UC = (
     Path(__file__).resolve().parents[2] / "fixtures" / "restricao_uc" / "uc_amostra.geojson"
 )
+# Fixture em EPSG:31983 (SIRGAS UTM 23S, metros) — coordenadas na casa de centenas de milhar.
+# Serve para sensorizar a reprojeção (AD-008): sem `to_crs`, o WKT ficaria em metros carimbado
+# como 4674, e a longitude gravada seria ~674492 em vez de ~-43 (fora de qualquer faixa lon/lat).
+FIXTURE_UC_UTM = (
+    Path(__file__).resolve().parents[2] / "fixtures" / "restricao_uc" / "uc_amostra_utm.geojson"
+)
 
 
 def _garantir_docker_disponivel() -> None:
@@ -124,3 +130,23 @@ class TestIngerirUc:
         assert fonte == FONTE_UC
         assert data_extracao == date(2026, 9, 4)
         assert "mprj" in link.lower()
+
+    def test_reprojeta_de_fonte_projetada_para_lonlat_canonico(
+        self, conexao: psycopg.Connection, versao: VersaoBase
+    ) -> None:
+        # AD-008: a geometria é reprojetada da CRS de origem para EPSG:4674 (graus lon/lat) ANTES
+        # de gravar. Com uma fonte em EPSG:31983 (metros), pular o `to_crs` gravaria a longitude em
+        # metros (~674492) carimbada como 4674 — este teste mata esse mutante exigindo lon/lat real.
+        ingerir_uc(FIXTURE_UC_UTM, versao, conexao, data_extracao=date(2026, 9, 4))
+
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "SELECT ST_X(ST_Centroid(geom)), ST_Y(ST_Centroid(geom)) "
+                "FROM restricao WHERE versao_base_id = %s",
+                (versao.id,),
+            )
+            lon, lat = cursor.fetchone()  # type: ignore[misc]
+
+        # Faixa lon/lat do estado do RJ — larga, mas impossível de satisfazer com metros de UTM.
+        assert -45.0 < lon < -40.0
+        assert -24.0 < lat < -20.0

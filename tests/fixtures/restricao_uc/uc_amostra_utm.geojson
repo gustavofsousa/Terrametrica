@@ -1,0 +1,48 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:EPSG::31983"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "uc": "UC em UTM",
+        "categoria": "PARNA",
+        "jurisdicao": "Federal",
+        "tipo": "PI",
+        "uf_abrang": "RJ"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              674492.25,
+              7477616.56
+            ],
+            [
+              676545.53,
+              7477592.8
+            ],
+            [
+              676571.29,
+              7479807.44
+            ],
+            [
+              674517.71,
+              7479831.18
+            ],
+            [
+              674492.25,
+              7477616.56
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
