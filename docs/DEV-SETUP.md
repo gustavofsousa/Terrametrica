@@ -53,18 +53,59 @@ Para dev manual (subir um Postgres persistente local na porta 5433, fora dos tes
 docker compose up -d
 ```
 
+Isso sobe `postgis/postgis:16-3.4` com usuário/senha/banco `terrametrica`, acessível em
+`postgresql://terrametrica:terrametrica@localhost:5433/terrametrica`.
+
 Os testes de integração (`tests/integration/`) **não** usam o `docker-compose.yml` acima — eles
 sobem um container PostGIS efêmero por módulo de teste via `testcontainers`, que gerencia sua
-própria porta automaticamente. Antes de rodar a suíte de integração, confirme que o Docker está
-disponível:
+própria porta e aplica as migrações automaticamente. O `docker-compose.yml` só serve para
+inspecionar dado manualmente (`psql`, DBeaver, QGIS) fora do ciclo de teste.
+
+### Aplicar as migrações manualmente no banco do `docker-compose.yml`
+
+Não há CLI para isso ainda — `aplicar_migracoes` (`persistencia/migrar.py`) hoje só é chamado por
+testes. Para rodar contra o Postgres do `docker-compose.yml` e inspecionar dado manualmente:
 
 ```bash
+export TERRAMETRICA_DB_URL="postgresql://terrametrica:terrametrica@localhost:5433/terrametrica"
+.venv/bin/python -c "
+from terrametrica.persistencia.conexao import abrir_conexao
+from terrametrica.persistencia.migrar import aplicar_migracoes
+conexao = abrir_conexao()
+aplicar_migracoes(conexao)
+conexao.commit()
+"
+```
+
+## Rodando e testando localmente
+
+O projeto **não expõe servidor HTTP ainda** (AD-007 decide FastAPI, mas não há `main.py`, rota
+nem processo de servidor no repositório — ver `docs/arquitetura.md`). Hoje "rodar" o produto
+significa rodar a suíte de testes, que exercita `montar_dossie` e o pipeline de ingestão
+diretamente. Não há também CLI para disparar a ingestão manualmente fora de teste — só chamada
+de função Python (ver snippet acima e `tests/integration/test_dossie_e2e.py` para o padrão
+completo: `ingerir_limite_rj` → `ingerir_sigef` → `publicar_versao` → `montar_dossie`).
+
+```bash
+# só testes unitários — sem I/O, sem Docker, roda em segundos
+pytest tests/unit -q
+
+# suíte completa — exige Docker rodando (testcontainers sobe PostGIS efêmero por módulo)
 docker info
 pytest tests/unit tests/integration -q
 ```
 
 Se o Docker não estiver rodando, os testes de integração falham com uma mensagem clara em vez de
 um erro genérico de conexão.
+
+### Lint e type-check
+
+Rode antes de qualquer commit (mesmo padrão dos gates do `tlc-spec-driven`, mas para o código):
+
+```bash
+.venv/bin/ruff check src tests
+.venv/bin/mypy       # usa [tool.mypy] do pyproject.toml — checa só src/, strict
+```
 
 ## Restrição conhecida do ambiente remoto
 
