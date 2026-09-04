@@ -105,13 +105,31 @@ concern em TD-002 ao fechá-lo. O caminho `SemLote` (DOS-04) segue quebrado por 
 ## Handoff
 
 **Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 3 — CAR como camada de restrição (APP + Reserva
-Legal)** (`tasks.md`, seção Fatia 3, T15–T20). Validação **PASS** por Verifier independente (author
-≠ verifier, worktree isolado) registrada em `.specs/features/dossie-lote-rj/validation.md` (seção
-Fatia 3): gate verde (ruff 0, mypy strict 0, 111 passed — +17 vs baseline 94), sensor 3/4 mutantes
-mortos na 1ª rodada; o 4º sobrevivente (M2, `area_m2 > 0` do `intersecoes.py`) foi fechado com um
-teste de toque-de-borda área-zero (confirmado matar o mutante). DOS-07 e DOS-08 marcados
-`✅ Verified` em `spec.md`.
+**Fase atual:** Execute concluído para a **Fatia 4 — Seed de cobertura (fecha TD-002, torna DOS-11
+honesto)** (`tasks.md`, seção Fatia 4, T21–T22 + fix task T23). Validação **PASS** por Verifier
+independente registrada em `validation.md` (seção Fatia 4): gate verde (ruff 0, mypy strict 0,
+**119 passed** — +8 vs baseline 111 da Fatia 3), sensor pós-fix **4 mortos / 1 sobrevivente por
+escolha** (mutante C = DISTINCT, testaria o `ON CONFLICT` do próprio PostgreSQL). O Verifier passou
+no objetivo central na 1ª rodada (2/5 mutantes mortos) e apontou 3 sobreviventes; fix task T23
+matou os dois de maior impacto (D = refresh do upsert/DOS-13; B = filtro INNER JOIN sem
+proveniência). **DOS-11 marcado `✅ Verified` em `spec.md`.**
+**Commits (Fatia 4):** `c36ac88` T21 `semear_cobertura` · `5243d54` T22 fiação e2e + DOS-11 honesto
+· `eb44d65` docs (AD-009, fecha TD-002, tasks) · `a91604b` T23 mata mutantes D/B + marca DOS-11
+Verified. **Nada foi dado push** — só local (`main` está 34 commits à frente de `origin/main`).
+
+**O que existe agora, além das Fatias 1/2/3:** `ingestao/cobertura.py::semear_cobertura` — deriva o
+produto (município do lote × camada de restrição) de `lote_rural`/`restricao`/`proveniencia` num
+único upsert SQL idempotente (`ON CONFLICT DO UPDATE`), sem loop Python. Chamado depois de
+`materializar_intersecoes` e antes de `publicar_versao`, na mesma transação (cobertura só persiste
+se a versão publicar). Decisão em **AD-009**. `montagem.py`/`geometria`/`dominio` **não mudaram uma
+linha** — o Verifier confirmou no diff. Efeito visível: no dossiê real, APP/Reserva Legal saem de
+"sem cobertura no município" e passam a trazer proveniência (fonte+data); UC/inundação/deslizamento/
+corpo-d'água seguem honestamente marcadas sem cobertura (não ingeridas ainda).
+
+---
+
+**Handoff anterior (Fatia 3 — CAR como restrição):** Execute PASS (T15–T20), 111 passed. Detalhe
+preservado no histórico de git; substituído acima ao fechar a Fatia 4.
 **Commits (Fatia 3):** `fe2f2f4` design+tasks+TD-002 · `fd1ebc5` T16 ingestão CAR · `cf11559` T17
 materialização · `db94e68` T18 `intersecoes_de` real · `0a7ffcc` T19 guarda publicação ·
 `b095437` T20 prova e2e · `74eb62e` teste toque-de-borda (mata M2) + validation.md. A migração
@@ -134,17 +152,23 @@ feições (383.213 ativas), Reserva Legal `RESERVA-LEGAL.zip` 52.179 (47.348 ati
 Filtrar `ind_status='AT'` elimina 100% das duplicatas de `cod_imovel`. A ingestão real ainda não
 rodou sobre esses arquivos de ~430k feições — só sobre fixtures sintéticas; ver Risk em `design.md`
 sobre inserção em lote quando rodar no volume real.
-**Tech debt:** TD-001 (malha municipal, `municipio_em`) segue aberto — não era necessário nesta
-fatia (município vem do `cod_imovel`). **TD-002 aberto nesta fatia** — `cobertura` nunca é semeada
-por nenhuma ingestão, então toda seção de restrição aparece "sem cobertura no município" (DOS-11)
-mesmo com dado ingerido; pré-existente (nem SIGEF semeia), não regressão. Fechar antes do painel web.
+**Tech debt:** **TD-002 RESOLVIDO nesta fatia** (Fatia 4, AD-009) — resta um concern menor herdado:
+`cobertura` não é versionada e o passo só faz upsert, então um município que perca todos os lotes
+numa reingestão mantém a linha antiga (staleness); aceito no MVP, anotado em TD-002. **TD-001**
+(malha municipal, `municipio_em`) segue aberto — o caminho `SemLote`/DOS-04 continua quebrado contra
+o adapter real; a Fatia 4 não dependeu dele (município vem do próprio `lote_rural`).
 **Lição registrada:** `L-001` (`.specs/LESSONS.md`, status candidate) — testar toque-de-borda
-área-zero em spatial join, o teste de "sem sobreposição" com polígonos disjuntos não cobre isso.
+área-zero em spatial join. (Fatia 4 gerou um padrão candidato adicional: ao materializar tabela por
+upsert, testar explicitamente o *refresh* — `len` estável + ausência de erro NÃO provam que
+`DO UPDATE` atualiza valores; `DO NOTHING` passaria. Registrar via `scripts/lessons.py` se recorrer.)
 **Próximo passo:** candidatos para a próxima fatia, em ordem de valor: (a) demais camadas de
 restrição do INEA/ICMBio (UC, inundação, deslizamento, corpo d'água) — mesmo padrão de `restricao`,
-fecha o resto das ACs de "Restrições ambientais"; (b) seed de `cobertura` (fecha TD-002, destrava
-DOS-11 honesto); (c) camada urbana Niterói via SIGeo (82.199 feições, EPSG:31983, reprojeção nova);
-(d) CAR papel P2 (divergência SIGEF×CAR, AD-003); (e) malha municipal IBGE (fecha TD-001). Sem
+e **agora aparecem honestamente no dossiê assim que ingeridas** (o seed de cobertura é genérico,
+pega qualquer `restricao.tipo` novo automaticamente); fecha o resto das ACs de "Restrições
+ambientais"; (b) camada urbana Niterói via SIGeo (82.199 feições, EPSG:31983, reprojeção nova) —
+note que o seed de cobertura atual só cobre municípios *com lote rural*; a cobertura urbana de
+Niterói precisará estender `semear_cobertura` para a camada `lote_urbano`/municipal; (c) CAR papel
+P2 (divergência SIGEF×CAR, AD-003); (d) malha municipal IBGE (fecha TD-001, destrava DOS-04). Sem
 bloqueio técnico em nenhuma.
 
 **Fase 0 — FECHADA, verificada por navegação real e dado real (2026-09-03):**
