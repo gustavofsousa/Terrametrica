@@ -84,22 +84,38 @@ robusto a ambos (CRS é config; camada urbana fica atrás de cobertura declarada
 ## Handoff
 
 **Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 1 — núcleo de domínio** (`tasks.md` T1–T5).
-Validação PASS registrada em `.specs/features/dossie-lote-rj/validation.md` (46 unit tests,
-ruff + mypy strict verdes, sensor de discriminação 6/6 mutantes mortos).
-**Commits:** `b851aec` (T1 scaffold) · `3925023` (T2 domínio) · `74f236d` (T3 geometria) ·
-`aea1e36` (T4 ports) · `7445455` (T5 montagem). Nada pendente de commit no código.
-**O que existe agora:** pacote `terrametrica` puro (sem I/O) — `dominio/modelos.py` (value objects,
-enums fechados, união de resultados), `geometria/regras.py` (marginal 1% + divergência 5%),
-`dossie/portas.py` (Protocols `RepositorioLotes`/`LimiteEstado`), `dossie/montagem.py`
-(árvore de decisão `montar_dossie`), fake em memória em `tests/fakes/`.
-**Refinamentos de contrato vs tasks.md:** `proveniencia_de -> Proveniencia | None` e novo
-`municipio_em(coord, versao) -> str` (necessários p/ DOS-12 e DOS-04). Ver `validation.md`.
-**Escopo entregue:** apenas a lógica de domínio. As ACs de usuário (DOS-01/03 fim-a-fim) **não**
-estão demonstráveis ainda — faltam as fatias de infra. `spec.md` mantido em Pending de propósito
-(não superdeclarar).
-**Próximo passo:** Fatia 2 (adaptador PostGIS + ingestão versionada) — **Fase 0 rural e urbana
-fechadas**, sem bloqueio técnico restante para começar o design da ingestão.
+**Fase atual:** Execute concluído para a **Fatia 2 — adaptador PostGIS + ingestão SIGEF (walking
+skeleton)** (`tasks.md`, seção Fatia 2, T6–T14). Validação PASS registrada em
+`.specs/features/dossie-lote-rj/validation.md` (seção Fatia 2): gate verde (ruff 0, mypy strict 0,
+94 passed — 30 de integração), sensor de discriminação 3/3 mutantes mortos.
+**Commits (Fatia 2):** `7409f9f` design+tasks · `6bbc532` T6 infra dev · `e7848b5` T7 schema ·
+`745f0a0` T8 conexão/migração · `d62ef3d`+`195321a` T9 adapter lotes · `1de5056` T10 adapter limite
+· `6f26078` T11 ingestão limite RJ (geobr) · `1209f09` T12 ingestão SIGEF · `4fed269` T13
+publicação c/ guarda+swap · `fb27b20` T14 prova e2e · `a8e2037`/`2687fba`/`1770a98` docs/validação.
+Nada pendente de commit no código da Fatia 2. **Nada foi dado push** — só local.
+**O que existe agora, além da Fatia 1:** `persistencia/` (conexão psycopg, runner de migração
+idempotente, schema SQL 0001+0002, adapters reais `RepositorioLotesPostGIS`/`LimiteEstadoPostGIS`
+implementando os *ports* de T4 sem mudá-los) e `ingestao/` (`limite_rj.py` via geobr real,
+`sigef.py` a partir de arquivo local, `publicar.py` com guarda de 90%+swap atômico,
+`tipos.py`/`validacao_geometria.py` compartilhados). `montar_dossie` (T5) roda sem nenhuma mudança
+sobre os adapters reais — prova que os *ports* isolaram fake↔real (T14).
+**Recorte desta fatia:** só SIGEF (rural). CAR, camada urbana (Niterói/SIGeo), qualquer camada de
+restrição e `intersecao_materializada` ficam fora — decisão explícita pra provar o pipeline
+fim-a-fim antes de somar fontes.
+**Tech debt aberto:** `.specs/TECH-DEBT.md` TD-001 — `municipio_em` levanta `NotImplementedError`
+(sem malha municipal IBGE nesta fatia); `lote_rural.municipios` guarda código IBGE bruto, não
+nome. Revisitar quando a malha municipal entrar (provavelmente junto de CAR ou camada urbana).
+**Gaps não-bloqueantes registrados no Verifier:** DOS-04 (`SemLote`) sem cobertura real (cai em
+TD-001); DOS-26 (idempotência) não é asserido por execução dupla nesta fatia — nenhum dos dois
+consta nos "Done when" de T6-T14, ver `validation.md` seção Fatia 2 para detalhe.
+**Achado operacional:** houve uma sessão concorrente de outro Claude Code no mesmo repo durante
+esta execução (feature `gate-juridico-p2`/`autorizacao`, commits intercalados). Sem conflito —
+cada sessão só tocou seus próprios arquivos — mas vale checar com o usuário se as duas frentes
+foram coordenadas.
+**Próximo passo:** Fatia 3 — candidatos, em ordem de valor: (a) CAR (segunda geometria do lote
+rural, AD-003) reusando o mesmo padrão de `ingestao/sigef.py`; (b) camada urbana Niterói via SIGeo
+(já confirmada acessível em Fase 0, 82.199 feições); (c) malha municipal IBGE (fecha TD-001). Sem
+bloqueio técnico — Fase 0 está fechada pras três.
 
 **Fase 0 — FECHADA, verificada por navegação real e dado real (2026-09-03):**
 - **Egress `.gov.br` funciona na máquina local** (o bloqueio era do ambiente remoto). SIGEF 200,
