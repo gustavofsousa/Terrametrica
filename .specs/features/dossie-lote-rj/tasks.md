@@ -9,9 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/dossie-lote-rj/design.md`
-**Status**: Fatia 1 e Fatia 2 executadas e validadas (`validation.md`, PASS). **Fatia 3 em Draft,
-tasks abaixo aguardando aprovação — dado real já medido em `design.md` (seção "Fatia 3"), sem
-bloqueio técnico.**
+**Status**: Fatia 1 e Fatia 2 executadas e validadas (`validation.md`, PASS). **Fatia 3 executada —
+T15-T20 concluídas (ver commits); validação de fechamento pendente (Verifier roda em seguida).**
 
 **Slice 1**: **Núcleo de domínio (rodável agora, sem Fase 0)**. Regras numéricas do produto
 + árvore de decisão da montagem do dossiê, atrás de um *port* de repositório, testadas com um fake
@@ -979,7 +978,7 @@ fixtures de T12/T16
 - [ ] Coordenada dentro do lote mas sem sobreposição com nenhuma restrição devolve
       `itens_restricao == ()` (ausência, não erro)
 - [ ] Gate check passa: `pytest tests/unit tests/integration -q`
-- [ ] Test count: ~3 testes passam (sem deleção silenciosa)
+- [ ] Test count: 2 testes novos (+ os 2 já existentes de T14, sem mudança), sem deleção silenciosa
 
 **Tests**: integration
 **Gate**: full
