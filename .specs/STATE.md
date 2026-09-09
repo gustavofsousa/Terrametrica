@@ -121,6 +121,34 @@ redistribuição (proveniência já carimba fonte+data+link) e avaliar GEOINEA/I
 autoritativa alternativa. As outras 3 camadas de restrição seguem **não verificadas** — cada uma
 exige medição por acesso real antes do código, como esta teve.
 
+### AD-011 — API HTTP (F1.10): versão resolvida por request, identidade opaca via header, rate limit em memória
+**Data:** 2026-09-08
+**Decisão:** A superfície HTTP (FastAPI, AD-007) da Fatia 6 assume três escolhas:
+1. **Versão da base é resolvida no servidor por request**, lendo `ponteiro_publicado` (a versão de
+   `Camada.LOTE_RURAL`) — o cliente **não** informa versão. Idempotência (DOS-26) vem do ponteiro
+   ser estável entre reingestões; um dossiê muda só quando a base publicada muda.
+2. **Identidade da conta chega como header opaco `X-Conta-Id`** (dependency injetável), não como
+   login/senha/JWT. `consulta_log.usuario_id` (DOS-30) e a cota de rate limit (DOS-27) chaveiam por
+   ela. O mecanismo de auth real (sessão/OAuth/gov.br) nasce com o painel (F1.11) sem reescrever a
+   API — a fronteira `PapelConta`/`Conta` do gate jurídico (AD-002) já está modelada e não é tocada.
+3. **Rate limit (100/h por conta, DOS-27) é um contador em memória de processo**, janela deslizante
+   por hora. MVP de um processo só; quando o deploy escalar para N réplicas, troca-se o backend do
+   contador (Redis) sem mudar a regra nem a rota.
+**Razão:** A API é o entrypoint fino do AD-007 — nenhuma regra de negócio vive nela, ela orquestra
+`montar_dossie`/cobertura. Resolver a versão no servidor mantém o cliente burro e a idempotência por
+construção. Identidade via header destrava DOS-30/DOS-27 hoje sem pagar o custo (e o risco de
+retrabalho) de um modelo de identidade completo antes de existir painel que o exercite — decisão do
+usuário entre 3 opções (2026-09-08). Contador em memória é a coisa mais simples que torna DOS-27
+verdadeiro no MVP; persistir a cota seria over-spec para tráfego de um processo.
+**Consequência:** Nova dep `fastapi`/`uvicorn` (runtime) e `httpx` (teste, via `TestClient`). Um
+módulo `api/` fino: resolve versão publicada, injeta `conta_id`, aplica rate limit, traduz o
+tipo-resultado da montagem (`Dossie`/`SemLote`/`Sobreposicao`/`ForaDoRJ`) em HTTP + DTO, grava
+`consulta_log`. **Débito assumido:** o contador de rate limit em memória zera no restart do processo
+e não é compartilhado entre réplicas (registrar em TECH-DEBT ao fechar). O ramo `SemLote` da rota
+segue quebrado por **TD-001** (`municipio_em` sem malha) — a rota o traduz para 404 mas o adapter
+levanta `NotImplementedError`; o teste da rota cobre o caminho "achou lote"/"fora do RJ", não o
+`SemLote` real (independente desta fatia).
+
 ## Handoff
 
 **Branch:** `main`

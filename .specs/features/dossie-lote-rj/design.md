@@ -172,6 +172,67 @@ absorve o dado real sem alteração — mesma prova de isolamento fake↔real qu
 
 ---
 
+## Fatia 6 — API HTTP (F1.10): superfície de consumo (escopo desta rodada)
+
+**Decisão de arquitetura em AD-011** (`.specs/STATE.md`): versão resolvida no servidor por request,
+identidade opaca via header `X-Conta-Id`, rate limit em memória de processo. A API é o entrypoint
+**fino** do AD-007 — orquestra `montar_dossie`/cobertura, **nenhuma regra de negócio nova**.
+
+**O que entra na Fatia 6:**
+
+- **`api/app.py`** — a app FastAPI e as rotas. Cada rota é fina: resolve versão, injeta conta, chama
+  o motor, traduz o tipo-resultado em HTTP + DTO. Rotas: `GET /dossie`, `GET /cobertura`, `GET /saude`.
+- **`api/versao.py`::`resolver_versao_publicada(conexao) -> VersaoBase`** — lê `ponteiro_publicado`
+  para `Camada.LOTE_RURAL` e materializa a `VersaoBase` correspondente de `versao_base`. Fonte única
+  de "qual versão está no ar" para a leitura (AF-3/DOS-26). É o **primeiro leitor** do ponteiro no
+  caminho de request (até aqui só a ingestão o escrevia).
+- **`api/dto.py`** — funções puras `dossie → dict`, `sem_lote → dict`, `sobreposicao → dict`,
+  `cobertura → dict`. Serializam os value objects do domínio para JSON, carimbando fonte+data por
+  camada (DOS-10 já montado por `montar_dossie`, aqui só é exposto). Sem Pydantic model de domínio —
+  o domínio já valida no boundary (`modelos.py`); a resposta é um dict serializável direto.
+- **`api/identidade.py`::`conta_id_obrigatorio`** — dependency FastAPI que extrai `X-Conta-Id`;
+  ausência → `401` (AF-4). Devolve um `str` opaco. **Não** valida credencial nem consulta tabela de
+  conta (AD-011 — auth real é F1.11).
+- **`api/limite_taxa.py`::`LimitadorEmMemoria`** — contador janela-deslizante 100/1h por `conta_id`
+  (DOS-27/AF-2). Estrutura em memória de processo (`dict[str, deque[datetime]]`), injetável e
+  substituível (Redis no futuro sem tocar a rota). Excedeu → `429` + header `Retry-After`.
+- **`api/observabilidade.py`::`registrar_consulta(conexao, entrada)`** — grava uma linha em
+  `consulta_log` por chamada a `/dossie` (DOS-30/AF-1), inclusive quando o resultado não é `Dossie`.
+- **Migração `0005_fatia6_consulta_log.sql`** — cria `consulta_log` (já esboçada no Data Models,
+  nunca migrada até aqui): `id`, `ts`, `conta_id`, `lote_id` (nullable), `camadas text[]`,
+  `latencia_ms`. Sem PII (só `conta_id` opaco).
+
+**Mapa tipo-resultado → HTTP** (a tradução vive só na rota, o motor não sabe de HTTP):
+
+| Resultado de `montar_dossie` | Status | Corpo |
+| --- | --- | --- |
+| `Dossie` | `200` | ficha do lote + itens de restrição (área/pct/marginal) + proveniência por camada + listas de camadas ausentes/sem-cobertura/desatualizadas + ressalva |
+| `Sobreposicao` | `409` | mensagem + lista de candidatos (identidade de cada lote) — exige escolha (DOS-06) |
+| `ForaDoRJ` | `422` | mensagem "fora da área de cobertura: apenas RJ" (DOS-05) |
+| `SemLote` | `404` | município + cobertura declarada (DOS-04) — 🔒 quebra contra o adapter real por TD-001 |
+| `ErroValidacao` (coordenada fora de faixa) | `422` | mensagem do domínio (DOS-02) |
+
+**Confirmação de reuso (Code Reuse):** `dossie/montagem.py`, `dominio/modelos.py`,
+`geometria/regras.py`, `persistencia/*` **não mudam uma linha**. A API injeta os mesmos adapters
+`RepositorioLotesPostGIS`/`LimiteEstadoPostGIS` que os testes e2e da Fatia 2-5 já exercitam — a rota
+`/dossie` é a versão HTTP da chamada que `test_dossie_e2e.py` já faz em Python. O contrato dos ports
+(`dossie/portas.py`) absorve a rota sem alteração.
+
+**Contrato de conexão por request:** cada request abre e fecha sua própria conexão psycopg
+(`abrir_conexao`), lida em modo somente-leitura no caminho do dossiê; a escrita de `consulta_log`
+comita ao fim. Sem pool nesta fatia (MVP, um processo) — anotado como concern se o tráfego exigir.
+
+**Fica fora da Fatia 6 (explícito):**
+- Login/senha/JWT/sessão — F1.11. A identidade é um header opaco (AD-011).
+- Página de cobertura **HTML** (DOS-13 público) — F1.12. Esta fatia entrega só o endpoint JSON
+  `/cobertura`; a página que o consome é a próxima.
+- Ramo `SemLote` real — 🔒 TD-001 (`municipio_em` levanta `NotImplementedError`). A rota traduz para
+  404, mas o teste exercita "achou lote"/"fora do RJ"/"sobreposição", não `SemLote`.
+- Rate limit persistido/distribuído — contador em memória (AD-011), débito assumido em TECH-DEBT.
+- CORS/HTTPS/deploy — MACRO de infraestrutura, fora do escopo de código desta fatia.
+
+---
+
 ## Perspective Sweep (Complex)
 
 - **Structure** — módulos por domínio (`ingestao`, `dossie`, `geometria`, `cobertura`,

@@ -219,12 +219,12 @@ uma área que ainda não está mapeada nas bases oficiais.
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| DOS-01 | P1: Dossiê do lote | Design | Pending |
-| DOS-02 | P1: Dossiê do lote | Design | Pending |
+| DOS-01 | P1: Dossiê do lote | Fatia 6 (API) | 🟡 Execute |
+| DOS-02 | P1: Dossiê do lote | Fatia 6 (API) | 🟡 Execute |
 | DOS-03 | P1: Dossiê do lote | Design | Pending |
-| DOS-04 | P1: Dossiê do lote | Design | Pending |
-| DOS-05 | P1: Dossiê do lote | Design | Pending |
-| DOS-06 | P1: Restrições | Design | Pending |
+| DOS-04 | P1: Dossiê do lote | Design | Pending (🔒 TD-001) |
+| DOS-05 | P1: Dossiê do lote | Fatia 6 (API) | 🟡 Execute |
+| DOS-06 | P1: Restrições | Fatia 6 (API) | 🟡 Execute |
 | DOS-07 | P1: Restrições | Fatia 3 | ✅ Verified |
 | DOS-08 | P1: Restrições | Fatia 3 | ✅ Verified |
 | DOS-09 | P1: Restrições | Design | Pending |
@@ -244,15 +244,57 @@ uma área que ainda não está mapeada nas bases oficiais.
 | DOS-23 | P3: Polígono próprio | - | Pending |
 | DOS-24 | P3: Polígono próprio | - | Pending |
 | DOS-25 | Edge: geometria e divisas | Design | Pending |
-| DOS-26 | Edge: idempotência do dossiê | Design | Pending |
-| DOS-27 | Edge: limite de consultas | - | Pending |
+| DOS-26 | Edge: idempotência do dossiê | Fatia 6 (API) | 🟡 Execute |
+| DOS-27 | Edge: limite de consultas | Fatia 6 (API) | 🟡 Execute |
 | DOS-28 | Edge: publicação atômica de versão | Design | Pending |
 | DOS-29 | Edge: base obsoleta | Design | Pending |
-| DOS-30 | Observabilidade de consultas | Design | Pending |
+| DOS-30 | Observabilidade de consultas | Fatia 6 (API) | 🟡 Execute |
 
 **ID format:** `DOS-[NUMBER]`
 
-**Coverage:** 30 total, 0 mapeados para tarefas, 30 não mapeados ⚠️ (mapeamento ocorre na fase Tasks)
+**Coverage:** 30 total; Fatia 6 (API) leva DOS-01/02/05/06/26/27/30 a Execute — os demais seguem Pending ou já Verified (DOS-07/08/11).
+
+---
+
+## Fatia 6 — API HTTP (F1.10): superfície de consumo do motor
+
+**Escopo:** dar uma superfície HTTP (FastAPI, AD-007/AD-011) ao motor do dossiê, que hoje só roda
+via chamada Python. **Não adiciona requisito de produto novo** — traduz para HTTP requisitos que já
+existem: exibe o dossiê (DOS-01/02), recusa fora do RJ (DOS-05), exige escolha na sobreposição
+(DOS-06), é idempotente por versão publicada (DOS-26), aplica cota de 100/h por conta (DOS-27) e
+registra cada consulta (DOS-30). Decisões da fatia em **AD-011**.
+
+**Contrato HTTP (MVP):**
+
+| Rota | Entrada | Resultado do motor → Resposta |
+| --- | --- | --- |
+| `GET /dossie?lat&lon` | header `X-Conta-Id` obrigatório; `lat`/`lon` float | `Dossie`→`200` + DTO · `Sobreposicao`→`409` + candidatos · `ForaDoRJ`→`422` + mensagem · `SemLote`→`404` + município/cobertura (🔒 TD-001) · coordenada inválida (fora de faixa)→`422` |
+| `GET /cobertura?municipio` | `municipio` (código IBGE) | `200` + lista de camadas com `tem_dado`/`data_extracao` |
+| `GET /saude` | — | `200` liveness (sem tocar o banco) |
+
+**Regras transversais desta fatia (todas rastreadas a DOS existentes):**
+
+- **AF-1 (DOS-30):** toda consulta a `/dossie` grava uma linha em `consulta_log` (`conta_id`,
+  `lote_id` quando houver, camadas retornadas, `latencia_ms`). O log é gravado inclusive quando o
+  resultado não é um `Dossie` (fora do RJ / sobreposição) — a consulta aconteceu.
+- **AF-2 (DOS-27):** conta que exceder 100 consultas de `/dossie` numa janela de 1h recebe `429` com
+  `Retry-After` indicando quando a cota renova. O contador é por `X-Conta-Id`.
+- **AF-3 (DOS-26):** a mesma coordenada, sob a mesma versão publicada, produz exatamente a mesma
+  resposta. A versão é resolvida no servidor a partir de `ponteiro_publicado` (AD-011), não vem do
+  cliente.
+- **AF-4 (auth boundary):** requisição a `/dossie` sem `X-Conta-Id` recebe `401` — a identidade é
+  pré-condição de DOS-30/DOS-27, mesmo sem login real nesta fatia (AD-011).
+
+**Independent Test:** subir a app (`TestClient`), chamar `/dossie` sobre a fixture SIGEF real da
+Fatia 2 e conferir `200` + código/área/proveniência; repetir a chamada e conferir corpo idêntico
+(AF-3); estourar a cota e conferir `429`+`Retry-After` (AF-2); chamar sem header e conferir `401`
+(AF-4); chamar fora do RJ e conferir `422` (DOS-05); conferir uma linha nova em `consulta_log` por
+consulta (AF-1).
+
+**Fora do escopo desta fatia (herdado das decisões do produto):** login/senha/JWT (F1.11); página
+de cobertura HTML (F1.12 — esta fatia entrega só o endpoint JSON); ramo `SemLote` real (🔒 TD-001 —
+a rota o traduz para 404, mas o adapter levanta `NotImplementedError`); rate limit persistido/
+distribuído (AD-011 — contador em memória, débito assumido).
 
 ---
 

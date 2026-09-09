@@ -23,6 +23,7 @@ TABELAS_ESPERADAS = {
     "lote_rural",
     "proveniencia",
     "cobertura",
+    "consulta_log",
 }
 
 
