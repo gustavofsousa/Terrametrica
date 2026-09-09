@@ -74,3 +74,20 @@ class TestLimitadorEmMemoria:
         # Logo após 1h da PRIMEIRA consulta, deve liberar (as 100 originais saíram da janela).
         resultado = limitador.checar("conta-a", AGORA + timedelta(hours=1, seconds=1))
         assert isinstance(resultado, Permitido)
+
+    def test_rajada_de_bloqueios_nao_reabastece_a_janela(self) -> None:
+        # Sensor direto do invariante "tentativa bloqueada não consome vaga": se um bloqueio fosse
+        # registrado, uma rajada ≥ limite dentro da janela manteria a conta presa mesmo depois de
+        # 1h da última consulta LEGÍTIMA. Enche a cota, martela ≥100 bloqueios dentro da 1ª hora, e
+        # confere que 1h+1s após a última LEGÍTIMA (não após os bloqueios) a janela já liberou.
+        limitador = LimitadorEmMemoria()
+        ultima_legitima = AGORA + timedelta(seconds=99)
+        for i in range(100):
+            assert isinstance(limitador.checar("conta-a", AGORA + timedelta(seconds=i)), Permitido)
+
+        for i in range(150):  # rajada > limite, toda dentro da 1ª janela
+            bloqueado = limitador.checar("conta-a", AGORA + timedelta(minutes=1, seconds=i))
+            assert isinstance(bloqueado, Bloqueado)
+
+        resultado = limitador.checar("conta-a", ultima_legitima + timedelta(hours=1, seconds=1))
+        assert isinstance(resultado, Permitido)

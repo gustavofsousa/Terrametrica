@@ -439,3 +439,101 @@ longitude gravada seria ~674492 (metro carimbado como grau) e o teste falha — 
 injeção+reversão observadas** (`to_crs` removido → 1 failed; revertido → 4 passed). Sensor de
 reprojeção agora real, não mais falso-positivo de SRID. Gap (Baixo) DOS-09 promovido a **TD-003**.
 Commit do fix: `2ffadf5`.
+
+---
+
+## Fatia 6 — API HTTP (F1.10): superfície de consumo do motor
+
+**Verifier independente (autor ≠ verificador), 2026-09-08.** Diff verificado: `db2f6c7^..HEAD`
+(5 commits T28–T32: `db2f6c7`, `ce3f5b4`, `98b09d7`, `fe99742`, `a62393e`). Ambiente: `.venv/bin/`,
+Docker (PostGIS efêmero via testcontainers + geobr por rede real no e2e).
+
+### Veredito: PASS (com 2 gaps de sensor, não bloqueantes)
+
+### Gate (saída real observada)
+- `.venv/bin/ruff check src tests` → `All checks passed!` (exit 0)
+- `.venv/bin/mypy` → `Success: no issues found in 34 source files` (exit 0)
+- `.venv/bin/python -m pytest -q` → **149 passed in 86.80s** (baseline pré-fatia = 124; +25 = as
+  novas de T28–T32: 6 unit `test_limite_taxa`, 7 unit `test_dto`, 2 `test_versao`, 2
+  `test_observabilidade`, 8 `test_api_e2e`; +1 assert de `consulta_log` em `test_migrar`, sem novo
+  arquivo). Nenhuma falha, nenhum skip.
+
+### Reuso genérico (restrição imposta pela spec) — CONFIRMADO
+`git diff db2f6c7^..HEAD --stat` sobre `dossie/montagem.py`, `dominio/modelos.py`,
+`geometria/regras.py`, `persistencia/repositorio_lotes_postgis.py`,
+`persistencia/limite_estado_postgis.py` → **saída vazia (0 mudanças)**. A API só orquestra; o motor
+está intacto. Arquivos novos: `api/{versao,dto,identidade,limite_taxa,observabilidade,app}.py`,
+migração `0005_fatia6_consulta_log.sql`, testes novos, +1 dep runtime (`fastapi`/`uvicorn`) e +1 dev
+(`httpx`) em `pyproject.toml`.
+
+### Evidência por AC / DOS (spec-anchored, evidence-or-zero)
+| Âncora | Outcome exigido (spec) | Evidência (teste + observação) | Resultado |
+|---|---|---|---|
+| **AF-1 / DOS-30** (spec.md:277) | toda consulta a `/dossie` grava 1 linha em `consulta_log`, inclusive quando não é `Dossie` | `test_api_e2e.py::TestObservabilidade::test_cada_consulta_grava_uma_linha_em_consulta_log` (`depois == antes+1`); `test_observabilidade.py::test_grava_consulta_com_lote_e_camadas` (relê `('conta-a','RJ-1',['lote_rural','app'],42)`) e `test_grava_consulta_sem_lote_com_lote_id_nulo` (`lote_id` NULL quando não houve lote) | ✅ |
+| **AF-2 / DOS-27** (spec.md:281) | conta que excede 100/1h recebe `429` + `Retry-After`; contador por `X-Conta-Id` | `test_api_e2e.py::test_estourar_a_cota_devolve_429_com_retry_after` (cota=2 injetada → 3ª = 429, `Retry-After` > 0); `test_limite_taxa.py` cobre 100 passam / 101ª barra / retry positivo / janela desliza / contas independentes | ✅ |
+| **AF-3 / DOS-26** (spec.md:283) | mesma coordenada, mesma versão publicada → corpo idêntico; versão resolvida no servidor por `ponteiro_publicado` | `test_api_e2e.py::test_idempotente_sob_a_mesma_versao` (`primeira.json() == segunda.json()`); `test_versao.py::test_resolve_a_versao_apontada_para_lote_rural` (lê `ponteiro_publicado` de LOTE_RURAL) | ✅ |
+| **AF-4 / auth boundary** (spec.md:285) | `/dossie` sem `X-Conta-Id` → `401` | `test_api_e2e.py::test_sem_header_conta_devolve_401` | ✅ |
+| **DOS-01/02** (ficha do lote) | `200` + código/área/proveniência do lote SIGEF; coordenada fora de faixa → `422` | `test_api_e2e.py::test_lote_sigef_devolve_200_com_ficha` (`codigo_sigef=="SIGEF-001"`, `proveniencia.lote_rural.fonte=="SIGEF"`); `test_coordenada_fora_de_faixa_devolve_422` (`lat=999.0`); `test_dto.py::test_serializa_ficha_do_lote_rural`/`test_carimba_proveniencia_por_camada` | ✅ |
+| **DOS-05** (fora do RJ) | `422` "fora da área de cobertura: apenas RJ" | `test_api_e2e.py::test_fora_do_rj_devolve_422` (`resp.json()["tipo"]=="fora_do_rj"`) | ✅ |
+| **DOS-06** (sobreposição) | lista candidatos, exige escolha (`409`) | `test_dto.py::TestSobreposicaoParaDict::test_lista_todos_os_candidatos` (ids `["RJ-1","RJ-2"]`); a rota mapeia `Sobreposicao → 409` em `app.py::_montar_e_traduzir`. **Nota:** não há caso e2e HTTP exercitando o ramo 409 real (a fixture SIGEF não gera sobreposição). O DTO está sensível (mutante 7), a tradução 409 não tem teste comportamental próprio — gap menor. | ⚠️ |
+| **DOS-11/12/13** (três estados de camada) | `camadas_ausentes` / `camadas_sem_cobertura` / `camadas_desatualizadas` distintos | `test_dto.py::test_distingue_os_tres_estados_de_camada` (`["inundacao"]` / `["corpo_dagua"]` / `["app"]`); `/cobertura` via `test_saude` + DTO `cobertura_para_dict` (`test_data_nula_vira_none`) | ✅ |
+
+**Precisão de spec:** DOS-06 na fatia HTTP fica coberto só no nível de DTO puro (candidatos serializados) + tradução estática `409` na rota, sem um caso e2e que dispare `Sobreposicao` real — a fixture não tem lotes sobrepostos. Aceitável para MVP (o ramo do motor já é testado na Fatia 1/3), mas a tradução HTTP 409 em si não é sensorizada.
+
+### Migração 0005 — cobre `consulta_log`
+`test_migrar.py` inclui `consulta_log` em `TABELAS_ESPERADAS` (introspecção `information_schema`
+num container recém-migrado). Suíte migrar verde dentro dos 149. `CREATE TABLE IF NOT EXISTS` +
+`CREATE INDEX IF NOT EXISTS` → reaplicável por construção; sem PII (só `conta_id` opaco, AD-002).
+
+### Sensor de discriminação (mutation testing) — 7 mortos / 2 SOBREVIVENTES
+Cada mutação foi injetada no fonte real, os testes relevantes rodados, e a mutação revertida
+(`git status src/terrametrica/api/` limpo ao final; `git diff --stat src/` vazio).
+
+- **(1) `limite_taxa.py`: `>=` → `>`** no check de limite → **MORTO.** `test_limite_taxa.py` 2 failed
+  (`test_a_101a_barra_com_retry_positivo`, `test_retry_after_reflete...`): a 101ª passa quando não devia.
+- **(2) `limite_taxa.py`: remover a poda de janela deslizante** (`while ... popleft()`) → **MORTO.**
+  2 failed (`test_janela_desliza_libera_apos_uma_hora`, `test_bloqueio_nao_empurra_a_janela...`).
+- **(3) `limite_taxa.py`: tentativa BLOQUEADA ainda dá `append`** na deque → **SOBREVIVEU.** Os 13
+  testes unit da API passam. O teste `test_bloqueio_nao_empurra_a_janela_indefinidamente` dispara só
+  uma rajada de 59 bloqueios (AGORA+1min..+59min); após pruning em AGORA+1h+1s sobram 59 < 100 →
+  ainda `Permitido`, o teste passa. **A regra "bloqueado não consome vaga" (documentada no docstring
+  de `checar`) não é morta por nenhum teste.** Assert faltante: uma rajada de bloqueios ≥ `limite`
+  dentro da janela, provando que eles NÃO refazem a cota. Código correto está presente — é lacuna de
+  cobertura, não bug.
+- **(4) `app.py`: `ForaDoRJ` → `200`** em vez de `422` → **MORTO.** `test_api_e2e.py` 1 failed
+  (`test_fora_do_rj_devolve_422`).
+- **(5) `app.py`: pular a chamada `registrar_consulta`** → **MORTO.** 1 failed
+  (`test_cada_consulta_grava_uma_linha_em_consulta_log`).
+- **(6) `versao.py`: remover o filtro `WHERE pp.camada = %(camada)s`** → **SOBREVIVEU.** `test_versao.py`
+  2 passed. O teste semeia só UM `ponteiro_publicado` (LOTE_RURAL); sem/com o filtro a query devolve
+  a mesma linha única. **O filtro por camada não é sensorizado** — só quebraria se houvesse um segundo
+  ponteiro (outra camada → outra versão). Gap menor: relevante quando >1 camada for publicada em
+  versões distintas.
+- **(6b, adicional) `versao.py`: retornar `id` errado** (`SELECT 'versao-errada'`) → **MORTO.**
+  `test_versao.py` 1 failed (`assert versao.id == "v-2026-09"`): a resolução do id em si ESTÁ coberta.
+- **(7) `dto.py`: trocar `camadas_sem_cobertura` ↔ `camadas_ausentes`** na saída → **MORTO.**
+  `test_dto.py` 1 failed (`test_distingue_os_tres_estados_de_camada`).
+- **(8, adicional) `identidade.py`: nunca levantar `401`** (aceita header ausente) → **MORTO.**
+  `test_api_e2e.py::test_sem_header_conta_devolve_401` 1 failed.
+
+### Gaps ranqueados (não bloqueantes desta fatia)
+1. **(Médio) Regra "bloqueado não consome vaga" sem sensor** — mutante (3) sobrevive: um attempt
+   bloqueado pode ser registrado na deque sem que teste algum quebre. O código está correto; falta um
+   teste com rajada de bloqueios ≥ `limite` dentro da janela para travar a invariante do docstring.
+2. **(Baixo) Filtro `WHERE camada` de `resolver_versao_publicada` sem sensor** — mutante (6)
+   sobrevive porque `test_versao.py` semeia um único ponteiro. Sob multi-camada publicada em versões
+   distintas o filtro passa a importar; hoje AF-3/DOS-26 só valem porque só LOTE_RURAL é âncora.
+3. **(Baixo) Tradução HTTP `409` de `Sobreposicao` sem caso e2e** — DOS-06 coberto por DTO puro +
+   tradução estática na rota, sem request e2e que dispare `Sobreposicao` real (fixture não tem lotes
+   sobrepostos). O ramo do motor já é testado na Fatia 1/3.
+
+### Escopo fora da fatia (confirmado, não regressão)
+`SemLote` real (`municipio_em` → `NotImplementedError`, TD-001) permanece não exercitado por HTTP —
+declarado fora do escopo em spec/design/AD-011. Login/JWT (F1.11), página HTML de cobertura (F1.12) e
+rate limit persistido (débito AD-011) fora por decisão de produto. Sem CORS/HTTPS/deploy (MACRO infra).
+
+### Sumário
+Gate verde real (ruff 0 / mypy 0 / **149 passed**). Reuso do motor confirmado por diff vazio nos 5
+arquivos-âncora. Sensor **7 mortos / 2 sobreviventes** (+2 mutantes adicionais mortos: id de versão,
+auth 401). Os 2 sobreviventes são lacunas de cobertura sobre código correto (rate-limit "bloqueado
+não consome vaga"; filtro `WHERE camada`), não defeitos — não bloqueiam o fechamento da Fatia 6.
