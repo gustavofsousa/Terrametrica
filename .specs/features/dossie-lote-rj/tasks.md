@@ -1098,13 +1098,13 @@ mudam. Traduz para HTTP requisitos existentes: DOS-01/02/05/06/26/27/30. Design 
 
 **Dependências novas:** `fastapi`/`uvicorn` (runtime), `httpx` (dev — `TestClient`).
 
-| Task | Escopo | Teste | Status |
-| --- | --- | --- | --- |
-| T28: deps + migração 0005 + resolver versão | Adiciona `fastapi`/`uvicorn` a `dependencies` e `httpx` a `dev`. Migração `0005_fatia6_consulta_log.sql` cria `consulta_log`. `api/versao.py::resolver_versao_publicada(conexao) -> VersaoBase` lê `ponteiro_publicado` (LOTE_RURAL) → `versao_base`. | integration (`test_versao.py`: resolve a versão publicada; levanta erro claro se não há ponteiro) + `test_migrar.py` cobre `consulta_log` | ⬜ |
-| T29: DTO de serialização (puro) | `api/dto.py` — `dossie_para_dict`/`sem_lote_para_dict`/`sobreposicao_para_dict`/`cobertura_para_dict`. Funções puras, sem I/O. Carimba fonte+data por camada (expõe DOS-10 já montado); área em ha/m² conforme natureza do lote; itens com pct/marginal (DOS-07/08). | unit (`test_dto.py`: um `Dossie` com restrição + proveniência + camada sem-cobertura serializa com todos os campos; sobreposição lista candidatos; fora-do-RJ leva mensagem) | ⬜ |
-| T30: identidade + rate limit | `api/identidade.py::conta_id_obrigatorio` (dependency: extrai `X-Conta-Id`, ausência levanta 401 — AF-4). `api/limite_taxa.py::LimitadorEmMemoria` (janela deslizante 100/1h por conta; `checar(conta_id, agora)` devolve permitido ou segundos até renovar — DOS-27/AF-2). Ambos puros/injetáveis, sem FastAPI acoplado ao limitador. | unit (`test_limite_taxa.py`: 100 passam, 101ª barra com retry>0, janela desliza libera após 1h; borda exata da 100ª/101ª) | ⬜ |
-| T31: observabilidade | `api/observabilidade.py::registrar_consulta(conexao, EntradaConsulta)` grava 1 linha em `consulta_log` (DOS-30/AF-1), inclusive quando o resultado não é `Dossie`. `EntradaConsulta` carrega conta_id, lote_id opcional, camadas, latencia_ms. | integration (`test_observabilidade.py`: grava e relê a linha; lote_id nulo quando não houve lote) | ⬜ |
-| T32: app + rotas + prova e2e HTTP | `api/app.py` — `criar_app(...)` monta FastAPI com `/dossie`, `/cobertura`, `/saude`. Fia versão+identidade+rate-limit+DTO+log; mapeia tipo-resultado→HTTP (200/409/422/404/429/401). Prova e2e via `TestClient` sobre a fixture SIGEF real (reusa o pipeline de `test_dossie_e2e.py`). | integration (`test_api_e2e.py`: 200+ficha na coordenada do lote; idempotência AF-3 corpo idêntico; 422 fora do RJ; 401 sem header; 429+Retry-After ao estourar cota; +1 linha em consulta_log por consulta) | ⬜ |
+| Task | Escopo | Teste | Commit | Status |
+| --- | --- | --- | --- | --- |
+| T28: deps + migração 0005 + resolver versão | Adiciona `fastapi`/`uvicorn` a `dependencies` e `httpx` a `dev`. Migração `0005_fatia6_consulta_log.sql` cria `consulta_log`. `api/versao.py::resolver_versao_publicada(conexao) -> VersaoBase` lê `ponteiro_publicado` (LOTE_RURAL) → `versao_base`. | integration (`test_versao.py`, 2) + `test_migrar.py` cobre `consulta_log` | `db2f6c7` | ✅ |
+| T29: DTO de serialização (puro) | `api/dto.py` — `dossie_para_dict`/`sem_lote_para_dict`/`sobreposicao_para_dict`/`cobertura_para_dict`. Funções puras, sem I/O. Carimba fonte+data por camada (expõe DOS-10 já montado); área em ha/m² conforme natureza do lote; itens com pct/marginal (DOS-07/08). | unit (`test_dto.py`, 7) | `ce3f5b4` | ✅ |
+| T30: identidade + rate limit | `api/identidade.py::conta_id_obrigatorio` (dependency: extrai `X-Conta-Id`, ausência levanta 401 — AF-4). `api/limite_taxa.py::LimitadorEmMemoria` (janela deslizante 100/1h por conta; `checar(conta_id, agora)` devolve permitido ou segundos até renovar — DOS-27/AF-2). Ambos puros/injetáveis, sem FastAPI acoplado ao limitador. | unit (`test_limite_taxa.py`, 7 — inclui sensor de rajada ≥ limite) | `98b09d7`/`04122ea` | ✅ |
+| T31: observabilidade | `api/observabilidade.py::registrar_consulta(conexao, EntradaConsulta)` grava 1 linha em `consulta_log` (DOS-30/AF-1), inclusive quando o resultado não é `Dossie`. `EntradaConsulta` carrega conta_id, lote_id opcional, camadas, latencia_ms. | integration (`test_observabilidade.py`, 2) | `fe99742` | ✅ |
+| T32: app + rotas + prova e2e HTTP | `api/app.py` — `criar_app(...)` monta FastAPI com `/dossie`, `/cobertura`, `/saude`. Fia versão+identidade+rate-limit+DTO+log; mapeia tipo-resultado→HTTP (200/409/422/404/429/401). Prova e2e via `TestClient` sobre a fixture SIGEF real (reusa o pipeline de `test_dossie_e2e.py`). | integration (`test_api_e2e.py`, 8) | `a62393e` | ✅ |
 
 **Dependency graph:**
 
@@ -1131,3 +1131,8 @@ Cada task carrega seu próprio teste — nenhum "testado em outra task".
 **Fora da Fatia 6 (explícito):** login/senha/JWT (F1.11) · página de cobertura HTML (F1.12, só o
 endpoint JSON entra) · ramo `SemLote` real (🔒 TD-001) · rate limit persistido/distribuído (AD-011,
 débito) · CORS/HTTPS/deploy (MACRO infra).
+
+**Gate:** ruff 0, mypy strict 0, suíte **149 passed** (+25 vs 124 da Fatia 5). Verifier PASS
+(`validation.md`, seção Fatia 6): sensor 7 mortos / 2 sobreviventes → gap #1 fechado (`04122ea`),
+gaps #2/#3 aceitos como **TD-005**. Motor intacto (Verifier confirmou no `--stat`). Débito de rate
+limit em memória: **TD-004**.

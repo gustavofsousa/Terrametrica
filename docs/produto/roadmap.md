@@ -28,7 +28,7 @@ verificada, pode nascer feature nova numa fase. Portanto os totais abaixo são p
 | Fase | Pergunta que responde | Features (feito / total atual) | Estado |
 | --- | --- | --- | --- |
 | **0 — Verificar fontes** | As fontes geoespaciais existem e são usáveis de verdade? | 4 / 5 (reabre por fonte nova) | 🟡 em aberto por camada |
-| **1 — MVP: o dossiê** | O cruzamento vale mais que o dado cru? | **5 / 12** | 🟡 em andamento |
+| **1 — MVP: o dossiê** | O cruzamento vale mais que o dado cru? | **6 / 12** | 🟡 em andamento |
 | **2 — Fazer circular** | O dossiê vira artefato e a divergência vira produto? | 0 / 3 (1 parcial) | ⬜ não começada |
 | **3 — Camada registral** | Existe caminho jurídico defensável p/ o dado registral? | 0 / 2 | ⏭️ condicional |
 | **4 — Ampliação** | Escala em município, camada, estado e canal? | 0 / 5 | ⬜ futura |
@@ -76,13 +76,14 @@ segunda vez, o problema não era esse.
 | F1.7 | Restrição corpo d'água | Corpos d'água / faixas marginais como restrição | ⬜ | 🔒 fonte a verificar (0.5) |
 | F1.8 | Malha municipal IBGE + resolução de município | Destrava o clique "sem lote" (DOS-04) e o nome de município; fecha TD-001 | ⬜ | precisa da malha IBGE |
 | F1.9 | Camada urbana Niterói (SIGeo) | Lotes urbanos de Niterói + estender a cobertura ao caso municipal | ⬜ | fonte já verificada (0.3) |
-| F1.10 | API HTTP (FastAPI) | Rotas `/dossie` e `/cobertura`; rate limit de 100/h (DOS-27); decidido em AD-007, zero código | ⬜ | destrava o painel |
+| F1.10 | API HTTP (FastAPI) | Rotas `/dossie`, `/cobertura`, `/saude`; rate limit 100/h (DOS-27); identidade via header (AD-011); observabilidade (DOS-30) | ✅ | Fatia 6 |
 | F1.11 | Painel web + conta autenticada | Mapa, clique→dossiê, conta obrigatória sem paywall | ⬜ | depende de F1.10 |
 | F1.12 | Página de cobertura pública | Estado real por município × camada, com data e aviso de base obsoleta (DOS-29/30) | ⬜ | depende de F1.4 + F1.10 |
 
-**Contagem:** 5 feito / 12 (piso — cada restrição nova é uma feature a mais). O motor do dossiê já
-roda fim-a-fim sobre PostGIS real; **o que falta para um usuário ver isso é a tríade API + painel +
-página de cobertura (F1.10–F1.12)**, mais as camadas que aumentam o valor do cruzamento (F1.6–F1.9).
+**Contagem:** 6 feito / 12 (piso — cada restrição nova é uma feature a mais). O motor do dossiê roda
+fim-a-fim sobre PostGIS real **e agora tem superfície HTTP (F1.10)**: `GET /dossie`/`/cobertura`
+respondem sobre a versão publicada. **O que falta para um usuário ver isso é o painel (F1.11) e a
+página de cobertura HTML (F1.12)**, mais as camadas que aumentam o valor do cruzamento (F1.6–F1.9).
 
 ---
 

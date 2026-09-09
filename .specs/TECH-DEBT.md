@@ -106,3 +106,51 @@ Requisito→Fatia incompleto, embora a entrega esteja provada por teste (e2e + u
 
 **Revisit trigger:** No próximo doc-sync das specs, ou ao ingerir a camada de inundação/
 deslizamento (AC#3), que força resolver o mesmo mapa AC→DOS.
+
+---
+
+## TD-004 — Rate limit em memória de processo (não persistido, não distribuído)
+
+**Status:** open
+**Opened:** 2026-09-08 (Fatia 6, AD-011)
+**Origin:** `api/limite_taxa.py::LimitadorEmMemoria` implementa a cota DOS-27 (100/h por conta) como
+um `dict[conta_id, deque[datetime]]` em memória de processo. É a coisa mais simples que torna DOS-27
+verdadeiro no MVP de um processo só.
+
+**What to investigate / change:**
+1. Ao escalar o deploy para N réplicas, o contador precisa ser compartilhado (Redis ou similar) —
+   caso contrário cada réplica concede 100/h isoladamente, e a cota efetiva vira 100×N.
+2. O contador zera no restart do processo — uma conta em rajada que force um restart reganha a cota.
+3. `LimitadorEmMemoria` foi desenhado injetável (a rota recebe o limitador de fora) exatamente para
+   trocar o backend sem tocar a rota nem a regra — a substituição é o `checar(conta_id, agora)`.
+
+**Impact if ignored:** cota furada sob múltiplas réplicas ou restart. Sem impacto num único processo.
+
+**Revisit trigger:** quando o deploy passar de 1 réplica, ou quando a política de retenção/estado
+compartilhado do produto for definida (provavelmente junto do AD-007 sobre retenção de N versões).
+
+---
+
+## TD-005 — Cobertura de teste: `WHERE camada` de resolver_versao e 409 de Sobreposicao
+
+**Status:** open (aceito, não corrigido)
+**Opened:** 2026-09-08 (Fatia 6, gaps #2/#3 do Verifier)
+**Origin:** O Verifier independente da Fatia 6 (`validation.md`, seção Fatia 6) encontrou 2 mutantes
+sobreviventes sobre **código correto** (lacunas de cobertura, não defeitos):
+1. `api/versao.py::resolver_versao_publicada` — o filtro `WHERE camada = 'lote_rural'` não é
+   sensorizado: `test_versao.py` semeia um único ponteiro, então remover o filtro não quebra teste.
+   A resolução do id em si É coberta (mutante de id errado morre).
+2. A tradução HTTP `409` de `Sobreposicao` não tem caso e2e (a fixture SIGEF não tem lotes
+   sobrepostos) — DOS-06 é coberto no nível do DTO puro (`test_dto.py`) + mapeamento estático da rota.
+
+**What to investigate / change:**
+1. `test_versao`: semear ponteiros de DUAS camadas com versões diferentes e afirmar que resolve a de
+   `lote_rural`, não a outra.
+2. `test_api_e2e`: fixture com dois lotes SIGEF sobrepostos no mesmo ponto → afirmar `409` + candidatos.
+
+**Impact if ignored:** baixo — ambos são código estático simples e correto; o risco é uma regressão
+futura silenciosa nesses dois pontos específicos.
+
+**Revisit trigger:** ao mexer em `resolver_versao_publicada` (ex.: quando a camada urbana Niterói
+adicionar um segundo ponteiro relevante) ou ao construir o fluxo de escolha de lote na sobreposição
+(painel, F1.11) — nesse momento a fixture de sobreposição vira necessária de qualquer forma.

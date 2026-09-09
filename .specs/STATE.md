@@ -152,7 +152,36 @@ levanta `NotImplementedError`; o teste da rota cobre o caminho "achou lote"/"for
 ## Handoff
 
 **Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 5 — Unidade de Conservação (UC) como camada de
+**Fase atual:** Execute concluído para a **Fatia 6 — API HTTP (F1.10)** (`tasks.md`, seção Fatia 6,
+T28–T32 + fix de sensor). Validação **PASS** por Verifier independente (`validation.md`, seção
+Fatia 6): gate verde (ruff 0, mypy strict 0, **149 passed** — +25 vs 124 da Fatia 5), sensor
+**7 mortos / 2 sobreviventes**; o gap #1 (invariante "bloqueio não consome vaga" do rate limiter)
+foi fechado com um teste de rajada ≥ limite (`04122ea`, confirmado que mata o mutante). Os 2 gaps
+restantes viraram **TD-005** (aceitos, não corrigidos — lacunas de cobertura sobre código correto:
+filtro `WHERE camada` de `resolver_versao` e o `409` de `Sobreposicao` sem caso e2e). Decisões da
+fatia em **AD-011** (versão resolvida por request via `ponteiro_publicado`; identidade opaca via
+header `X-Conta-Id`; rate limit 100/h em memória de processo). **Débito assumido:** rate limit em
+memória não persiste/distribui (**TD-004**). O motor (`montagem.py`/`dominio`/`geometria`/adapters
+PostGIS) **não mudou uma linha** — o Verifier confirmou no `--stat`; a API só orquestra (AD-007).
+**Commits (Fatia 6):** `db2f6c7` T28 (deps fastapi/uvicorn/httpx + migração 0005 `consulta_log` +
+`resolver_versao_publicada`) · `ce3f5b4` T29 (`api/dto.py` puro) · `98b09d7` T30 (identidade header
++ `LimitadorEmMemoria`) · `fe99742` T31 (`registrar_consulta`/DOS-30) · `a62393e` T32 (`api/app.py`
++ rotas + prova e2e HTTP via `TestClient`) · `04122ea` fix de sensor do rate limiter. **Nada em
+push** — `main` está **26 commits à frente de `origin/main`** (`git rev-list --count origin/main..main`).
+**O que existe agora, além das Fatias 1-5:** o pacote `api/` (FastAPI fino, AD-007): `GET /dossie`
+(resolve versão publicada → `montar_dossie` → traduz `Dossie`/`SemLote`/`Sobreposicao`/`ForaDoRJ` em
+200/404/409/422, aplica cota 429, exige `X-Conta-Id` senão 401, grava `consulta_log`), `GET /cobertura`,
+`GET /saude`. Migração `0005` cria `consulta_log` (DOS-30, sem PII). Roda via
+`uvicorn terrametrica.api.app:app_padrao --factory` (lê `TERRAMETRICA_DB_URL`). **Próximo passo
+natural:** F1.11 (painel web + conta) consome `/dossie`; F1.12 (página de cobertura HTML) consome
+`/cobertura`. O ramo `SemLote` real segue 🔒 por **TD-001** (a rota mapeia para 404, mas
+`municipio_em` levanta `NotImplementedError`).
+
+---
+
+**Handoff anterior (Fatia 5 — Unidade de Conservação):** Execute PASS (T24–T27), 124 passed. Detalhe abaixo, preservado.
+
+**Fase (Fatia 5):** Execute concluído para a **Fatia 5 — Unidade de Conservação (UC) como camada de
 restrição** (`tasks.md`, seção Fatia 5, T24–T26 + fix task T27). Validação **PASS** por Verifier
 independente (`validation.md`, seção Fatia 5): gate verde (ruff 0, mypy strict 0, **124 passed** —
 +1 vs 123 após o fix), sensor **5 mortos / 0 sobreviventes** após o fix (o Verifier achou 1
