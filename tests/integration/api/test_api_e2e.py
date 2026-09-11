@@ -180,6 +180,41 @@ class TestObservabilidade:
         assert depois == antes + 1
 
 
+class TestFluxoCookieDossie:
+    """Prova de ponta (PAINEL-07/08): login por magic link → cookie de sessão → /dossie sem header.
+
+    O painel não manda `X-Conta-Id`: a identidade vem só do cookie httpOnly. Este teste percorre o
+    fluxo real (solicitar → confirmar → clicar) sobre a mesma base seedada da F1.10.
+    """
+
+    def test_clique_autenticado_por_cookie_retorna_dossie_sem_header(self, url_banco: str) -> None:
+        from tests.fakes.auth_fake import FakeEnviadorEmail
+
+        enviador = FakeEnviadorEmail()
+        # base_url https:// no TestClient p/ o cookie Secure de sessão voltar na chamada a /dossie.
+        client = TestClient(
+            criar_app(url_banco, enviador_email=enviador, base_url="https://x.test"),
+            base_url="https://testserver",
+        )
+
+        client.post("/auth/solicitar", json={"email": "painel@example.com"})
+        _, link = enviador.enviados[-1]
+        token = link.split("token=")[1]
+        confirmar = client.get("/auth/confirmar", params={"token": token}, follow_redirects=False)
+        assert confirmar.status_code == 302
+
+        # O TestClient guarda o cookie de sessão; a chamada a /dossie NÃO manda X-Conta-Id.
+        resp = client.get("/dossie", params={"lat": LAT_DENTRO, "lon": LON_DENTRO})
+
+        assert resp.status_code == 200
+        assert resp.json()["lote"]["codigo_sigef"] == "SIGEF-001"
+
+    def test_dossie_sem_cookie_e_sem_header_devolve_401(self, url_banco: str) -> None:
+        client = TestClient(criar_app(url_banco, enviador_email=None))
+        resp = client.get("/dossie", params={"lat": LAT_DENTRO, "lon": LON_DENTRO})
+        assert resp.status_code == 401
+
+
 class TestRotaCobertura:
     def test_saude_responde_ok(self, client: TestClient) -> None:
         resp = client.get("/saude")

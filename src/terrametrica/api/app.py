@@ -14,8 +14,8 @@ from collections.abc import Callable
 from datetime import datetime
 
 import psycopg
-from fastapi import FastAPI, Query, Response, status
-from fastapi.responses import JSONResponse
+from fastapi import Body, Cookie, FastAPI, Query, Response, status
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from terrametrica.api.dto import (
     cobertura_para_dict,
@@ -23,12 +23,28 @@ from terrametrica.api.dto import (
     sem_lote_para_dict,
     sobreposicao_para_dict,
 )
-from terrametrica.api.identidade import Credenciais, resolver_conta_id
+from terrametrica.api.identidade import COOKIE_SESSAO, Credenciais, resolver_conta_id
 from terrametrica.api.limite_taxa import Bloqueado, LimitadorEmMemoria
 from terrametrica.api.observabilidade import EntradaConsulta, registrar_consulta
 from terrametrica.api.versao import resolver_versao_publicada
-from terrametrica.auth.adaptadores import RepositorioSessaoPostgres
-from terrametrica.auth.portas import RepositorioSessao
+from terrametrica.auth.adaptadores import (
+    RepositorioCredencialPostgres,
+    RepositorioSessaoPostgres,
+    RepositorioTokenPostgres,
+)
+from terrametrica.auth.portas import (
+    EnviadorEmail,
+    RepositorioCredencial,
+    RepositorioSessao,
+    RepositorioToken,
+)
+from terrametrica.auth.servico import (
+    EXPIRACAO_SESSAO,
+    LimiteDeLinksExcedido,
+    confirmar_login,
+    encerrar_sessao,
+    solicitar_magic_link,
+)
 from terrametrica.dominio.modelos import (
     Coordenada,
     Dossie,
@@ -49,12 +65,19 @@ def criar_app(
     limitador: LimitadorEmMemoria | None = None,
     relogio: Callable[[], datetime] | None = None,
     repo_sessao: Callable[[psycopg.Connection], RepositorioSessao] | None = None,
+    repo_token: Callable[[psycopg.Connection], RepositorioToken] | None = None,
+    repo_credencial: Callable[[psycopg.Connection], RepositorioCredencial] | None = None,
+    enviador_email: EnviadorEmail | None = None,
+    base_url: str = "https://app.terrametrica.xyz",
+    dominio_cookie: str | None = None,
 ) -> FastAPI:
-    """Monta a app FastAPI com as rotas do dossiê. Dependências injetáveis para teste."""
+    """Monta a app FastAPI com as rotas do dossiê + auth. Dependências injetáveis para teste."""
     app = FastAPI(title="Terramétrica — API do dossiê", version="0.1.0")
     limitador_efetivo = limitador if limitador is not None else LimitadorEmMemoria()
     agora = relogio if relogio is not None else datetime.now
     repo_sessao_de = repo_sessao if repo_sessao is not None else RepositorioSessaoPostgres
+    repo_token_de = repo_token if repo_token is not None else RepositorioTokenPostgres
+    repo_cred_de = repo_credencial if repo_credencial is not None else RepositorioCredencialPostgres
 
     @app.get("/saude")
     def saude() -> dict[str, str]:
@@ -96,7 +119,80 @@ def criar_app(
             corpo = cobertura_para_dict(repo.cobertura_de(municipio))
         return JSONResponse(status_code=status.HTTP_200_OK, content=corpo)
 
+    @app.post("/auth/solicitar")
+    def auth_solicitar(email: str = Body(..., embed=True)) -> Response:
+        """Emite um magic link para o e-mail. 202 enviado, 422 e-mail ruim, 429 rate limit,
+        502 falha do provedor (PAINEL-01/02/05)."""
+        if enviador_email is None:
+            return _json(
+                status.HTTP_503_SERVICE_UNAVAILABLE, {"erro": "envio de e-mail não configurado"}
+            )
+        with abrir_conexao(url_banco) as conexao:
+            try:
+                solicitar_magic_link(
+                    email, agora(), repo_token_de(conexao), repo_cred_de(conexao),
+                    enviador_email, base_url,
+                )
+            except ErroValidacao:
+                return _json(status.HTTP_422_UNPROCESSABLE_ENTITY, {"erro": "e-mail inválido"})
+            except LimiteDeLinksExcedido:
+                return _json(
+                    status.HTTP_429_TOO_MANY_REQUESTS,
+                    {"erro": "muitas solicitações de link; aguarde e tente de novo"},
+                )
+            except Exception:  # falha do provedor de e-mail (Resend) → 502, nunca 200 mudo
+                return _json(status.HTTP_502_BAD_GATEWAY, {"erro": "falha ao enviar o e-mail"})
+        return _json(status.HTTP_202_ACCEPTED, {"mensagem": "link de acesso enviado"})
+
+    @app.get("/auth/confirmar")
+    def auth_confirmar(token: str = Query(...)) -> Response:
+        """Confirma o magic link: 302 + cookie de sessão (sucesso) ou 401 (inválido/expirado/usado,
+        motivo único — PAINEL-03/04)."""
+        with abrir_conexao(url_banco) as conexao:
+            resultado = confirmar_login(
+                token, agora(), repo_token_de(conexao), repo_cred_de(conexao),
+                repo_sessao_de(conexao),
+            )
+        if not resultado.valido or resultado.token_sessao is None:
+            return _json(status.HTTP_401_UNAUTHORIZED, {"erro": "link inválido ou expirado"})
+
+        resposta = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        _setar_cookie_sessao(resposta, resultado.token_sessao, dominio_cookie)
+        return resposta
+
+    @app.post("/auth/logout")
+    def auth_logout(
+        sessao: str | None = Cookie(default=None, alias=COOKIE_SESSAO),
+    ) -> Response:
+        """Encerra a sessão: invalida no servidor + expira o cookie (204, PAINEL-13/14)."""
+        if sessao:
+            with abrir_conexao(url_banco) as conexao:
+                encerrar_sessao(sessao, repo_sessao_de(conexao))
+        resposta = Response(status_code=status.HTTP_204_NO_CONTENT)
+        resposta.delete_cookie(COOKIE_SESSAO, path="/")
+        return resposta
+
     return app
+
+
+def _setar_cookie_sessao(
+    resposta: Response, token_sessao: str, dominio_cookie: str | None
+) -> None:
+    """Cookie de sessão httpOnly/Secure/SameSite=Lax, 30 dias (spec §Cookie de sessão).
+
+    `dominio_cookie` (ex: `.terrametrica.xyz`) permite compartilhar o cookie entre `app.` e `api.`
+    no deploy; `None` (default) faz cookie host-only, adequado a same-origin/local/teste.
+    """
+    resposta.set_cookie(
+        key=COOKIE_SESSAO,
+        value=token_sessao,
+        max_age=int(EXPIRACAO_SESSAO.total_seconds()),
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+        domain=dominio_cookie,
+    )
 
 
 def _montar_e_traduzir(
