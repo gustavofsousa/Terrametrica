@@ -171,8 +171,42 @@ agnósticos de front) — decisão barata de adiar. Débito: teste de UI vanilla
 
 ## Handoff
 
-**Branch:** `main`
-**Fase atual:** Execute concluído para a **Fatia 6 — API HTTP (F1.10)** (`tasks.md`, seção Fatia 6,
+**Branch:** `main` (F1.11 fast-forwarded de `feat/api-dossie-http`)
+**Fase atual:** Execute + verificação **concluídos** para a **Fatia 7 — Painel web + conta
+autenticada (F1.11)** (`.specs/features/painel-web-conta/`, 10 tasks T1–T10). Validação **PASS** por
+Verifier independente (`validation.md`): 14/14 requisitos PAINEL-NN + 4 edge cases cobertos com
+asserção localizada e ancorada na spec; gates verdes (ruff 0, mypy strict 0, **212 passed** — a 1
+falha restante é o **bug pré-existente** `test_dto.py::test_distingue_os_tres_estados_de_camada`,
+fora de escopo, confirmado falhando no commit base `e5ec45b`); sensor de discriminação **5/5
+mortos**. Decisão da fatia: **AD-012** (front vanilla estático). **Débitos:** **TD-006** (`conta_id`
+sem tabela `conta` física); CSRF-MVP em `/auth/*` (mitigado por `SameSite=Lax` + rate limit) e GC de
+`login_token`/`sessao` expirados ficaram como concerns aceitos no design (não promovidos a TD
+numerado — revisitar se surgir). **O que existe agora, além das Fatias 1-6:** módulo
+`terrametrica.auth` (regras puras + ports Protocol + serviço + adaptadores Postgres/Resend); migração
+`0006_fatia7_auth.sql` (`credencial_login`/`login_token`/`sessao`, PII isolada de `Conta`, tokens em
+hash); identidade da API agora resolve por **sessão (cookie) OU header** (`api/identidade.py`,
+precedência sessão>header, retrocompat F1.10 intacta — Success Criteria 3); 3 rotas `/auth/solicitar`
+`/auth/confirmar` `/auth/logout` (`api/app.py`); front vanilla estático em `app/` (login.html,
+index.html+mapa.js Leaflet, dossie.js testado por `node --test`, estilos.css herdado do protótipo).
+`httpx` promovido a dep de runtime. **Fluxo provado fim-a-fim no navegador (Playwright):** login por
+magic link → cookie httpOnly/Secure → clique no mapa autentica → `GET /dossie` retorna 200 com o
+dossiê. **Lições:** L-002 (AC de UI precisa de evidência manual, não só 401 server-side), L-003
+(`token_valido` é lógica de referência dos fakes; expiry real é a query `_CONSUMIR_TOKEN`).
+**Commits (Fatia 7):** `9e7db89` T1 (migração 0006 + httpx) · `46ebabb` T2 (regras) · `5521fe5` T3
+(portas) · `5d4de5e` T4 (serviço) · `9dc73b5` T5 (adaptadores) · `7b06f59` T6 (identidade sessão|
+header) · `b2dc15e` T7 (rotas /auth/* + cookie→dossiê) · `e701f33` T8 (dossie.js) · `8a36816` T9
+(login.html) · `920eb31` T10 (index.html+mapa.js) · `c6534ad` docs (validation PASS). **Próximo
+passo natural:** F1.12 (página de cobertura HTML) consome `/cobertura`; **RFD de infra** do design
+(VPS+Caddy vs CDN+container; DNS `app.`/`api.`, TLS, `RESEND_API_KEY`, cookie `Domain` pai) ainda
+**aberta** — resolver antes do primeiro deploy real. **Bug conhecido a tratar à parte:**
+`test_dto.py::test_distingue_os_tres_estados_de_camada` (ordena `corpo_dagua` vs `inundacao` em
+`camadas_ausentes`) — pré-existe à F1.11, não corrigido aqui (fora de escopo).
+
+---
+
+**Handoff anterior (Fatia 6 — API HTTP F1.10):** Execute PASS (T28–T32), 149 passed. Detalhe abaixo, preservado.
+
+**Fase (Fatia 6):** Execute concluído para a **Fatia 6 — API HTTP (F1.10)** (`tasks.md`, seção Fatia 6,
 T28–T32 + fix de sensor). Validação **PASS** por Verifier independente (`validation.md`, seção
 Fatia 6): gate verde (ruff 0, mypy strict 0, **149 passed** — +25 vs 124 da Fatia 5), sensor
 **7 mortos / 2 sobreviventes**; o gap #1 (invariante "bloqueio não consome vaga" do rate limiter)
