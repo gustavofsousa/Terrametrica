@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 2,
+  "next_id": 4,
   "lessons": [
     {
       "id": "L-001",
@@ -22,6 +22,42 @@
       ],
       "created": "2026-09-04T15:24:48Z",
       "last_seen": "2026-09-04T15:24:48Z"
+    },
+    {
+      "id": "L-002",
+      "key": "ac_gap::ac de ui com efeito de navega o painel 06 12 sess o ausente expira redirect ao login fica s com prova server side 401 se o redirect vive em js classificado manual only registrar a verifica o manual nota screenshot no validation como evid ncia da metade ui do ac",
+      "text": "AC de UI com efeito de navegação (PAINEL-06/12: sessão ausente/expira → redirect ao login) fica só com prova server-side (401) se o redirect vive em JS classificado manual-only. Registrar a verificação manual (nota/screenshot no validation) como evidência da metade-UI do AC.",
+      "signal": "ac_gap",
+      "scope": "",
+      "status": "candidate",
+      "features": [
+        "painel-web-conta"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "Verifier F1.11 (validation.md)"
+      ],
+      "created": "2026-09-11T18:20:36Z",
+      "last_seen": "2026-09-11T18:20:36Z"
+    },
+    {
+      "id": "L-003",
+      "key": "surviving_mutant::auth regras py token valido chamado s pelos fakes o enforcement real de expira o uso nico a query consumir token where usado em is null and expira em agora mutante no operador de token valido sobrevive por ser dead code no runtime se wirar token valido no fluxo adicionar teste de boundary direto",
+      "text": "auth/regras.py::token_valido é chamado só pelos fakes; o enforcement real de expiração/uso-único é a query _CONSUMIR_TOKEN (WHERE usado_em IS NULL AND expira_em > agora). Mutante no operador < de token_valido sobrevive por ser dead-code no runtime. Se wirar token_valido no fluxo, adicionar teste de boundary direto.",
+      "signal": "surviving_mutant",
+      "scope": "",
+      "status": "candidate",
+      "features": [
+        "painel-web-conta"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "Verifier F1.11 (sensor mutant A1)"
+      ],
+      "created": "2026-09-11T18:20:36Z",
+      "last_seen": "2026-09-11T18:20:36Z"
     }
   ]
 }

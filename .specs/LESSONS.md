@@ -20,6 +20,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: M2: intersecoes.py area_m2 > 0 (ingestao/spatial-join)
 - last seen: 2026-09-04T15:24:48Z
 
+### L-002 — AC de UI com efeito de navegação (PAINEL-06/12: sessão ausente/expira → redirect ao login) fica só com prova server-side (401) se o redirect vive em JS classificado manual-only. Registrar a verificação manual (nota/screenshot no validation) como evidência da metade-UI do AC.
+- signal: `ac_gap` · recurrence: 1 feature(s) · harmful: 0
+- features: painel-web-conta
+- evidence: Verifier F1.11 (validation.md)
+- last seen: 2026-09-11T18:20:36Z
+
+### L-003 — auth/regras.py::token_valido é chamado só pelos fakes; o enforcement real de expiração/uso-único é a query _CONSUMIR_TOKEN (WHERE usado_em IS NULL AND expira_em > agora). Mutante no operador < de token_valido sobrevive por ser dead-code no runtime. Se wirar token_valido no fluxo, adicionar teste de boundary direto.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · harmful: 0
+- features: painel-web-conta
+- evidence: Verifier F1.11 (sensor mutant A1)
+- last seen: 2026-09-11T18:20:36Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

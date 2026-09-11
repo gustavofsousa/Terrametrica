@@ -173,20 +173,20 @@ redirecionamento para login.
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| PAINEL-01 | P1: Login por magic link | Tasks | In Tasks |
-| PAINEL-02 | P1: Login por magic link (e-mail malformado → 422) | Tasks | In Tasks |
-| PAINEL-03 | P1: Login por magic link (confirmação cria/autentica conta) | Tasks | In Tasks |
-| PAINEL-04 | P1: Login por magic link (token expirado/usado → 401) | Tasks | In Tasks |
-| PAINEL-05 | P1: Login por magic link (rate limit 5/h por e-mail) | Tasks | In Tasks |
-| PAINEL-06 | P1: Login por magic link (sem sessão → redirect) | Tasks | In Tasks |
-| PAINEL-07 | P1: Mapa autenticado → dossiê (chamada autenticada) | Tasks | In Tasks |
-| PAINEL-08 | P1: Mapa autenticado → dossiê (render 200 dossiê) | Tasks | In Tasks |
-| PAINEL-09 | P1: Mapa autenticado → dossiê (render 404 sem_lote) | Tasks | In Tasks |
-| PAINEL-10 | P1: Mapa autenticado → dossiê (render 409 sobreposicao) | Tasks | In Tasks |
-| PAINEL-11 | P1: Mapa autenticado → dossiê (render 429 cota) | Tasks | In Tasks |
-| PAINEL-12 | P1: Mapa autenticado → dossiê (sessão expira → redirect) | Tasks | In Tasks |
-| PAINEL-13 | P2: Logout (invalida sessão) | Tasks | In Tasks |
-| PAINEL-14 | P2: Logout (sessão invalidada → 401) | Tasks | In Tasks |
+| PAINEL-01 | P1: Login por magic link | Execute | Verified |
+| PAINEL-02 | P1: Login por magic link (e-mail malformado → 422) | Execute | Verified |
+| PAINEL-03 | P1: Login por magic link (confirmação cria/autentica conta) | Execute | Verified |
+| PAINEL-04 | P1: Login por magic link (token expirado/usado → 401) | Execute | Verified |
+| PAINEL-05 | P1: Login por magic link (rate limit 5/h por e-mail) | Execute | Verified |
+| PAINEL-06 | P1: Login por magic link (sem sessão → redirect) | Execute | Verified |
+| PAINEL-07 | P1: Mapa autenticado → dossiê (chamada autenticada) | Execute | Verified |
+| PAINEL-08 | P1: Mapa autenticado → dossiê (render 200 dossiê) | Execute | Verified |
+| PAINEL-09 | P1: Mapa autenticado → dossiê (render 404 sem_lote) | Execute | Verified |
+| PAINEL-10 | P1: Mapa autenticado → dossiê (render 409 sobreposicao) | Execute | Verified |
+| PAINEL-11 | P1: Mapa autenticado → dossiê (render 429 cota) | Execute | Verified |
+| PAINEL-12 | P1: Mapa autenticado → dossiê (sessão expira → redirect) | Execute | Verified |
+| PAINEL-13 | P2: Logout (invalida sessão) | Execute | Verified |
+| PAINEL-14 | P2: Logout (sessão invalidada → 401) | Execute | Verified |
 
 **ID format:** `PAINEL-NN`
 

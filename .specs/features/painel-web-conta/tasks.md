@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Design**: `.specs/features/painel-web-conta/design.md`
 **Spec**: `.specs/features/painel-web-conta/spec.md`
-**Status**: Draft
+**Status**: Done
 
 > Nomenclatura: esta é a **Fatia 7** na sequência de execução do repo (após Fatia 6 = F1.10 API HTTP).
 > A migração segue o padrão de nome do repo: `0006_fatia7_auth.sql`.
