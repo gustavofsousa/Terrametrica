@@ -23,10 +23,12 @@ from terrametrica.api.dto import (
     sem_lote_para_dict,
     sobreposicao_para_dict,
 )
-from terrametrica.api.identidade import ContaId
+from terrametrica.api.identidade import Credenciais, resolver_conta_id
 from terrametrica.api.limite_taxa import Bloqueado, LimitadorEmMemoria
 from terrametrica.api.observabilidade import EntradaConsulta, registrar_consulta
 from terrametrica.api.versao import resolver_versao_publicada
+from terrametrica.auth.adaptadores import RepositorioSessaoPostgres
+from terrametrica.auth.portas import RepositorioSessao
 from terrametrica.dominio.modelos import (
     Coordenada,
     Dossie,
@@ -46,11 +48,13 @@ def criar_app(
     *,
     limitador: LimitadorEmMemoria | None = None,
     relogio: Callable[[], datetime] | None = None,
+    repo_sessao: Callable[[psycopg.Connection], RepositorioSessao] | None = None,
 ) -> FastAPI:
     """Monta a app FastAPI com as rotas do dossiê. Dependências injetáveis para teste."""
     app = FastAPI(title="Terramétrica — API do dossiê", version="0.1.0")
     limitador_efetivo = limitador if limitador is not None else LimitadorEmMemoria()
     agora = relogio if relogio is not None else datetime.now
+    repo_sessao_de = repo_sessao if repo_sessao is not None else RepositorioSessaoPostgres
 
     @app.get("/saude")
     def saude() -> dict[str, str]:
@@ -59,16 +63,19 @@ def criar_app(
 
     @app.get("/dossie")
     def dossie(
-        conta_id: ContaId,
+        credenciais: Credenciais,
         lat: float = Query(...),
         lon: float = Query(...),
     ) -> Response:
-        cota = limitador_efetivo.checar(conta_id, agora())
-        if isinstance(cota, Bloqueado):
-            return _resposta_cota_estourada(cota)
-
-        inicio = agora()
         with abrir_conexao(url_banco) as conexao:
+            # Identidade por sessão (cookie) OU header, resolvida com a conexão já aberta.
+            conta_id = resolver_conta_id(credenciais, repo_sessao_de(conexao), agora())
+
+            cota = limitador_efetivo.checar(conta_id, agora())
+            if isinstance(cota, Bloqueado):
+                return _resposta_cota_estourada(cota)
+
+            inicio = agora()
             resposta, lote_id, camadas = _montar_e_traduzir(conexao, lat, lon)
             latencia_ms = int((agora() - inicio).total_seconds() * 1000)
             registrar_consulta(
