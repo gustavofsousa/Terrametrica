@@ -154,3 +154,32 @@ futura silenciosa nesses dois pontos específicos.
 **Revisit trigger:** ao mexer em `resolver_versao_publicada` (ex.: quando a camada urbana Niterói
 adicionar um segundo ponteiro relevante) ou ao construir o fluxo de escolha de lote na sobreposição
 (painel, F1.11) — nesse momento a fixture de sobreposição vira necessária de qualquer forma.
+
+---
+
+## TD-006 — `conta_id` sem tabela `conta` física: integridade referencial só por convenção
+
+**Status:** open (aceito, não corrigido)
+**Opened:** 2026-09-10 (F1.11 Design, `.specs/features/painel-web-conta/design.md`)
+**Origin:** F1.11 introduz `credencial_login` e `sessao`, que — junto de `consulta_log` (Fatia 6) —
+apontam para um `conta_id`. Coerente com AD-002/AD-011, o MVP **não materializa uma tabela `conta`
+física**: a conta é um conceito de domínio (`dominio/modelos.py::Conta`, papel `CONSULTA`), não uma
+linha com PK. Logo nenhuma dessas 3 tabelas tem FK para uma `conta`, e nada no banco garante que um
+`conta_id` referenciado exista de fato.
+
+**What to investigate / change:**
+1. Quando o gate jurídico (F2.3, AD-002) materializar `conta` (papel promovível, auditoria de
+   promoção), criar a tabela `conta (id PK, papel)` e adicionar FK de `credencial_login`, `sessao` e
+   `consulta_log` para ela.
+2. Até lá, a criação de conta é centralizada em `auth/servico.py::confirmar_login` (único ponto que
+   gera `conta_id`), o que mantém a convenção consistente por construção — nenhum outro caminho
+   inventa `conta_id` fora de teste/e2e.
+
+**Impact if ignored:** baixo no MVP — só o `auth` cria contas e ele o faz atomicamente com o
+`credencial_login`. O risco aparece ao crescer: uma sessão órfã (conta "removida") ou um
+`consulta_log` com `conta_id` inexistente não seriam pegos pelo banco. AGENTS.md marca *data
+integrity* como decisão que "fica cara com o tempo" — daí o registro explícito em vez de deixar só
+no design.md.
+
+**Revisit trigger:** ao construir F2.3 (gate jurídico / promoção de papel), que é quando `conta`
+precisa virar entidade persistida de qualquer forma — o momento natural de adicionar as FKs.

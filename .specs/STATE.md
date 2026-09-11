@@ -149,6 +149,26 @@ segue quebrado por **TD-001** (`municipio_em` sem malha) — a rota o traduz par
 levanta `NotImplementedError`; o teste da rota cobre o caminho "achou lote"/"fora do RJ", não o
 `SemLote` real (independente desta fatia).
 
+### AD-012 — Painel F1.11: front vanilla estático (supersede a linha "SPA React/Vite" da spec)
+**Data:** 2026-09-10
+**Decisão:** O front do painel (F1.11) é **HTML+CSS+JS vanilla estático servido como arquivos**
+(mapa via Leaflet + tiles OSM), evoluindo o protótipo `prototipos/mapa-dossie/`. **Supersede** a
+Assumption da spec `painel-web-conta` (linha 50: "SPA separado React/Vite") — o auth e a API
+continuam exatamente como a spec define; só a tecnologia de UI muda.
+**Razão:** Coerência com o próprio critério da spec. A spec rejeitou Better Auth (linha 30/58)
+porque *"é TS/Node, o backend é 100% Python; trazer um segundo runtime só para isso não se paga"*.
+React/Vite traz o mesmo 2º runtime Node — e F1.11 tem só 4 estados de UI (login, 200/404/409/429),
+com geometria no mapa e comparação rica explicitamente fora de escopo. O ganho do React (orquestrar
+muitos estados, ecossistema de mapas) só aparece em features que ainda não existem. O protótipo já
+entrega o layout do dossiê pronto para reuso. Beleza de UI vem do CSS, não do framework — empate
+estético nesta fatia. Escolhido pelo usuário após trade-off explícito (2026-09-10).
+**Consequência:** Sem build step, sem `node_modules`, sem toolchain Node no deploy do front — só
+arquivos estáticos atrás de um servidor (nginx/Caddy) no subdomínio `app.` (o cookie de sessão de
+domínio pai da spec continua valendo). Nenhuma dep nova no `pyproject.toml`. Se F1.12+ trouxer UI
+rica, migra-se **só a tela de mapa** para React sem tocar o backend (cookie + `GET /dossie` são
+agnósticos de front) — decisão barata de adiar. Débito: teste de UI vanilla é mais manual/`node
+--test` sobre módulos JS puros do que um harness de componentes React (aceitável no MVP).
+
 ## Handoff
 
 **Branch:** `main`

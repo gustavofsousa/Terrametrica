@@ -80,10 +80,10 @@ segunda vez, o problema não era esse.
 | F1.11 | Painel web + conta autenticada | Mapa, clique→dossiê, conta obrigatória sem paywall | ⬜ | depende de F1.10 |
 | F1.12 | Página de cobertura pública | Estado real por município × camada, com data e aviso de base obsoleta (DOS-29/30) | ⬜ | depende de F1.4 + F1.10 |
 
-**Contagem:** 6 feito / 12 (piso — cada restrição nova é uma feature a mais). O motor do dossiê roda
-fim-a-fim sobre PostGIS real **e agora tem superfície HTTP (F1.10)**: `GET /dossie`/`/cobertura`
-respondem sobre a versão publicada. **O que falta para um usuário ver isso é o painel (F1.11) e a
-página de cobertura HTML (F1.12)**, mais as camadas que aumentam o valor do cruzamento (F1.6–F1.9).
+**Contagem:** 6 feito / 12 (piso — cada restrição nova é uma feature a mais). O motor do dossiê já
+roda fim-a-fim sobre PostGIS real **e tem superfície HTTP (F1.10 ✅)**; **o que falta para um usuário
+ver isso é o painel (F1.11) + a página de cobertura HTML (F1.12)**, mais as camadas que aumentam o
+valor do cruzamento (F1.6–F1.9).
 
 ---
 
