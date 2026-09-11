@@ -24,6 +24,9 @@ TABELAS_ESPERADAS = {
     "proveniencia",
     "cobertura",
     "consulta_log",
+    "credencial_login",
+    "login_token",
+    "sessao",
 }
 
 
@@ -76,6 +79,20 @@ class TestAplicarMigracoes:
             cursor.execute(
                 "SELECT count(*) FROM schema_migrations WHERE nome_arquivo = %s",
                 ("0001_fatia2_sigef.sql",),
+            )
+            (quantidade,) = cursor.fetchone()
+
+        assert quantidade == 1
+
+    def test_migracao_0006_auth_aplicada_uma_unica_vez(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        aplicar_migracoes(conexao)  # reaplicar não deve reinserir a 0006 (idempotência)
+
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM schema_migrations WHERE nome_arquivo = %s",
+                ("0006_fatia7_auth.sql",),
             )
             (quantidade,) = cursor.fetchone()
 
