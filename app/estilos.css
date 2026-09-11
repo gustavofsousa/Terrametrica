@@ -1,0 +1,142 @@
+/* Estilos do painel (Fatia 7, AD-012). Paleta cartográfica herdada de prototipos/mapa-dossie/.
+   Marrom = curva de nível · azul = hidrografia · verde = vegetação · magenta = limite cadastral. */
+:root {
+  --ground:      #F1F3EE;
+  --surface:     #FBFCFA;
+  --surface-alt: #E8EBE4;
+  --ink:         #19222C;
+  --ink-soft:    #4B5866;
+  --ink-faint:   #7D8A94;
+  --water:       #2E6C8E;
+  --water-fill:  #CFE0EA;
+  --boundary:    #AF3355;
+  --boundary-wash:#F6E4E9;
+  --rule:        #D5DAD1;
+  --ok:          #4F7A4C;
+  --ok-wash:     #D3E2CE;
+  --warn:        #B4642A;
+  --warn-wash:   #F0E0D2;
+  --shadow: 0 1px 2px rgba(25,34,44,.06), 0 12px 32px -18px rgba(25,34,44,.4);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:    "Source Serif 4", Georgia, serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #10161C;
+    --surface:     #161E26;
+    --surface-alt: #1D262F;
+    --ink:         #E4E9E3;
+    --ink-soft:    #A7B3B8;
+    --ink-faint:   #74828A;
+    --water:       #6FB1D4;
+    --water-fill:  #14313F;
+    --boundary:    #E8748F;
+    --boundary-wash:#2B1A21;
+    --rule:        #2A343D;
+    --ok:          #8FBE86;
+    --ok-wash:     #1B2B1D;
+    --warn:        #D9945A;
+    --warn-wash:   #2B1F16;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 36px -20px rgba(0,0,0,.9);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--f-body);
+  color: var(--ink);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+
+.marca { font-family: var(--f-display); font-weight: 700; letter-spacing: .01em; }
+.mono { font-family: var(--f-mono); }
+
+/* --- Tela de login (centralizada) --- */
+.login-tela {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+.login-cartao {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 2rem;
+}
+.login-cartao h1 { font-family: var(--f-display); font-size: 1.4rem; margin: 0 0 .25rem; }
+.login-cartao p.sub { color: var(--ink-soft); margin: 0 0 1.5rem; }
+
+label { display: block; font-weight: 600; margin-bottom: .4rem; font-size: .9rem; }
+input[type="email"] {
+  width: 100%;
+  font-family: var(--f-mono);
+  font-size: 1rem;
+  padding: .7rem .8rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--ink);
+}
+input[type="email"]:focus-visible {
+  outline: 2px solid var(--water);
+  outline-offset: 1px;
+}
+
+button {
+  margin-top: 1rem;
+  width: 100%;
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: .75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--water);
+  color: #fff;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.05); }
+button:disabled { opacity: .6; cursor: progress; }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.aviso { margin-top: 1rem; padding: .7rem .9rem; border-radius: 8px; font-size: .92rem; }
+.aviso[hidden] { display: none; }
+.aviso.ok   { background: var(--ok-wash);   color: var(--ok);   border: 1px solid var(--ok); }
+.aviso.erro { background: var(--boundary-wash); color: var(--boundary); border: 1px solid var(--boundary); }
+
+/* --- App do mapa (mapa + painel lateral) --- */
+.app-shell { display: flex; height: 100%; }
+#mapa { flex: 1; min-width: 0; }
+.painel {
+  width: 24rem;
+  max-width: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+.painel header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.painel h2 { font-family: var(--f-display); font-size: 1.2rem; margin: 0 0 .5rem; }
+.painel .dica { color: var(--ink-faint); font-size: .9rem; }
+.painel .sair { width: auto; margin: 0; padding: .35rem .7rem; font-size: .8rem; background: var(--surface-alt); color: var(--ink); }
+
+.secao { margin-top: 1.25rem; }
+.secao h3 { font-family: var(--f-display); font-size: .95rem; margin: 0 0 .5rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+.restricao { padding: .6rem .7rem; border: 1px solid var(--rule); border-radius: 8px; margin-bottom: .5rem; }
+.restricao .pct { font-family: var(--f-mono); color: var(--warn); }
+.badge { display: inline-block; font-family: var(--f-mono); font-size: .78rem; padding: .1rem .45rem; border-radius: 6px; background: var(--surface-alt); color: var(--ink-soft); }
+
+@media (max-width: 720px) {
+  .app-shell { flex-direction: column; }
+  #mapa { height: 45vh; flex: none; }
+  .painel { width: 100%; border-left: none; border-top: 1px solid var(--rule); }
+}

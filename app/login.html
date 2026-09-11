@@ -1,0 +1,71 @@
+<title>Entrar — Terramétrica</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=Source+Serif+4:opsz,wght@8..60,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="estilos.css">
+
+<main class="login-tela">
+  <section class="login-cartao">
+    <h1 class="marca">Terramétrica</h1>
+    <p class="sub">Informe seu e-mail — enviaremos um link de acesso. Sem senha, sem cadastro.</p>
+
+    <form id="form-login" novalidate>
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" autocomplete="email" required
+             placeholder="voce@exemplo.com" aria-describedby="aviso">
+      <button id="enviar" type="submit">Enviar link de acesso</button>
+    </form>
+
+    <p id="aviso" class="aviso" role="status" aria-live="polite" hidden></p>
+  </section>
+</main>
+
+<script type="module">
+  import { API_BASE } from "./config.js";
+
+  const form = document.getElementById("form-login");
+  const input = document.getElementById("email");
+  const botao = document.getElementById("enviar");
+  const aviso = document.getElementById("aviso");
+
+  function mostrar(tipo, texto) {
+    aviso.className = "aviso " + tipo;
+    aviso.textContent = texto;
+    aviso.hidden = false;
+  }
+
+  form.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const email = input.value.trim();
+    if (!email) { mostrar("erro", "Digite um e-mail."); input.focus(); return; }
+
+    botao.disabled = true;
+    aviso.hidden = true;
+    try {
+      const resp = await fetch(API_BASE + "/auth/solicitar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+
+      if (resp.status === 202) {
+        mostrar("ok", "Link enviado! Confira sua caixa de entrada (o link expira em 15 min).");
+        form.reset();
+      } else if (resp.status === 422) {
+        mostrar("erro", "E-mail inválido. Verifique e tente de novo.");
+      } else if (resp.status === 429) {
+        mostrar("erro", "Muitas tentativas. Aguarde alguns minutos antes de pedir outro link.");
+      } else {
+        // 502/503 e afins: falha explícita — não fingimos que o e-mail está a caminho.
+        mostrar("erro", "Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+      }
+    } catch {
+      mostrar("erro", "Falha de conexão. Verifique sua internet e tente de novo.");
+    } finally {
+      botao.disabled = false;
+    }
+  });
+</script>
