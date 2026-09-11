@@ -1,0 +1,24 @@
+<title>Mapa — Terramétrica</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=Source+Serif+4:opsz,wght@8..60,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="estilos.css">
+
+<div class="app-shell">
+  <div id="mapa" role="application" aria-label="Mapa do estado do Rio de Janeiro; clique num ponto para ver o dossiê do lote"></div>
+  <aside class="painel" aria-live="polite">
+    <header>
+      <h2 class="marca">Terramétrica</h2>
+      <button id="sair" class="sair" type="button">Sair</button>
+    </header>
+    <div id="conteudo-painel">
+      <p class="dica">Clique num ponto do mapa para consultar o dossiê do lote.</p>
+    </div>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="mapa.js"></script>
