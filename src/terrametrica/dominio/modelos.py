@@ -162,6 +162,14 @@ class CoberturaCamada:
 
 
 @dataclass(frozen=True, slots=True)
+class CoberturaMunicipio:
+    """Cobertura de todas as camadas para um único município (COBPUB-02/03, F1.12)."""
+
+    municipio: str
+    camadas: tuple[CoberturaCamada, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class IntersecaoBruta:
     """Cruzamento lote × restrição com a área já calculada pelo read-model.
 

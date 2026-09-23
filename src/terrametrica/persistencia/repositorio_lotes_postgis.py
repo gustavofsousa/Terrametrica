@@ -22,6 +22,7 @@ from terrametrica.dominio.modelos import (
     AreaM2,
     Camada,
     CoberturaCamada,
+    CoberturaMunicipio,
     Coordenada,
     IntersecaoBruta,
     LoteHit,
@@ -67,6 +68,12 @@ _SELECT_COBERTURA = """
     SELECT camada, tem_dado, data_extracao
     FROM cobertura
     WHERE municipio = %(municipio)s
+"""
+
+_SELECT_COBERTURA_TODOS = """
+    SELECT municipio, camada, tem_dado, data_extracao
+    FROM cobertura
+    ORDER BY municipio, camada
 """
 
 
@@ -129,6 +136,23 @@ class RepositorioLotesPostGIS:
         return [
             CoberturaCamada(camada=Camada(camada), tem_dado=tem_dado, data_extracao=data_extracao)
             for camada, tem_dado, data_extracao in linhas
+        ]
+
+    def cobertura_de_todos(self) -> list[CoberturaMunicipio]:
+        """Cobertura de todo município presente em `cobertura`, em ordem alfabética (COBPUB-02)."""
+        with self.conexao.cursor() as cursor:
+            cursor.execute(_SELECT_COBERTURA_TODOS)
+            linhas = cursor.fetchall()
+
+        por_municipio: dict[str, list[CoberturaCamada]] = {}
+        for municipio, camada, tem_dado, data_extracao in linhas:
+            item = CoberturaCamada(
+                camada=Camada(camada), tem_dado=tem_dado, data_extracao=data_extracao
+            )
+            por_municipio.setdefault(municipio, []).append(item)
+        return [
+            CoberturaMunicipio(municipio=municipio, camadas=tuple(camadas))
+            for municipio, camadas in sorted(por_municipio.items())
         ]
 
 

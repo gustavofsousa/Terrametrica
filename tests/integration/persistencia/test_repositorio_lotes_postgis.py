@@ -17,6 +17,7 @@ from testcontainers.community.postgres import PostgresContainer
 
 from terrametrica.dominio.modelos import (
     Camada,
+    CoberturaCamada,
     Coordenada,
     LoteRural,
     Sobreposicao,
@@ -351,6 +352,52 @@ class TestCoberturaDe:
         assert por_camada[Camada.INUNDACAO].tem_dado is True
         assert por_camada[Camada.INUNDACAO].data_extracao == date(2026, 8, 1)
         assert por_camada[Camada.UNIDADE_CONSERVACAO].tem_dado is False
+
+
+class TestCoberturaDeTodos:
+    def test_agrega_todos_os_municipios_em_ordem_alfabetica(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+    ) -> None:
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO cobertura (municipio, camada, tem_dado, data_extracao)
+                VALUES (%s, %s, %s, %s), (%s, %s, %s, %s)
+                """,
+                (
+                    "Niterói",
+                    Camada.APP.value,
+                    True,
+                    date(2026, 8, 1),
+                    "Angra dos Reis",
+                    Camada.UNIDADE_CONSERVACAO.value,
+                    False,
+                    None,
+                ),
+            )
+
+        resultado = repositorio.cobertura_de_todos()
+
+        municipios = [item.municipio for item in resultado]
+        assert municipios == ["Angra dos Reis", "Niterói"]  # COBPUB-02: ordem alfabética
+
+        angra = resultado[0]
+        assert angra.camadas == (
+            CoberturaCamada(camada=Camada.UNIDADE_CONSERVACAO, tem_dado=False, data_extracao=None),
+        )
+
+        niteroi = resultado[1]
+        assert niteroi.camadas == (
+            CoberturaCamada(camada=Camada.APP, tem_dado=True, data_extracao=date(2026, 8, 1)),
+        )
+
+    def test_base_vazia_devolve_lista_vazia(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+    ) -> None:
+        assert repositorio.cobertura_de_todos() == []  # COBPUB-06
 
 
 class TestMunicipioEm:
