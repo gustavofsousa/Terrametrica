@@ -171,7 +171,51 @@ agnósticos de front) — decisão barata de adiar. Débito: teste de UI vanilla
 
 ## Handoff
 
-**Branch:** `main` (F1.11 fast-forwarded de `feat/api-dossie-http`)
+**Branch:** `main`. **Fase atual:** Execute + verificação **concluídos** para a **Página de
+Cobertura Pública (F1.12)** (`.specs/features/pagina-de-cobertura-publica/`, 3 tasks inline —
+escopo Medium, sem `tasks.md` formal). Validação **PASS** por Verifier independente
+(`validation.md`): 6/6 requisitos COBPUB-01..06 cobertos com asserção ancorada na spec; gates verdes
+(ruff 0, mypy strict 0, **220 Python passed + 9 JS passed**, 0 falhas); sensor de discriminação
+**3/3 mortos**. **Nota:** o "bug pré-existente" `test_dto.py::test_distingue_os_tres_estados_de_camada`
+citado no handoff da Fatia 7 **já não falha** — confirmado passando tanto na base quanto no HEAD
+desta fatia; o handoff anterior estava desatualizado (a causa raiz não foi investigada, só
+constatado que não é mais um bloqueio).
+**O que existe agora, além de F1.1–F1.11:** `RepositorioLotesPostGIS.cobertura_de_todos()` +
+`CoberturaMunicipio` (dominio/modelos.py) agregam toda a tabela `cobertura` por município, ordem
+alfabética; `cobertura_estado_para_dict` (api/dto.py) preenche toda `Camada` do domínio por
+município (nunca omite uma camada, mesma honestidade de DOS-11); rota nova `GET /cobertura/estado`
+(api/app.py), pública, sem sessão/header — `GET /cobertura?municipio=X` (F1.10) não mudou, confirmado
+byte-a-byte pelo Verifier. Front: `app/cobertura.html` + `app/cobertura.js` (view model puro,
+testado por `node --test`) renderizam uma tabela município×camada com data `DD/MM/AAAA` (nunca ISO)
+e "sem dado" explícito. **Bug de layout achado e corrigido durante verificação manual (Playwright):**
+`.badge { display: inline-block }` aplicado direto num `<td>` quebra `display:table-cell` — badge
+movido para um `<span>` interno.
+**Decisões da fatia (registradas em `spec.md`, Assumptions & Open Questions, não em `STATE.md`
+Decisions — escopo Medium):** página lista só municípios com ≥1 lote (não os 92 do RJ, evita
+depender de TD-001); sem limiar automático de "obsoleto" (reafirmado mesmo após achar
+`LIMIAR_DIAS_DESATUALIZADA=90` já usado por DOS-13 no dossiê individual — decisão consciente de
+manter os dois lugares com critérios diferentes por ora); página pública sem login (ao contrário do
+painel F1.11/AD-012); rota nova é JSON puro + JS estático (não HTML server-side) — corrigido em
+Specify após checar que AD-012 já fixa esse padrão no projeto inteiro.
+**Gap não-bloqueante (relatado pelo Verifier):** a renderização DOM (`pintarTabela`/`pintarVazio`
+em `cobertura.html`) só tem evidência manual (Playwright); o view model puro (`cobertura.js`) tem
+cobertura automatizada completa. Não virou tech debt formal — reavaliar se a página crescer em
+complexidade de DOM.
+**Commits (F1.12):** `cab4883` T1 (`cobertura_de_todos`) · `1e2f0d7` T2 (rota `/cobertura/estado`)
+· `cce3d6d` T3 (`cobertura.html`/`cobertura.js` + fix de layout). **Nada em push** — verificar
+`git rev-list --count origin/main..main` antes do próximo push.
+**Próximo passo natural:** roadmap tem F1.8 (malha municipal IBGE, fecha TD-001), F1.9 (camada
+urbana Niterói), F1.6/F1.7 (inundação/deslizamento/corpo d'água, 🔒 fonte a verificar) como
+candidatos para reabrir o `🔄` de v0.3 — decisão do usuário, roadmap ainda não atualizado com F1.12
+✅ (fazer isso quando o usuário confirmar o próximo item, mantendo a invariante de 1 único `🔄`).
+**RFD de infra** do design de F1.11 (VPS+Caddy vs CDN+container; DNS `app.`/`api.`, TLS,
+`RESEND_API_KEY`, cookie `Domain` pai) segue **aberta** — resolver antes do primeiro deploy real.
+
+---
+
+**Handoff anterior (Fatia 7 — Painel web + conta autenticada, F1.11):** Execute PASS (T1–T10), 212
+passed. Detalhe abaixo, preservado.
+
 **Fase atual:** Execute + verificação **concluídos** para a **Fatia 7 — Painel web + conta
 autenticada (F1.11)** (`.specs/features/painel-web-conta/`, 10 tasks T1–T10). Validação **PASS** por
 Verifier independente (`validation.md`): 14/14 requisitos PAINEL-NN + 4 edge cases cobertos com
@@ -195,10 +239,8 @@ dossiê. **Lições:** L-002 (AC de UI precisa de evidência manual, não só 40
 **Commits (Fatia 7):** `9e7db89` T1 (migração 0006 + httpx) · `46ebabb` T2 (regras) · `5521fe5` T3
 (portas) · `5d4de5e` T4 (serviço) · `9dc73b5` T5 (adaptadores) · `7b06f59` T6 (identidade sessão|
 header) · `b2dc15e` T7 (rotas /auth/* + cookie→dossiê) · `e701f33` T8 (dossie.js) · `8a36816` T9
-(login.html) · `920eb31` T10 (index.html+mapa.js) · `c6534ad` docs (validation PASS). **Próximo
-passo natural:** F1.12 (página de cobertura HTML) consome `/cobertura`; **RFD de infra** do design
-(VPS+Caddy vs CDN+container; DNS `app.`/`api.`, TLS, `RESEND_API_KEY`, cookie `Domain` pai) ainda
-**aberta** — resolver antes do primeiro deploy real. **Bug conhecido a tratar à parte:**
+(login.html) · `920eb31` T10 (index.html+mapa.js) · `c6534ad` docs (validation PASS). **Bug
+conhecido a tratar à parte (nota: revisado na Fatia F1.12, já não reproduz — ver handoff acima):**
 `test_dto.py::test_distingue_os_tres_estados_de_camada` (ordena `corpo_dagua` vs `inundacao` em
 `camadas_ausentes`) — pré-existe à F1.11, não corrigido aqui (fora de escopo).
 
