@@ -1,0 +1,63 @@
+<title>Cobertura — Terramétrica</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=Source+Serif+4:opsz,wght@8..60,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="estilos.css">
+
+<main class="cobertura-tela">
+  <header>
+    <h1 class="marca">Terramétrica</h1>
+    <p class="sub">Onde o dossiê já tem dado real, camada por camada — sem cadastro.</p>
+  </header>
+  <div id="conteudo-cobertura">
+    <p class="dica">Carregando cobertura…</p>
+  </div>
+</main>
+
+<script type="module">
+  import { API_BASE } from "./config.js";
+  import { renderCoberturaEstado } from "./cobertura.js";
+
+  const conteudo = document.getElementById("conteudo-cobertura");
+
+  async function carregar() {
+    let resp;
+    try {
+      resp = await fetch(API_BASE + "/cobertura/estado");
+    } catch {
+      conteudo.innerHTML = '<p class="aviso erro">Não foi possível carregar a cobertura agora.</p>';
+      return;
+    }
+    if (!resp.ok) {
+      conteudo.innerHTML = '<p class="aviso erro">Não foi possível carregar a cobertura agora.</p>';
+      return;
+    }
+    const vm = renderCoberturaEstado(await resp.json());
+    conteudo.innerHTML = vm.estado === "vazio" ? pintarVazio(vm) : pintarTabela(vm);
+  }
+
+  function pintarVazio(vm) {
+    return `<p class="dica">${vm.mensagem}</p>`;
+  }
+
+  function pintarTabela(vm) {
+    const camadas = vm.municipios[0]?.camadas.map((c) => c.camada) ?? [];
+    const cabecalho = camadas.map((c) => `<th>${c}</th>`).join("");
+    const linhas = vm.municipios
+      .map((item) => {
+        const celulas = item.camadas
+          .map(
+            (c) =>
+              `<td><span class="${c.temDado ? "badge ok" : "badge"}">${c.dataFormatada}</span></td>`
+          )
+          .join("");
+        return `<tr><td>${item.municipio}</td>${celulas}</tr>`;
+      })
+      .join("");
+    return `<table class="tabela-cobertura"><thead><tr><th>Município</th>${cabecalho}</tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
+  carregar();
+</script>

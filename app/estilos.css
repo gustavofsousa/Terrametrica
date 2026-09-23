@@ -140,3 +140,12 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   #mapa { height: 45vh; flex: none; }
   .painel { width: 100%; border-left: none; border-top: 1px solid var(--rule); }
 }
+
+.cobertura-tela { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem; }
+.cobertura-tela header { margin-bottom: 1.5rem; }
+.cobertura-tela h1 { font-family: var(--f-display); font-size: 1.4rem; margin: 0 0 .25rem; }
+.cobertura-tela .sub { color: var(--ink-soft); margin: 0; }
+.tabela-cobertura { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.tabela-cobertura th, .tabela-cobertura td { padding: .5rem .6rem; border-bottom: 1px solid var(--rule); text-align: left; }
+.tabela-cobertura th { font-family: var(--f-mono); font-weight: 500; color: var(--ink-soft); }
+.tabela-cobertura td .badge.ok { background: var(--ok-wash); color: var(--ok); }
