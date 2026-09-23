@@ -18,6 +18,7 @@ from fastapi import Body, Cookie, FastAPI, Query, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from terrametrica.api.dto import (
+    cobertura_estado_para_dict,
     cobertura_para_dict,
     dossie_para_dict,
     sem_lote_para_dict,
@@ -117,6 +118,14 @@ def criar_app(
         with abrir_conexao(url_banco) as conexao:
             repo = RepositorioLotesPostGIS(conexao)
             corpo = cobertura_para_dict(repo.cobertura_de(municipio))
+        return JSONResponse(status_code=status.HTTP_200_OK, content=corpo)
+
+    @app.get("/cobertura/estado")
+    def cobertura_estado() -> Response:
+        """Cobertura agregada de todos os municípios, pública e sem sessão (COBPUB-01)."""
+        with abrir_conexao(url_banco) as conexao:
+            repo = RepositorioLotesPostGIS(conexao)
+            corpo = cobertura_estado_para_dict(repo.cobertura_de_todos())
         return JSONResponse(status_code=status.HTTP_200_OK, content=corpo)
 
     @app.post("/auth/solicitar")

@@ -9,6 +9,7 @@ cobertura (DOS-04). Os valores esperados são fixados aqui, não lidos da implem
 from datetime import date
 
 from terrametrica.api.dto import (
+    cobertura_estado_para_dict,
     cobertura_para_dict,
     dossie_para_dict,
     sem_lote_para_dict,
@@ -19,6 +20,7 @@ from terrametrica.dominio.modelos import (
     AreaM2,
     Camada,
     CoberturaCamada,
+    CoberturaMunicipio,
     Dossie,
     ItemRestricao,
     LoteRural,
@@ -149,3 +151,45 @@ class TestCoberturaParaDict:
         (cob,) = d["cobertura"]  # type: ignore[misc]
         assert cob["tem_dado"] is False
         assert cob["data_extracao"] is None
+
+
+class TestCoberturaEstadoParaDict:
+    def test_preenche_camada_ausente_como_tem_dado_falso(self) -> None:
+        """COBPUB-03 edge case: camada nunca ingerida não pode ficar omitida da grade."""
+        municipios = [
+            CoberturaMunicipio(
+                municipio="Niterói",
+                camadas=(
+                    CoberturaCamada(
+                        camada=Camada.APP, tem_dado=True, data_extracao=date(2026, 8, 1)
+                    ),
+                ),
+            )
+        ]
+
+        d = cobertura_estado_para_dict(municipios)
+
+        (item,) = d["municipios"]  # type: ignore[misc]
+        assert item["municipio"] == "Niterói"
+        camadas_no_dict = {c["camada"]: c for c in item["cobertura"]}
+        assert len(camadas_no_dict) == len(Camada)  # nenhuma camada omitida
+        assert camadas_no_dict[Camada.APP.value]["tem_dado"] is True
+        assert camadas_no_dict[Camada.APP.value]["data_extracao"] == "2026-08-01"
+        assert camadas_no_dict[Camada.CORPO_DAGUA.value]["tem_dado"] is False
+        assert camadas_no_dict[Camada.CORPO_DAGUA.value]["data_extracao"] is None
+
+    def test_lista_de_municipios_vazia_devolve_municipios_vazio(self) -> None:
+        """COBPUB-06: base vazia responde 200 com lista vazia, não erro."""
+        assert cobertura_estado_para_dict([]) == {"municipios": []}
+
+    def test_preserva_ordem_dos_municipios_recebida(self) -> None:
+        """COBPUB-02: a ordenação alfabética é responsabilidade do repositório; o DTO preserva."""
+        municipios = [
+            CoberturaMunicipio(municipio="Angra dos Reis", camadas=()),
+            CoberturaMunicipio(municipio="Niterói", camadas=()),
+        ]
+
+        d = cobertura_estado_para_dict(municipios)
+
+        nomes = [item["municipio"] for item in d["municipios"]]  # type: ignore[misc]
+        assert nomes == ["Angra dos Reis", "Niterói"]

@@ -11,7 +11,9 @@ estados (DOS-11/12/13).
 """
 
 from terrametrica.dominio.modelos import (
+    Camada,
     CoberturaCamada,
+    CoberturaMunicipio,
     Dossie,
     ItemRestricao,
     LoteHit,
@@ -61,6 +63,33 @@ def sobreposicao_para_dict(sobreposicao: Sobreposicao) -> dict[str, object]:
 def cobertura_para_dict(cobertura: list[CoberturaCamada]) -> dict[str, object]:
     """Projeta a cobertura de um município para `200 /cobertura` (DOS-11/13)."""
     return {"cobertura": [_cobertura_para_dict(c) for c in cobertura]}
+
+
+def cobertura_estado_para_dict(municipios: list[CoberturaMunicipio]) -> dict[str, object]:
+    """Projeta a cobertura de todos os municípios para `200 /cobertura/estado` (COBPUB-01..03/06).
+
+    Preenche toda `Camada` do domínio para cada município, mesmo quando a camada nunca apareceu em
+    `cobertura` — a mesma honestidade de DOS-11: uma camada nunca fica omitida, vira `tem_dado`
+    falso explícito (COBPUB-03, edge case "coluna nunca omitida").
+    """
+    return {
+        "municipios": [
+            {
+                "municipio": item.municipio,
+                "cobertura": [
+                    _cobertura_para_dict(_camada_ou_ausente(item, camada)) for camada in Camada
+                ],
+            }
+            for item in municipios
+        ]
+    }
+
+
+def _camada_ou_ausente(item: CoberturaMunicipio, camada: Camada) -> CoberturaCamada:
+    for registro in item.camadas:
+        if registro.camada is camada:
+            return registro
+    return CoberturaCamada(camada=camada, tem_dado=False, data_extracao=None)
 
 
 # --------------------------------------------------------------------------- #

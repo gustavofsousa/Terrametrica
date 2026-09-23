@@ -220,3 +220,27 @@ class TestRotaCobertura:
         resp = client.get("/saude")
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
+
+
+class TestRotaCoberturaEstado:
+    """F1.12 — COBPUB-01/02/03/06: agregação pública, sem autenticação."""
+
+    def test_responde_200_sem_header_de_conta(self, client: TestClient) -> None:
+        resp = client.get("/cobertura/estado")  # sem X-Conta-Id — COBPUB-01
+        assert resp.status_code == 200
+
+    def test_lista_municipio_com_lote_ingerido_e_todas_as_camadas(
+        self, client: TestClient
+    ) -> None:
+        resp = client.get("/cobertura/estado")
+        corpo = resp.json()
+
+        municipios = {item["municipio"]: item for item in corpo["municipios"]}
+        assert municipios  # COBPUB-02: pelo menos o município do lote SIGEF-001 aparece
+
+        algum_municipio = next(iter(municipios.values()))
+        camadas = {c["camada"]: c for c in algum_municipio["cobertura"]}
+        assert "app" in camadas  # ingerida no fixture
+        assert "corpo_dagua" in camadas  # nunca ingerida — não pode ficar omitida (COBPUB-03)
+        assert camadas["corpo_dagua"]["tem_dado"] is False
+        assert camadas["corpo_dagua"]["data_extracao"] is None
