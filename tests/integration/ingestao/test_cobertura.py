@@ -205,3 +205,22 @@ class TestSemearCobertura:
 
         assert relatorio.linhas_semeadas == 0
         assert _cobertura(conexao) == {}
+
+
+class TestCoberturaDoLoteRural:
+    def test_municipio_com_lote_sigef_declara_a_propria_camada_lote_rural(
+        self, conexao: psycopg.Connection, versao_com_dado: VersaoBase
+    ) -> None:
+        data_sigef = date(2026, 9, 3)
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO proveniencia (camada, versao_base_id, fonte, data_extracao, "
+                "link_oficial) VALUES ('lote_rural', %s, 'SIGEF', %s, 'http://exemplo')",
+                (versao_com_dado.id, data_sigef),
+            )
+
+        semear_cobertura(versao_com_dado, conexao)
+
+        cobertura = _cobertura(conexao)
+        assert cobertura[(MUNICIPIO_A, "lote_rural")] == (True, data_sigef)
+        assert cobertura[(MUNICIPIO_B, "lote_rural")] == (True, data_sigef)

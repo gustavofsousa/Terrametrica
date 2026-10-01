@@ -44,6 +44,18 @@ _SEMEAR_COBERTURA = """
         SET tem_dado = EXCLUDED.tem_dado, data_extracao = EXCLUDED.data_extracao
 """
 
+# A própria camada de lote rural também é cobertura por município: sem esta linha a página pública
+# diz "sem dado" de SIGEF em municípios que têm milhares de lotes (achado na carga real, F1.9).
+_SEMEAR_COBERTURA_LOTE_RURAL = """
+    INSERT INTO cobertura (municipio, camada, tem_dado, data_extracao)
+    SELECT DISTINCT unnest(lr.municipios), p.camada, true, p.data_extracao
+    FROM lote_rural lr
+    JOIN proveniencia p ON p.camada = 'lote_rural' AND p.versao_base_id = lr.versao_base_id
+    WHERE lr.versao_base_id = %(versao)s
+    ON CONFLICT (municipio, camada) DO UPDATE
+        SET tem_dado = EXCLUDED.tem_dado, data_extracao = EXCLUDED.data_extracao
+"""
+
 # F1.9: a própria camada urbana é cobertura por município — só Niterói tem (AD-006), e a página
 # pública de cobertura precisa dizer isso, não esconder.
 _SEMEAR_COBERTURA_LOTE_URBANO = """
@@ -63,6 +75,8 @@ def semear_cobertura(versao: VersaoBase, conexao: psycopg.Connection) -> Relator
     with conexao.cursor() as cursor:
         cursor.execute(_SEMEAR_COBERTURA, {"versao": versao.id})
         linhas = cursor.rowcount
+        cursor.execute(_SEMEAR_COBERTURA_LOTE_RURAL, {"versao": versao.id})
+        linhas += cursor.rowcount
         cursor.execute(_SEMEAR_COBERTURA_LOTE_URBANO, {"versao": versao.id})
         linhas += cursor.rowcount
 
