@@ -75,6 +75,7 @@ def criar_app(
     enviador_email: EnviadorEmail | None = None,
     base_url: str = "https://app.terrametrica.xyz",
     dominio_cookie: str | None = None,
+    acesso_aberto: bool = False,
 ) -> FastAPI:
     """Monta a app FastAPI com as rotas do dossiê + auth. Dependências injetáveis para teste."""
     app = FastAPI(title="Terramétrica — API do dossiê", version="0.1.0")
@@ -97,7 +98,9 @@ def criar_app(
     ) -> Response:
         with abrir_conexao(url_banco) as conexao:
             # Identidade por sessão (cookie) OU header, resolvida com a conexão já aberta.
-            conta_id = resolver_conta_id(credenciais, repo_sessao_de(conexao), agora())
+            conta_id = resolver_conta_id(
+                credenciais, repo_sessao_de(conexao), agora(), acesso_aberto=acesso_aberto
+            )
 
             cota = limitador_efetivo.checar(conta_id, agora())
             if isinstance(cota, Bloqueado):
@@ -274,6 +277,7 @@ def app_padrao() -> FastAPI:  # pragma: no cover - conveniência de deploy, exer
         enviador_email=enviador,
         base_url=config.base_url,
         dominio_cookie=config.dominio_cookie,
+        acesso_aberto=config.acesso_aberto,
     )
     # INVARIANT: montado por último — as rotas da API têm precedência sobre os arquivos do front.
     # Mesma origem (AD-013): o cookie host-only vale para as páginas e para a API.

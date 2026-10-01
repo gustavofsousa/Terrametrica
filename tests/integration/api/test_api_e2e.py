@@ -139,6 +139,34 @@ class TestRotaDossie:
         assert resp.status_code == 401
 
 
+class TestAcessoAberto:
+    """AD-014: período sem login — sem sessão nem header, a consulta funciona e é registrada."""
+
+    def test_sem_credenciais_devolve_200_e_loga_conta_anonima_sem_ip(self, url_banco: str) -> None:
+        client = TestClient(criar_app(url_banco, acesso_aberto=True))
+
+        resp = client.get("/dossie", params={"lat": LAT_DENTRO, "lon": LON_DENTRO})
+
+        assert resp.status_code == 200
+        with psycopg.connect(url_banco) as conexao:
+            contas = [
+                linha[0]
+                for linha in conexao.execute(
+                    "SELECT conta_id FROM consulta_log WHERE conta_id LIKE 'anonimo:%'"
+                )
+            ]
+        assert contas
+        assert all("testclient" not in conta for conta in contas)
+
+    def test_cota_vale_por_visitante_anonimo(self, url_banco: str) -> None:
+        app = criar_app(url_banco, limitador=LimitadorEmMemoria(limite=1), acesso_aberto=True)
+        client = TestClient(app)
+        p = {"lat": LAT_DENTRO, "lon": LON_DENTRO}
+
+        assert client.get("/dossie", params=p).status_code == 200
+        assert client.get("/dossie", params=p).status_code == 429
+
+
 class TestCotaDeConsultas:
     def test_estourar_a_cota_devolve_429_com_retry_after(self, url_banco: str) -> None:
         # Limitador injetado com cota 2 para não precisar de 100 chamadas.

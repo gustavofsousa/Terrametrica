@@ -12,6 +12,7 @@ from pathlib import Path
 BASE_URL_PADRAO = "http://localhost:8000"
 REMETENTE_PADRAO = "Terramétrica <onboarding@resend.dev>"
 DIRETORIO_APP_PADRAO = Path(__file__).resolve().parents[3] / "app"
+_VERDADEIROS = {"1", "true", "sim", "yes"}
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class ConfiguracaoDeploy:
     remetente_email: str
     dominio_cookie: str | None
     diretorio_app: Path
+    acesso_aberto: bool
 
 
 def configuracao_de(ambiente: Mapping[str, str]) -> ConfiguracaoDeploy:
@@ -31,9 +33,14 @@ def configuracao_de(ambiente: Mapping[str, str]) -> ConfiguracaoDeploy:
         remetente_email=_valor(ambiente, "TERRAMETRICA_EMAIL_REMETENTE") or REMETENTE_PADRAO,
         dominio_cookie=_valor(ambiente, "TERRAMETRICA_DOMINIO_COOKIE"),
         diretorio_app=Path(_valor(ambiente, "TERRAMETRICA_DIR_APP") or DIRETORIO_APP_PADRAO),
+        acesso_aberto=_ligado(ambiente, "TERRAMETRICA_ACESSO_ABERTO"),
     )
 
 
 def _valor(ambiente: Mapping[str, str], nome: str) -> str | None:
     valor = ambiente.get(nome, "").strip()
     return valor or None
+
+
+def _ligado(ambiente: Mapping[str, str], nome: str) -> bool:
+    return (_valor(ambiente, nome) or "").lower() in _VERDADEIROS

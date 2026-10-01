@@ -13,13 +13,18 @@ Divisão de responsabilidade para manter o I/O na borda:
 
 Cookie corrompido/expirado → `conta_de_sessao` devolve `None` → cai para o header; sem header → 401.
 Nunca 5xx por cookie inválido (Edge Case da spec).
+
+**Acesso aberto** (`TERRAMETRICA_ACESSO_ABERTO`, AD-014): período sem login. Quem chega sem sessão
+nem header deixa de levar 401 e vira uma identidade anônima derivada do IP — assim a cota de
+100/h (DOS-27) continua valendo por visitante, e o `consulta_log` nunca guarda o IP em claro.
 """
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 
 from terrametrica.auth.portas import RepositorioSessao
 from terrametrica.auth.regras import hash_token
@@ -39,16 +44,19 @@ class CredenciaisRequest:
 
     cookie_sessao: str | None
     header_conta: str | None
+    ip_cliente: str | None = None
 
 
 def credenciais_da_request(
+    request: Request,
     x_conta_id: Annotated[str | None, Header(alias=HEADER_CONTA)] = None,
     sessao: Annotated[str | None, Header(alias="cookie")] = None,
 ) -> CredenciaisRequest:
-    """Extrai cookie de sessão + header, sem I/O. O cookie é lido do header `Cookie` bruto."""
+    """Extrai cookie de sessão + header + IP, sem I/O. O cookie é lido do header `Cookie` bruto."""
     return CredenciaisRequest(
         cookie_sessao=_extrair_cookie(sessao, COOKIE_SESSAO),
         header_conta=x_conta_id,
+        ip_cliente=request.client.host if request.client else None,
     )
 
 
@@ -76,8 +84,11 @@ def resolver_conta_id(
     credenciais: CredenciaisRequest,
     repo_sessao: RepositorioSessao,
     agora: datetime,
+    *,
+    acesso_aberto: bool = False,
 ) -> str:
-    """Resolve `conta_id`: sessão (cookie) tem precedência; senão o header; senão 401.
+    """Resolve `conta_id`: sessão (cookie) tem precedência; senão o header; senão 401
+    (ou, em acesso aberto, a identidade anônima do IP).
 
     `agora` é o instante da request (o mesmo relógio injetado em `criar_app`), usado para descartar
     sessão expirada. Cookie ausente/inválido/expirado → cai para o header; sem header → 401.
@@ -90,7 +101,16 @@ def resolver_conta_id(
     if credenciais.header_conta and credenciais.header_conta.strip():
         return credenciais.header_conta.strip()
 
+    if acesso_aberto:
+        return _conta_anonima(credenciais.ip_cliente)
+
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=MENSAGEM_SEM_CONTA)
+
+
+def _conta_anonima(ip_cliente: str | None) -> str:
+    """Identidade opaca por IP: estável para a cota, irreversível para o log (LGPD)."""
+    digest = hashlib.sha256((ip_cliente or "desconhecido").encode()).hexdigest()
+    return f"anonimo:{digest[:16]}"
 
 
 Credenciais = Annotated[CredenciaisRequest, Depends(credenciais_da_request)]

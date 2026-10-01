@@ -16,6 +16,7 @@ def test_ambiente_vazio_cai_nos_padroes_de_dev_sem_envio_de_email() -> None:
     assert config.resend_api_key is None
     assert config.remetente_email == REMETENTE_PADRAO
     assert config.dominio_cookie is None  # mesma origem → cookie host-only
+    assert config.acesso_aberto is False  # login obrigatório por padrão
     assert (config.diretorio_app / "index.html").is_file()
 
 
@@ -47,3 +48,10 @@ def test_ambiente_de_producao_e_lido_por_inteiro() -> None:
     assert config.remetente_email == "Terramétrica <login@terrametrica.xyz>"
     assert config.dominio_cookie == ".terrametrica.xyz"
     assert config.diretorio_app == Path("/srv/app")
+
+
+def test_acesso_aberto_so_liga_com_valor_explicito() -> None:
+    assert configuracao_de({"TERRAMETRICA_ACESSO_ABERTO": "1"}).acesso_aberto is True
+    assert configuracao_de({"TERRAMETRICA_ACESSO_ABERTO": "true"}).acesso_aberto is True
+    assert configuracao_de({"TERRAMETRICA_ACESSO_ABERTO": "0"}).acesso_aberto is False
+    assert configuracao_de({"TERRAMETRICA_ACESSO_ABERTO": "talvez"}).acesso_aberto is False

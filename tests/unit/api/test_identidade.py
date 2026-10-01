@@ -10,6 +10,7 @@ from datetime import datetime
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from terrametrica.api.identidade import (
     CredenciaisRequest,
@@ -35,6 +36,10 @@ class FakeRepoSessao:
         return self._validas.get(hash_sessao)
 
     def invalidar(self, hash_sessao: str) -> None: ...
+
+
+def _request(ip: str | None) -> Request:
+    return Request({"type": "http", "headers": [], "client": (ip, 5000) if ip else None})
 
 
 def _repo_com_sessao(token_claro: str, conta_id: str) -> FakeRepoSessao:
@@ -104,11 +109,51 @@ class TestResolverContaId:
 
 class TestCredenciaisDaRequest:
     def test_extrai_cookie_e_header_da_request(self) -> None:
-        cred = credenciais_da_request(x_conta_id="conta-x", sessao="sessao=tok; outro=9")
+        cred = credenciais_da_request(
+            _request("10.0.0.1"), x_conta_id="conta-x", sessao="sessao=tok; outro=9"
+        )
         assert cred.cookie_sessao == "tok"
         assert cred.header_conta == "conta-x"
 
     def test_sem_nada_devolve_ambos_none(self) -> None:
-        cred = credenciais_da_request(x_conta_id=None, sessao=None)
+        cred = credenciais_da_request(_request("10.0.0.1"), x_conta_id=None, sessao=None)
         assert cred.cookie_sessao is None
         assert cred.header_conta is None
+
+
+class TestAcessoAberto:
+    """AD-014: período sem login — anônimo por IP, sem nunca guardar o IP em claro."""
+
+    def test_sem_credenciais_e_acesso_fechado_continua_401(self) -> None:
+        cred = CredenciaisRequest(cookie_sessao=None, header_conta=None, ip_cliente="1.2.3.4")
+
+        with pytest.raises(HTTPException) as exc:
+            resolver_conta_id(cred, FakeRepoSessao({}), AGORA)
+
+        assert exc.value.status_code == 401
+
+    def test_sem_credenciais_e_acesso_aberto_vira_conta_anonima_sem_expor_o_ip(self) -> None:
+        cred = CredenciaisRequest(cookie_sessao=None, header_conta=None, ip_cliente="1.2.3.4")
+
+        conta = resolver_conta_id(cred, FakeRepoSessao({}), AGORA, acesso_aberto=True)
+
+        assert conta.startswith("anonimo:")
+        assert "1.2.3.4" not in conta
+
+    def test_mesmo_ip_mesma_conta_e_ips_diferentes_contas_diferentes(self) -> None:
+        def conta(ip: str) -> str:
+            cred = CredenciaisRequest(cookie_sessao=None, header_conta=None, ip_cliente=ip)
+            return resolver_conta_id(cred, FakeRepoSessao({}), AGORA, acesso_aberto=True)
+
+        assert conta("1.2.3.4") == conta("1.2.3.4")
+        assert conta("1.2.3.4") != conta("5.6.7.8")
+
+    def test_sessao_valida_e_header_continuam_valendo_em_acesso_aberto(self) -> None:
+        ip = "1.2.3.4"
+        com_sessao = CredenciaisRequest(cookie_sessao="tok", header_conta=None, ip_cliente=ip)
+        com_header = CredenciaisRequest(cookie_sessao=None, header_conta="conta-h", ip_cliente=ip)
+
+        repo = _repo_com_sessao("tok", "conta-da-sessao")
+
+        assert resolver_conta_id(com_sessao, repo, AGORA, acesso_aberto=True) == "conta-da-sessao"
+        assert resolver_conta_id(com_header, repo, AGORA, acesso_aberto=True) == "conta-h"

@@ -184,6 +184,20 @@ feição: contra um banco nos EUA seria uma ida-e-volta de rede por feição.
 continua manual até existir job agendado — e aí volta a pergunta de egress `.gov.br` a partir de IP
 estrangeiro (hipótese não verificada). Supersede a menção a nginx/Caddy e subdomínio `app.` da AD-012.
 
+### AD-014 — Período sem login: acesso aberto por flag, identidade anônima por IP
+**Data:** 2026-10-01
+**Decisão:** `TERRAMETRICA_ACESSO_ABERTO=1` faz a API aceitar `/dossie` sem sessão nem header. Quem
+chega sem credencial vira `anonimo:<sha256(ip)[:16]>`; sessão válida e header continuam valendo e
+têm precedência. Padrão **desligado** (login obrigatório, AD-012 intacto).
+**Razão:** Decisão do usuário (2026-10-01): usar o produto por um período sem o atrito do e-mail,
+inclusive sem depender do Resend. Por IP, e não uma conta única compartilhada, para a cota de
+100/h (DOS-27) continuar significando "por visitante". Hash para o `consulta_log` nunca guardar IP
+em claro (LGPD).
+**Consequência:** Voltar a exigir login = remover a variável, sem mudança de código. Enquanto
+aberto: o painel não redireciona para `login.html` (só redireciona em 401); o botão "Sair" é inócuo;
+atrás de NAT/CGNAT visitantes diferentes dividem uma cota; e `X-Conta-Id` forjado burla a cota — já
+era assim em AD-011, mas agora o painel público fica exposto. Risco aceito no período.
+
 ## Handoff
 
 **Branch:** `main`. **Fase atual:** Execute + verificação **concluídos** para a **Página de
