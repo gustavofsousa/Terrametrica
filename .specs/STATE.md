@@ -169,6 +169,21 @@ rica, migra-se **só a tela de mapa** para React sem tocar o backend (cookie + `
 agnósticos de front) — decisão barata de adiar. Débito: teste de UI vanilla é mais manual/`node
 --test` sobre módulos JS puros do que um harness de componentes React (aceitável no MVP).
 
+### AD-013 — Deploy no Railway, front e API na mesma origem, base carregada local e restaurada
+**Data:** 2026-09-30
+**Decisão:** Produção no Railway (projeto `terrametrica`): um serviço `web` (Dockerfile; uvicorn
+serve a API **e** os arquivos de `app/` via `StaticFiles`, montado depois das rotas) + um serviço
+`PostGIS` (template oficial, Postgres 16). A base é montada **localmente** pelo CLI
+`python -m terrametrica.ingestao.carregar_base` e levada ao Railway por `pg_dump`/`pg_restore`.
+**Razão:** Escolhido pelo usuário na RFD de infra (opção B, contra VPS+Caddy e CDN+container): menor
+tempo até URL pública, sem operar SO. Mesma origem elimina o cookie de domínio pai, o DNS de dois
+subdomínios e o CORS — o desenho `app.`/`api.` do design de F1.11 vira opcional
+(`TERRAMETRICA_DOMINIO_COOKIE` continua suportado). Carga local porque a ingestão grava feição a
+feição: contra um banco nos EUA seria uma ida-e-volta de rede por feição.
+**Consequência:** Sem região no Brasil (~120–150ms do RJ, irrelevante frente a DOS-03). Reingestão
+continua manual até existir job agendado — e aí volta a pergunta de egress `.gov.br` a partir de IP
+estrangeiro (hipótese não verificada). Supersede a menção a nginx/Caddy e subdomínio `app.` da AD-012.
+
 ## Handoff
 
 **Branch:** `main`. **Fase atual:** Execute + verificação **concluídos** para a **Página de

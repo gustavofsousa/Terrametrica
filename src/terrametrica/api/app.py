@@ -10,13 +10,16 @@ tempo (cota 100/1h) e apontar para o container efêmero. Cada request abre e fec
 conexão psycopg (sem pool nesta fatia, MVP de um processo).
 """
 
+import os
 from collections.abc import Callable
 from datetime import datetime
 
 import psycopg
 from fastapi import Body, Cookie, FastAPI, Query, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
+from terrametrica.api.configuracao import configuracao_de
 from terrametrica.api.dto import (
     cobertura_estado_para_dict,
     cobertura_para_dict,
@@ -29,6 +32,7 @@ from terrametrica.api.limite_taxa import Bloqueado, LimitadorEmMemoria
 from terrametrica.api.observabilidade import EntradaConsulta, registrar_consulta
 from terrametrica.api.versao import resolver_versao_publicada
 from terrametrica.auth.adaptadores import (
+    EnviadorResend,
     RepositorioCredencialPostgres,
     RepositorioSessaoPostgres,
     RepositorioTokenPostgres,
@@ -260,4 +264,18 @@ def _json(status_code: int, corpo: dict[str, object]) -> JSONResponse:
 # Factory p/ deploy: `uvicorn terrametrica.api.app:app_padrao --factory` (lê TERRAMETRICA_DB_URL).
 # Os testes usam `criar_app(url)` com o container efêmero, não esta factory.
 def app_padrao() -> FastAPI:  # pragma: no cover - conveniência de deploy, exercido só via uvicorn
-    return criar_app()
+    config = configuracao_de(os.environ)
+    enviador = (
+        EnviadorResend(config.resend_api_key, config.remetente_email)
+        if config.resend_api_key
+        else None  # sem chave → /auth/solicitar responde 503 explícito, nunca 200 mudo
+    )
+    app = criar_app(
+        enviador_email=enviador,
+        base_url=config.base_url,
+        dominio_cookie=config.dominio_cookie,
+    )
+    # INVARIANT: montado por último — as rotas da API têm precedência sobre os arquivos do front.
+    # Mesma origem (AD-013): o cookie host-only vale para as páginas e para a API.
+    app.mount("/", StaticFiles(directory=config.diretorio_app, html=True), name="front")
+    return app
