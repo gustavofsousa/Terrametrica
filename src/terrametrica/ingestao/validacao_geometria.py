@@ -7,7 +7,7 @@ contagem no `RelatorioCamada` quando não tem, caso de `limite_estado`). Compart
 duas ingestões em vez de duplicada — é a mesma regra de negócio nos dois lugares.
 """
 
-from shapely import make_valid  # type: ignore[import-untyped]
+from shapely import force_2d, make_valid  # type: ignore[import-untyped]
 from shapely.geometry import MultiPolygon, Polygon  # type: ignore[import-untyped]
 from shapely.geometry.base import BaseGeometry  # type: ignore[import-untyped]
 
@@ -25,7 +25,11 @@ def para_multipolygon(geom: BaseGeometry) -> MultiPolygon:
     `Polygon` vira `MultiPolygon` de um membro; `MultiPolygon` passa direto. Qualquer outro
     tipo (ex.: `GeometryCollection` de uma correção degenerada) levanta erro explícito em vez
     de gravar silenciosamente um dado incorreto.
+
+    A coordenada Z é descartada: as colunas são 2D e o SIGEF real exporta `PolygonZ` (as fixtures
+    sintéticas são 2D, por isso só a carga real revelou).
     """
+    geom = force_2d(geom)
     if isinstance(geom, MultiPolygon):
         return geom
     if isinstance(geom, Polygon):

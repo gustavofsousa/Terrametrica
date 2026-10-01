@@ -88,7 +88,9 @@ def ingerir_sigef(
             cursor.execute(
                 _INSERIR_LOTE,
                 {
-                    "id": str(linha["codigo_imo"]),
+                    # INVARIANT: a unidade geométrica do SIGEF é a parcela; um imóvel (`codigo_imo`)
+                    # tem várias parcelas (7.741 imóveis × 14.664 parcelas no export RJ de 2026-09).
+                    "id": str(linha["parcela_co"]),
                     "uf": UF_RJ,
                     "municipios": [str(linha["municipio_"])],
                     "codigo_sigef": str(linha["codigo_imo"]),
