@@ -27,6 +27,7 @@ LIMIAR_GUARDA = 0.90
 _CAMADAS_PUBLICADAS = (
     CAMADA_LIMITE_ESTADO,
     Camada.LOTE_RURAL.value,
+    Camada.LOTE_URBANO.value,
     Camada.APP.value,
     Camada.RESERVA_LEGAL.value,
     Camada.UNIDADE_CONSERVACAO.value,
@@ -39,6 +40,7 @@ _QUERY_CONTAGEM_RESTRICAO = (
 _QUERY_CONTAGEM_POR_CAMADA = {
     CAMADA_LIMITE_ESTADO: "SELECT COUNT(*) FROM limite_estado WHERE versao_base_id = %(versao)s",
     Camada.LOTE_RURAL.value: "SELECT COUNT(*) FROM lote_rural WHERE versao_base_id = %(versao)s",
+    Camada.LOTE_URBANO.value: "SELECT COUNT(*) FROM lote_urbano WHERE versao_base_id = %(versao)s",
     Camada.APP.value: _QUERY_CONTAGEM_RESTRICAO,
     Camada.RESERVA_LEGAL.value: _QUERY_CONTAGEM_RESTRICAO,
     Camada.UNIDADE_CONSERVACAO.value: _QUERY_CONTAGEM_RESTRICAO,

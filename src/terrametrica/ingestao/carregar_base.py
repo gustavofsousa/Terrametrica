@@ -11,7 +11,8 @@ outro continente custaria uma ida-e-volta de rede por feição.
     python -m terrametrica.ingestao.carregar_base --versao rj-2026-09-30 \\
         --sigef data/raw/rj/Sigef-Brasil-RJ.zip \\
         --reserva-legal data/raw/rj/RESERVA-LEGAL.zip \\
-        --uc data/raw/rj/uc/uc_erj.geojson
+        --uc data/raw/rj/uc/uc_erj.geojson \\
+        --niteroi data/raw/niteroi/lotes_sigeo.geojson
 """
 
 import argparse
@@ -26,6 +27,7 @@ from terrametrica.dominio.modelos import VersaoBase
 from terrametrica.ingestao.cobertura import semear_cobertura
 from terrametrica.ingestao.intersecoes import materializar_intersecoes
 from terrametrica.ingestao.limite_rj import ingerir_limite_rj
+from terrametrica.ingestao.lote_urbano_niteroi import ingerir_lotes_niteroi
 from terrametrica.ingestao.publicar import publicar_versao
 from terrametrica.ingestao.restricao_car import ingerir_app_car, ingerir_reserva_legal_car
 from terrametrica.ingestao.restricao_uc import ingerir_uc
@@ -41,6 +43,7 @@ def _ler_argumentos(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--app", type=Path, help="shapefile (ou .zip) APP do CAR")
     parser.add_argument("--reserva-legal", type=Path, help="shapefile (ou .zip) RL do CAR")
     parser.add_argument("--uc", type=Path, help="GeoJSON de Unidades de Conservação")
+    parser.add_argument("--niteroi", type=Path, help="GeoJSON dos lotes urbanos do SIGeo Niterói")
     parser.add_argument(
         "--so-migrar", action="store_true", help="aplica as migrações e sai, sem carga"
     )
@@ -77,6 +80,9 @@ def _ingerir_camadas(
     if argumentos.uc:
         print(f"UC: {argumentos.uc}", flush=True)
         print(f"  {ingerir_uc(argumentos.uc, versao, conexao)}", flush=True)
+    if argumentos.niteroi:
+        print(f"Lotes urbanos Niterói: {argumentos.niteroi}", flush=True)
+        print(f"  {ingerir_lotes_niteroi(argumentos.niteroi, versao, conexao)}", flush=True)
     print("materializando intersecções...", flush=True)
     materializar_intersecoes(versao, conexao)
     print("semeando cobertura...", flush=True)

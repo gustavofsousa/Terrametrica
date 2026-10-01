@@ -220,7 +220,7 @@ class LoteUrbano:
 
     lote_id: str
     municipio: str
-    inscricao_cadastral: str
+    inscricao_cadastral: str | None  # o SIGeo não tem inscrição para ~1% dos lotes
     area: AreaM2
     perimetro_m: float
     logradouro: str | None = None

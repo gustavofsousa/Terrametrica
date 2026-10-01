@@ -1,10 +1,9 @@
 """Adapter PostGIS do port `RepositorioLotes` (`dossie/portas.py`).
 
-Implementa contra o schema real da Fatia 2 (`migracoes/0001_fatia2_sigef.sql`), que só
-tem a camada `lote_rural` (SIGEF) — não há tabela de lote urbano nesta fatia, então este
-adapter só produz `LoteRural`. `area`/`perimetro_m` do value object não existem como
-colunas: são derivados de `geom_sigef` via `ST_Area`/`ST_Perimeter` sobre `geography`
-(cálculo correto no elipsoide, não em graus).
+Lê `lote_rural` (SIGEF, Fatia 2) e `lote_urbano` (SIGeo Niterói, F1.9): um clique pode cair nos
+dois ao mesmo tempo, e aí vira `Sobreposicao` com candidatos das duas naturezas (DOS-06).
+`area`/`perimetro_m` do value object não existem como colunas: são derivados da geometria via
+`ST_Area`/`ST_Perimeter` sobre `geography` (cálculo correto no elipsoide, não em graus).
 
 `intersecoes_de` lê `intersecao_materializada JOIN restricao` (Fatia 3) — só `app`/`reserva_legal`
 estão populados nesta fatia; as demais camadas de restrição (UC, inundação, deslizamento, corpo
@@ -27,6 +26,7 @@ from terrametrica.dominio.modelos import (
     IntersecaoBruta,
     LoteHit,
     LoteRural,
+    LoteUrbano,
     Proveniencia,
     SituacaoCertificacao,
     Sobreposicao,
@@ -47,6 +47,16 @@ _SELECT_LOTE_NO_PONTO = """
     FROM lote_rural
     WHERE versao_base_id = %(versao)s
       AND ST_Contains(geom_sigef, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
+    ORDER BY id
+"""
+
+_SELECT_LOTE_URBANO_NO_PONTO = """
+    SELECT id, municipio, inscricao_cadastral, logradouro, bairro,
+           ST_Area(geom::geography) AS area_m2,
+           ST_Perimeter(geom::geography) AS perimetro_m
+    FROM lote_urbano
+    WHERE versao_base_id = %(versao)s
+      AND ST_Contains(geom, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
     ORDER BY id
 """
 
@@ -79,19 +89,19 @@ _SELECT_COBERTURA_TODOS = """
 
 @dataclass
 class RepositorioLotesPostGIS:
-    """Read-model do lote rural (SIGEF) contra o PostGIS real."""
+    """Read-model do lote (rural SIGEF + urbano SIGeo) contra o PostGIS real."""
 
     conexao: psycopg.Connection
 
     def lote_em(self, coord: Coordenada, versao: VersaoBase) -> LoteHit | Sobreposicao | None:
+        parametros = {"versao": versao.id, "lon": coord.lon, "lat": coord.lat}
         with self.conexao.cursor() as cursor:
-            cursor.execute(
-                _SELECT_LOTE_NO_PONTO,
-                {"versao": versao.id, "lon": coord.lon, "lat": coord.lat},
-            )
-            linhas = cursor.fetchall()
+            cursor.execute(_SELECT_LOTE_NO_PONTO, parametros)
+            rurais = [_lote_rural_de(linha) for linha in cursor.fetchall()]
+            cursor.execute(_SELECT_LOTE_URBANO_NO_PONTO, parametros)
+            urbanos = [_lote_urbano_de(linha) for linha in cursor.fetchall()]
 
-        candidatos = tuple(_lote_rural_de(linha) for linha in linhas)
+        candidatos: tuple[LoteHit, ...] = (*rurais, *urbanos)
         if not candidatos:
             return None
         if len(candidatos) == 1:
@@ -166,4 +176,19 @@ def _lote_rural_de(linha: tuple[str, list[str], str, str | None, str, float, flo
         area=AreaM2(area_m2).em_hectares(),
         perimetro_m=perimetro_m,
         denominacao=denominacao,
+    )
+
+
+def _lote_urbano_de(
+    linha: tuple[str, str, str | None, str | None, str | None, float, float],
+) -> LoteUrbano:
+    lote_id, municipio, inscricao, logradouro, bairro, area_m2, perimetro_m = linha
+    return LoteUrbano(
+        lote_id=lote_id,
+        municipio=municipio,
+        inscricao_cadastral=inscricao,
+        area=AreaM2(area_m2),
+        perimetro_m=perimetro_m,
+        logradouro=logradouro,
+        bairro=bairro,
     )

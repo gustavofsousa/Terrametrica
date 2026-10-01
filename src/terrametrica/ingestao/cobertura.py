@@ -32,12 +32,26 @@ _SEMEAR_COBERTURA = """
         SELECT DISTINCT unnest(municipios) AS municipio
         FROM lote_rural
         WHERE versao_base_id = %(versao)s
+        UNION
+        SELECT DISTINCT municipio FROM lote_urbano WHERE versao_base_id = %(versao)s
     ) lm
     CROSS JOIN (
         SELECT DISTINCT tipo FROM restricao WHERE versao_base_id = %(versao)s
     ) camadas
     JOIN proveniencia p
         ON p.camada = camadas.tipo AND p.versao_base_id = %(versao)s
+    ON CONFLICT (municipio, camada) DO UPDATE
+        SET tem_dado = EXCLUDED.tem_dado, data_extracao = EXCLUDED.data_extracao
+"""
+
+# F1.9: a própria camada urbana é cobertura por município — só Niterói tem (AD-006), e a página
+# pública de cobertura precisa dizer isso, não esconder.
+_SEMEAR_COBERTURA_LOTE_URBANO = """
+    INSERT INTO cobertura (municipio, camada, tem_dado, data_extracao)
+    SELECT DISTINCT lu.municipio, p.camada, true, p.data_extracao
+    FROM lote_urbano lu
+    JOIN proveniencia p ON p.camada = 'lote_urbano' AND p.versao_base_id = lu.versao_base_id
+    WHERE lu.versao_base_id = %(versao)s
     ON CONFLICT (municipio, camada) DO UPDATE
         SET tem_dado = EXCLUDED.tem_dado, data_extracao = EXCLUDED.data_extracao
 """
@@ -49,5 +63,7 @@ def semear_cobertura(versao: VersaoBase, conexao: psycopg.Connection) -> Relator
     with conexao.cursor() as cursor:
         cursor.execute(_SEMEAR_COBERTURA, {"versao": versao.id})
         linhas = cursor.rowcount
+        cursor.execute(_SEMEAR_COBERTURA_LOTE_URBANO, {"versao": versao.id})
+        linhas += cursor.rowcount
 
     return RelatorioCobertura(versao_base_id=versao.id, linhas_semeadas=linhas)

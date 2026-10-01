@@ -35,6 +35,25 @@ _MATERIALIZAR_INTERSECOES = """
     ON CONFLICT (lote_id, restricao_id, versao_base_id) DO NOTHING
 """
 
+_MATERIALIZAR_INTERSECOES_URBANAS = """
+    INSERT INTO intersecao_materializada (lote_id, restricao_id, area_intersecao_m2, versao_base_id)
+    SELECT id_lote, id_restricao, area_m2, %(versao)s
+    FROM (
+        SELECT
+            l.id AS id_lote,
+            r.id AS id_restricao,
+            ST_Area(ST_Intersection(l.geom, r.geom)::geography) AS area_m2
+        FROM lote_urbano l
+        JOIN restricao r
+            ON r.versao_base_id = l.versao_base_id
+            AND r.tipo NOT IN ('app', 'reserva_legal')
+            AND ST_Intersects(l.geom, r.geom)
+        WHERE l.versao_base_id = %(versao)s
+    ) calculado
+    WHERE area_m2 > 0
+    ON CONFLICT (lote_id, restricao_id, versao_base_id) DO NOTHING
+"""
+
 
 def materializar_intersecoes(
     versao: VersaoBase, conexao: psycopg.Connection
@@ -44,5 +63,8 @@ def materializar_intersecoes(
     with conexao.cursor() as cursor:
         cursor.execute(_MATERIALIZAR_INTERSECOES, {"versao": versao.id})
         pares = cursor.rowcount
+        # INVARIANT: APP e Reserva Legal são do CAR e só valem para lote rural (dossie.md).
+        cursor.execute(_MATERIALIZAR_INTERSECOES_URBANAS, {"versao": versao.id})
+        pares += cursor.rowcount
 
     return RelatorioIntersecoes(versao_base_id=versao.id, pares_materializados=pares)

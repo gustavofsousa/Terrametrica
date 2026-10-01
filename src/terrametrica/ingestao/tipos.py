@@ -23,6 +23,7 @@ class RelatorioCamada:
     versao_base_id: str
     feicoes_gravadas: int
     feicoes_corrigidas: int = 0
+    feicoes_sem_geometria: int = 0  # lote sem polígono: não grava, mas conta (nunca some calado)
 
 
 @dataclass(frozen=True, slots=True)
