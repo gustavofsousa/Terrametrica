@@ -28,8 +28,8 @@ urbano — a primeira coisa visual da região metropolitana do RJ.
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
-| Chave do lote | `niteroi:<objectid>` | `tx_insct` não é único (74.377 distintos em 82.375) nem sempre existe; o prefixo evita colisão com `lote_rural.id` (ambos entram em `intersecao_materializada`) | y — medido |
-| Inscrição `"0"`/vazia | vira `NULL` | é o "sem inscrição" do SIGeo, não uma inscrição | y — medido (907 casos) |
+| Chave do lote | `niteroi:<objectid>` | `tx_insct` não é único (74.377 distintos em 82.375) e falta em ~9% dos lotes; o prefixo evita colisão com `lote_rural.id` (ambos entram em `intersecao_materializada`) | y — medido |
+| Inscrição `"0"`/vazia | vira `NULL` | é o "sem inscrição" do SIGeo, não uma inscrição | y — medido (7.629 lotes ficam sem inscrição: 907 nulos + 341 vazios + 6.546 "0", menos 170 sem polígono) |
 | Feição sem polígono | não grava, conta em `feicoes_sem_geometria` | 170 de 82.375 vêm sem geometria; nunca some calado | y — medido |
 | FK de `intersecao_materializada` → `lote_rural` | removida na migração 0007 | a tabela passa a servir dois tipos de lote; a integridade passa a depender do `INVARIANT` do prefixo | n — revisitar se surgir um 3º tipo (tabela de ligação por natureza) |
 | Município | código IBGE `3303302` (texto) | mesma convenção de `lote_rural.municipios` (SIGEF usa código IBGE) | y |
@@ -49,6 +49,10 @@ urbano — a primeira coisa visual da região metropolitana do RJ.
 
 ## Status
 
-Execute concluído, **verificação independente pendente** (author ≠ verifier). Evidência do autor:
-`tests/integration/ingestao/test_lote_urbano_niteroi.py` (URB-01/03/04/05/06/07) e
-`tests/unit/ingestao/test_lote_urbano_niteroi.py` (URB-03). URB-02 e URB-08 sem teste dedicado ainda.
+**Verified** (2026-10-01) — Verifier independente: PASS no comportamento, `validation.md`. As 3 lacunas
+de teste que ele apontou (URB-02, URB-08, cláusula APP/RL de URB-05) foram fechadas pelo autor e
+cada uma foi provada por mutação (3 mutações → 3 testes vermelhos → código restaurado).
+
+**Aberto, não bloqueante:** a unicidade de id entre `lote_rural` e `lote_urbano` depende só do
+prefixo `niteroi:` — não há checagem no banco (FK removida na migração 0007). Sem órfãos nem
+colisões hoje; revisitar se entrar um 3º tipo de lote ou uma 2ª cidade urbana (F4.1).
