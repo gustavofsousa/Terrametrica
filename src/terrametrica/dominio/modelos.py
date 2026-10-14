@@ -171,9 +171,13 @@ class Municipio:
 
 @dataclass(frozen=True, slots=True)
 class CoberturaMunicipio:
-    """Cobertura de todas as camadas para um único município (COBPUB-02/03, F1.12)."""
+    """Cobertura de todas as camadas para um único município (COBPUB-02/03, F1.12).
+
+    `municipio` é o código IBGE; `nome` vem da malha municipal publicada (MUN-08).
+    """
 
     municipio: str
+    nome: str
     camadas: tuple[CoberturaCamada, ...]
 
 

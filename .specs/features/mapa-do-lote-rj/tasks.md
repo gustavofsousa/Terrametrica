@@ -277,8 +277,8 @@ T24 → T25
 **Requirement**: MUN-08
 
 **Done when**:
-- [ ] Integration: 3 municípios → 3 itens com nome, em ordem alfabética.
-- [ ] Gate full + build passam (fim da fase 1).
+- [x] Integration: 3 municípios → 3 itens com nome, em ordem alfabética.
+- [x] Gate full + build passam (fim da fase 1).
 
 **Tests**: integration
 **Gate**: build

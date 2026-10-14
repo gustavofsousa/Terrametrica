@@ -161,6 +161,7 @@ class TestCoberturaEstadoParaDict:
         municipios = [
             CoberturaMunicipio(
                 municipio="Niterói",
+                nome="Niterói",
                 camadas=(
                     CoberturaCamada(
                         camada=Camada.APP, tem_dado=True, data_extracao=date(2026, 8, 1)
@@ -187,8 +188,8 @@ class TestCoberturaEstadoParaDict:
     def test_preserva_ordem_dos_municipios_recebida(self) -> None:
         """COBPUB-02: a ordenação alfabética é responsabilidade do repositório; o DTO preserva."""
         municipios = [
-            CoberturaMunicipio(municipio="Angra dos Reis", camadas=()),
-            CoberturaMunicipio(municipio="Niterói", camadas=()),
+            CoberturaMunicipio(municipio="Angra dos Reis", nome="Angra dos Reis", camadas=()),
+            CoberturaMunicipio(municipio="Niterói", nome="Niterói", camadas=()),
         ]
 
         d = cobertura_estado_para_dict(municipios)

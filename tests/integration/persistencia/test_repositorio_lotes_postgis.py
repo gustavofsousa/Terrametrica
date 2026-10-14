@@ -356,12 +356,38 @@ class TestCoberturaDe:
         assert por_camada[Camada.UNIDADE_CONSERVACAO].tem_dado is False
 
 
+def _publicar_malha(
+    conexao: psycopg.Connection, versao: VersaoBase, municipios: dict[str, str]
+) -> None:
+    """Semeia a malha da versão e aponta a camada `municipio` para ela."""
+    for codigo, nome in municipios.items():
+        _inserir_municipio(
+            conexao, versao, codigo=codigo, nome=nome, wkt=_quadrado_wkt(-43.0, -22.9)
+        )
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO ponteiro_publicado (camada, versao_base_id) VALUES ('municipio', %s)",
+            (versao.id,),
+        )
+
+
 class TestCoberturaDeTodos:
-    def test_agrega_todos_os_municipios_em_ordem_alfabetica(
+    def test_mun08_agrega_os_municipios_da_malha_com_nome_em_ordem_alfabetica(
         self,
         repositorio: RepositorioLotesPostGIS,
         conexao: psycopg.Connection,
+        versao: VersaoBase,
     ) -> None:
+        _publicar_malha(
+            conexao,
+            versao,
+            {
+                "3303302": "Niterói",
+                "3300100": "Angra dos Reis",
+                "3304904": "São Gonçalo",
+                "3305109": "Sapucaia",
+            },
+        )
         with conexao.cursor() as cursor:
             cursor.execute(
                 """
@@ -369,31 +395,53 @@ class TestCoberturaDeTodos:
                 VALUES (%s, %s, %s, %s), (%s, %s, %s, %s)
                 """,
                 (
-                    "Niterói",
+                    "3303302",
                     Camada.APP.value,
                     True,
                     date(2026, 8, 1),
-                    "Angra dos Reis",
+                    "3300100",
                     Camada.UNIDADE_CONSERVACAO.value,
                     False,
                     None,
                 ),
             )
+            cursor.execute(
+                "INSERT INTO cobertura (municipio, camada, tem_dado) VALUES "
+                "('3304904', 'app', false), ('3305109', 'app', false)"
+            )
 
         resultado = repositorio.cobertura_de_todos()
 
-        municipios = [item.municipio for item in resultado]
-        assert municipios == ["Angra dos Reis", "Niterói"]  # COBPUB-02: ordem alfabética
-
+        # ordem de dicionário: "São Gonçalo" antes de "Sapucaia" (o "ã" não vale mais que o "p")
+        assert [(i.municipio, i.nome) for i in resultado] == [
+            ("3300100", "Angra dos Reis"),
+            ("3303302", "Niterói"),
+            ("3304904", "São Gonçalo"),
+            ("3305109", "Sapucaia"),
+        ]
         angra = resultado[0]
         assert angra.camadas == (
             CoberturaCamada(camada=Camada.UNIDADE_CONSERVACAO, tem_dado=False, data_extracao=None),
         )
-
         niteroi = resultado[1]
         assert niteroi.camadas == (
             CoberturaCamada(camada=Camada.APP, tem_dado=True, data_extracao=date(2026, 8, 1)),
         )
+
+    def test_mun08_codigo_de_cobertura_fora_da_malha_publicada_nao_aparece(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        _publicar_malha(conexao, versao, {"3300100": "Angra dos Reis"})
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO cobertura (municipio, camada, tem_dado) VALUES "
+                "('3300100', 'app', true), ('9999999', 'app', true)"
+            )
+
+        assert [i.municipio for i in repositorio.cobertura_de_todos()] == ["3300100"]
 
     def test_base_vazia_devolve_lista_vazia(
         self,

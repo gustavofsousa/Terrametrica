@@ -13,6 +13,7 @@ d'água — INEA/ICMBio) ficam para fatias futuras, mesma tabela.
 """
 
 import json
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -105,10 +106,14 @@ _SELECT_COBERTURA = """
     WHERE municipio = %(municipio)s
 """
 
+# O conjunto de municípios é o da malha publicada (AD-016): linha de cobertura de código fora
+# dela não aparece.
 _SELECT_COBERTURA_TODOS = """
-    SELECT municipio, camada, tem_dado, data_extracao
-    FROM cobertura
-    ORDER BY municipio, camada
+    SELECT c.municipio, m.nome, c.camada, c.tem_dado, c.data_extracao
+    FROM cobertura c
+    JOIN ponteiro_publicado pp ON pp.camada = 'municipio'
+    JOIN municipio m ON m.codigo = c.municipio AND m.versao_base_id = pp.versao_base_id
+    ORDER BY c.municipio, c.camada
 """
 
 
@@ -199,21 +204,31 @@ class RepositorioLotesPostGIS:
         ]
 
     def cobertura_de_todos(self) -> list[CoberturaMunicipio]:
-        """Cobertura de todo município presente em `cobertura`, em ordem alfabética (COBPUB-02)."""
+        """Cobertura de cada município da malha publicada, em ordem alfabética do nome (MUN-08)."""
         with self.conexao.cursor() as cursor:
             cursor.execute(_SELECT_COBERTURA_TODOS)
             linhas = cursor.fetchall()
 
+        nomes: dict[str, str] = {}
         por_municipio: dict[str, list[CoberturaCamada]] = {}
-        for municipio, camada, tem_dado, data_extracao in linhas:
+        for municipio, nome, camada, tem_dado, data_extracao in linhas:
+            nomes[municipio] = nome
             item = CoberturaCamada(
                 camada=Camada(camada), tem_dado=tem_dado, data_extracao=data_extracao
             )
             por_municipio.setdefault(municipio, []).append(item)
         return [
-            CoberturaMunicipio(municipio=municipio, camadas=tuple(camadas))
-            for municipio, camadas in sorted(por_municipio.items())
+            CoberturaMunicipio(municipio=codigo, nome=nomes[codigo], camadas=tuple(camadas))
+            for codigo, camadas in sorted(
+                por_municipio.items(), key=lambda par: (_chave_alfabetica(nomes[par[0]]), par[0])
+            )
         ]
+
+
+def _chave_alfabetica(nome: str) -> str:
+    """Ordem de dicionário em português: sem acento e sem diferença de caixa."""
+    sem_acento = unicodedata.normalize("NFKD", nome).encode("ascii", "ignore").decode("ascii")
+    return sem_acento.casefold()
 
 
 def _lote_rural_de(linha: tuple[str, list[str], str, str | None, str, float, float]) -> LoteRural:
