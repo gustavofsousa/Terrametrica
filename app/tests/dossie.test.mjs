@@ -1,4 +1,4 @@
-// Testes do view model do painel (Fatia 7, T8). Rodar: node --test app/tests/
+// Testes do view model do painel (Fatia 7, T8). Rodar: node --test app/tests/*.test.mjs
 // Fixtures replicam o shape de api/dto.py (dossie_para_dict etc.) para os 4 estados 200/404/409/429.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -89,4 +89,94 @@ test("429 → cota excedida: mensagem + retry_after (PAINEL-11)", () => {
 test("status inesperado → estado de erro genérico (não quebra a UI)", () => {
   const vm = renderDossie({ status: 500, corpo: {} });
   assert.equal(vm.estado, "erro");
+});
+
+// ---- spec:mapa-do-lote-rj (T13) ----
+
+test("MAPA-05 422 fora do RJ → estado fora_do_rj com o texto do spec", () => {
+  const corpo = { tipo: "fora_do_rj", mensagem: "fora da área de cobertura: apenas RJ" };
+
+  const vm = renderDossie({ status: 422, corpo });
+
+  assert.equal(vm.estado, "fora_do_rj");
+  assert.equal(vm.titulo, "Fora do estado do Rio de Janeiro");
+});
+
+test("MAPA-05 422 de coordenada inválida (traz erro) não vira fora_do_rj", () => {
+  const vm = renderDossie({ status: 422, corpo: { erro: "latitude fora de faixa" } });
+
+  assert.equal(vm.estado, "erro");
+  assert.equal(vm.mensagem, "latitude fora de faixa");
+});
+
+test("MAPA-18 consulta sem resposta HTTP → estado erro_rede", () => {
+  const vm = renderDossie({ erroRede: true });
+
+  assert.equal(vm.estado, "erro_rede");
+  assert.equal(vm.titulo, "Não foi possível consultar");
+});
+
+test("MAPA-09 rural de 12,4 ha mostra '12,4 ha' e o perímetro em m, com a fonte da área", () => {
+  const geometria = { type: "Polygon", coordinates: [[[-43.1, -22.9], [-43.0, -22.9], [-43.1, -22.8], [-43.1, -22.9]]] };
+  const fonte = { fonte: "SIGEF", data_extracao: "2026-08-20", link_oficial: "https://sigef" };
+  const corpo = {
+    tipo: "dossie",
+    lote: { natureza: "rural", codigo_sigef: "S1", area_ha: 12.4, perimetro_m: 1530.2, geometria },
+    restricoes: [],
+    proveniencia: { lote_rural: fonte },
+  };
+
+  const vm = renderDossie({ status: 200, corpo });
+
+  assert.equal(vm.area, "12,4 ha");
+  assert.equal(vm.perimetro, "1.530 m");
+  assert.deepEqual(vm.fonteArea, fonte);
+  assert.deepEqual(vm.geometria, geometria);
+});
+
+test("MAPA-09 urbano mostra a área em m² e a fonte vem da camada lote_urbano", () => {
+  const fonte = { fonte: "SIGeo Niterói", data_extracao: "2026-09-30", link_oficial: "https://sigeo" };
+  const corpo = {
+    tipo: "dossie",
+    lote: { natureza: "urbano", inscricao_cadastral: "INSC-99", area_m2: 300, perimetro_m: 70 },
+    restricoes: [],
+    proveniencia: { lote_urbano: fonte, lote_rural: { fonte: "SIGEF" } },
+  };
+
+  const vm = renderDossie({ status: 200, corpo });
+
+  assert.equal(vm.area, "300 m²");
+  assert.equal(vm.perimetro, "70 m");
+  assert.deepEqual(vm.fonteArea, fonte);
+});
+
+test("MUN-03 404 mostra o nome do município, não o código", () => {
+  const corpo = {
+    tipo: "sem_lote",
+    mensagem: "sem lote mapeado neste ponto",
+    municipio: "3304557",
+    municipio_nome: "Rio de Janeiro",
+    cobertura: [],
+  };
+
+  const vm = renderDossie({ status: 404, corpo });
+
+  assert.equal(vm.municipioNome, "Rio de Janeiro");
+  assert.equal(vm.rotuloMunicipio, "Rio de Janeiro");
+});
+
+test("MUN-03 404 com município null → 'Ponto fora de município mapeado'", () => {
+  const corpo = {
+    tipo: "sem_lote",
+    mensagem: "sem lote mapeado neste ponto",
+    municipio: null,
+    municipio_nome: null,
+    cobertura: [],
+  };
+
+  const vm = renderDossie({ status: 404, corpo });
+
+  assert.equal(vm.municipioNome, null);
+  assert.equal(vm.rotuloMunicipio, "Ponto fora de município mapeado");
+  assert.deepEqual(vm.cobertura, []);
 });

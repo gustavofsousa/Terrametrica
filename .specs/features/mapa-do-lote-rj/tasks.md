@@ -354,9 +354,9 @@ T24 → T25
 **Requirement**: MAPA-05, MAPA-09, MUN-03
 
 **Done when**:
-- [ ] `node --test`: 422 → `fora_do_rj` com "Fora do estado do Rio de Janeiro"; rural 12,4 ha → "12,4 ha"; urbano → m²; 404 com nome e com `null`.
-- [ ] Testes atuais continuam verdes.
-- [ ] Gate quick passa.
+- [x] `node --test`: 422 → `fora_do_rj` com "Fora do estado do Rio de Janeiro"; rural 12,4 ha → "12,4 ha"; urbano → m²; 404 com nome e com `null`.
+- [x] Testes atuais continuam verdes.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick
