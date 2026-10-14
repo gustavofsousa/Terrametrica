@@ -12,6 +12,8 @@ d'água — INEA/ICMBio) ficam para fatias futuras, mesma tabela.
 `municipio_em` resolve o município pela malha municipal da versão (`municipio`, AD-016).
 """
 
+import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import psycopg
@@ -60,6 +62,26 @@ _SELECT_MUNICIPIO_NO_PONTO = """
     WHERE versao_base_id = %(versao)s
       AND ST_Contains(geom, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
     ORDER BY codigo
+    LIMIT 1
+"""
+
+# `options = 0` tira o membro `crs` que o PostGIS põe por padrão fora do EPSG:4326: o cliente
+# espera GeoJSON puro, com coordenadas `[lon, lat]`.
+_SELECT_GEOMETRIAS_DOS_LOTES = """
+    SELECT id, ST_AsGeoJSON(geom_sigef, 6, 0)
+    FROM lote_rural
+    WHERE versao_base_id = %(versao)s AND id = ANY(%(ids)s)
+    UNION ALL
+    SELECT id, ST_AsGeoJSON(geom, 6, 0)
+    FROM lote_urbano
+    WHERE versao_base_id = %(versao)s AND id = ANY(%(ids)s)
+"""
+
+# Só para desenho: o teste de "dentro do RJ" usa a geometria completa (`LimiteEstadoPostGIS`).
+_SELECT_CONTORNO_DO_ESTADO = """
+    SELECT ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(geom, 0.0005)), 5, 0)
+    FROM limite_estado
+    WHERE versao_base_id = %(versao)s
     LIMIT 1
 """
 
@@ -145,6 +167,27 @@ class RepositorioLotesPostGIS:
             cursor.execute(_SELECT_MUNICIPIO_NO_PONTO, parametros)
             linha = cursor.fetchone()
         return Municipio(codigo=linha[0], nome=linha[1]) if linha is not None else None
+
+    def geometrias_de(
+        self, lote_ids: Sequence[str], versao: VersaoBase
+    ) -> dict[str, dict[str, object]]:
+        """GeoJSON (6 casas, `[lon, lat]`) de cada lote achado, rural ou urbano. Id sem lote na
+        versão fica fora do resultado (MAPA-06, MAPA-07)."""
+        if not lote_ids:
+            return {}
+        with self.conexao.cursor() as cursor:
+            cursor.execute(
+                _SELECT_GEOMETRIAS_DOS_LOTES, {"versao": versao.id, "ids": list(lote_ids)}
+            )
+            linhas = cursor.fetchall()
+        return {lote_id: json.loads(geojson) for lote_id, geojson in linhas}
+
+    def contorno_estado(self, versao: VersaoBase) -> dict[str, object] | None:
+        """Contorno simplificado do RJ para desenho (MAPA-04); `None` se a versão não o tem."""
+        with self.conexao.cursor() as cursor:
+            cursor.execute(_SELECT_CONTORNO_DO_ESTADO, {"versao": versao.id})
+            linha = cursor.fetchone()
+        return json.loads(linha[0]) if linha is not None else None
 
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:
         with self.conexao.cursor() as cursor:

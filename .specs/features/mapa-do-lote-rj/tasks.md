@@ -256,10 +256,10 @@ T24 → T25
 **Requirement**: MAPA-04, MAPA-06, MAPA-07
 
 **Done when**:
-- [ ] Integration: lote rural e urbano conhecidos → `type` correto, primeira coordenada com `lon` < -40 e `lat` > -24 (ordem certa), no máximo 6 casas.
-- [ ] Integration: id inexistente → ausente do `dict`, sem erro.
-- [ ] Integration: contorno → `MultiPolygon` válido com menos vértices que o original.
-- [ ] Gate full passa.
+- [x] Integration: lote rural e urbano conhecidos → `type` correto, primeira coordenada com `lon` < -40 e `lat` > -24 (ordem certa), no máximo 6 casas.
+- [x] Integration: id inexistente → ausente do `dict`, sem erro.
+- [x] Integration: contorno → `MultiPolygon` válido com menos vértices que o original.
+- [x] Gate full passa.
 
 **Tests**: integration
 **Gate**: full

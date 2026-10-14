@@ -7,6 +7,7 @@ escopo desta fatia; aqui só validamos o contrato do Protocol `RepositorioLotes`
 schema real (mesmos ramos do fake em memória de T5, exceto TD-001).
 """
 
+import json
 import subprocess
 from collections.abc import Iterator
 from datetime import date
@@ -470,3 +471,106 @@ class TestMunicipioEm:
 
     def test_mun02_mensagem_do_td_001_foi_removida_do_adapter(self) -> None:
         assert not hasattr(repositorio_postgis, "MENSAGEM_TD_001")
+
+
+def _vertices(geojson: dict[str, object]) -> list[list[float]]:
+    """Todos os pontos `[lon, lat]` de um (Multi)Polygon GeoJSON."""
+    pontos: list[list[float]] = []
+
+    def descer(no: object) -> None:
+        if isinstance(no, list) and no and isinstance(no[0], float):
+            pontos.append(no)
+        elif isinstance(no, list):
+            for filho in no:
+                descer(filho)
+
+    descer(geojson["coordinates"])
+    return pontos
+
+
+class TestGeometriasDe:
+    """spec:mapa-do-lote-rj — MAPA-06, MAPA-07."""
+
+    def test_mapa06_lote_rural_e_urbano_na_mesma_chamada_com_lon_lat_e_6_casas(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        _inserir_lote(
+            conexao, versao, id_="RJ-1", wkt=_quadrado_wkt(-43.1234567891, -22.9876543219)
+        )
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO lote_urbano (id, municipio, geom, versao_base_id) "
+                "VALUES ('niteroi:7', '3303302', ST_GeomFromText(%s, 4674), %s)",
+                (_quadrado_wkt(-43.05, -22.9), versao.id),
+            )
+
+        geometrias = repositorio.geometrias_de(["RJ-1", "niteroi:7"], versao)
+
+        assert set(geometrias) == {"RJ-1", "niteroi:7"}
+        assert geometrias["RJ-1"]["type"] == "MultiPolygon"
+        assert geometrias["niteroi:7"]["type"] == "MultiPolygon"
+        assert "crs" not in geometrias["RJ-1"]
+        for geometria in geometrias.values():
+            lon, lat = _vertices(geometria)[0]
+            assert lon < -40
+            assert lat > -24
+        for lon, lat in _vertices(geometrias["RJ-1"]):
+            assert len(repr(lon).split(".")[1]) <= 6
+            assert len(repr(lat).split(".")[1]) <= 6
+
+    def test_mapa06_id_inexistente_fica_fora_do_resultado_sem_erro(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        _inserir_lote(conexao, versao, id_="RJ-1", wkt=_quadrado_wkt(-43.1, -22.9))
+
+        geometrias = repositorio.geometrias_de(["RJ-1", "NAO-EXISTE"], versao)
+
+        assert set(geometrias) == {"RJ-1"}
+
+    def test_mapa06_lista_vazia_devolve_dict_vazio(
+        self, repositorio: RepositorioLotesPostGIS, versao: VersaoBase
+    ) -> None:
+        assert repositorio.geometrias_de([], versao) == {}
+
+
+class TestContornoEstado:
+    """spec:mapa-do-lote-rj — MAPA-04."""
+
+    def test_mapa04_contorno_e_multipolygon_valido_com_menos_vertices_que_o_original(
+        self,
+        repositorio: RepositorioLotesPostGIS,
+        conexao: psycopg.Connection,
+        versao: VersaoBase,
+    ) -> None:
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO limite_estado (uf, geom, versao_base_id) VALUES "
+                "('RJ', ST_Multi(ST_SetSRID(ST_Buffer(ST_MakePoint(-43.0, -22.5), 0.5, "
+                "'quad_segs=200'), 4674)), %s)",
+                (versao.id,),
+            )
+            cursor.execute(
+                "SELECT ST_NPoints(geom) FROM limite_estado WHERE versao_base_id = %s",
+                (versao.id,),
+            )
+            (vertices_originais,) = cursor.fetchone()  # type: ignore[misc]
+
+        contorno = repositorio.contorno_estado(versao)
+
+        assert contorno is not None
+        assert contorno["type"] == "MultiPolygon"
+        assert 4 <= len(_vertices(contorno)) < vertices_originais
+        with conexao.cursor() as cursor:
+            cursor.execute("SELECT ST_IsValid(ST_GeomFromGeoJSON(%s))", (json.dumps(contorno),))
+            assert cursor.fetchone() == (True,)
+
+    def test_mapa04_versao_sem_limite_devolve_none(
+        self, repositorio: RepositorioLotesPostGIS, versao: VersaoBase
+    ) -> None:
+        assert repositorio.contorno_estado(versao) is None
