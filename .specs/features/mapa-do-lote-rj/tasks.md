@@ -113,10 +113,10 @@ T24 → T25
 **Requirement**: MUN-01, MUN-09
 
 **Done when**:
-- [ ] Aplicar as migrações 2× não falha e cria `municipio` com o `CHECK` de 7 dígitos.
-- [ ] Teste MUN-09: migrar → semear um lote → rodar o rollback → `lote_rural`, `restricao` e `ponteiro_publicado` sem mudança e `municipio` inexistente.
-- [ ] O runner não aplica nada de `migracoes/rollback/`.
-- [ ] Gate full passa; contagem de testes sobe, nenhuma remoção.
+- [x] Aplicar as migrações 2× não falha e cria `municipio` com o `CHECK` de 7 dígitos.
+- [x] Teste MUN-09: migrar → semear um lote → rodar o rollback → `lote_rural`, `restricao` e `ponteiro_publicado` sem mudança e `municipio` inexistente.
+- [x] O runner não aplica nada de `migracoes/rollback/`.
+- [x] Gate full passa; contagem de testes sobe, nenhuma remoção.
 
 **Tests**: integration
 **Gate**: full
