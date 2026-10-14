@@ -431,8 +431,8 @@ T24 → T25
 **Requirement**: MAPA-09, MAPA-17, MAPA-18
 
 **Done when**:
-- [ ] `node --test`: um nome com `<script>` sai escapado; `erro_rede` tem o botão; `dossie` mostra área, perímetro, fonte e data.
-- [ ] Gate quick passa.
+- [x] `node --test`: um nome com `<script>` sai escapado; `erro_rede` tem o botão; `dossie` mostra área, perímetro, fonte e data.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick

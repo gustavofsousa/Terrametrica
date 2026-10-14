@@ -6,6 +6,7 @@
 
 import { API_BASE } from "./config.js";
 import { renderDossie } from "./dossie.js";
+import { htmlCarregando, htmlPainel } from "./painel.js";
 
 const RJ_CENTRO = [-22.4, -42.6]; // aproximadamente o centro do estado
 const painel = document.getElementById("conteudo-painel");
@@ -25,7 +26,10 @@ mapa.on("click", async (evento) => {
   await consultar(lat, lng);
 });
 
+let ultimoPonto = null;
+
 async function consultar(lat, lon) {
+  ultimoPonto = { lat, lon };
   pintarCarregando();
   let resp;
   try {
@@ -33,7 +37,7 @@ async function consultar(lat, lon) {
       credentials: "include",
     });
   } catch {
-    pintarErro("Falha de conexão ao consultar o lote.");
+    pintar(renderDossie({ erroRede: true }));
     return;
   }
 
@@ -47,83 +51,22 @@ async function consultar(lat, lon) {
   pintar(renderDossie({ status: resp.status, corpo }));
 }
 
-// --- Pintura do painel a partir do view model (dossie.js) ---
+// --- Pintura do painel a partir do view model (dossie.js → painel.js) ---
 
 function pintar(vm) {
-  switch (vm.estado) {
-    case "dossie":       painel.innerHTML = htmlDossie(vm); break;
-    case "sem_lote":     painel.innerHTML = htmlSemLote(vm); break;
-    case "sobreposicao": painel.innerHTML = htmlSobreposicao(vm); break;
-    case "cota":         painel.innerHTML = htmlCota(vm); break;
-    default:             pintarErro(vm.mensagem ?? "Erro inesperado.");
-  }
+  painel.innerHTML = htmlPainel(vm);
 }
 
 function pintarCarregando() {
-  painel.innerHTML = `<p class="dica" role="status">Consultando o lote…</p>`;
+  painel.innerHTML = htmlCarregando();
 }
 
-function pintarErro(msg) {
-  painel.innerHTML = `<div class="aviso erro">${esc(msg)}</div>`;
-}
-
-function htmlDossie(vm) {
-  const restricoes = vm.restricoes.length
-    ? vm.restricoes.map((r) => `
-        <div class="restricao">
-          <strong>${esc(r.nome)}</strong>
-          ${r.pctDoLote != null ? `<span class="pct"> ${esc(r.pctDoLote)}% do lote</span>` : ""}
-          ${r.categoria ? `<div class="badge">${esc(r.categoria)}</div>` : ""}
-        </div>`).join("")
-    : `<p class="dica">Nenhuma restrição cruzada com este lote.</p>`;
-
-  const prov = Object.entries(vm.proveniencia).map(([camada, p]) =>
-    `<div class="badge">${esc(camada)}: ${esc(p.fonte ?? "?")} · ${esc(p.data_extracao ?? "")}</div>`
-  ).join(" ");
-
-  return `
-    <h2>${esc(vm.titulo)}</h2>
-    <div class="secao"><h3>Restrições</h3>${restricoes}</div>
-    <div class="secao"><h3>Proveniência</h3>${prov || '<p class="dica">—</p>'}</div>
-    ${vm.ressalva ? `<div class="secao"><h3>Ressalva</h3><p class="dica">${esc(vm.ressalva)}</p></div>` : ""}
-  `;
-}
-
-function htmlSemLote(vm) {
-  const cobertura = vm.cobertura.map((c) =>
-    `<div class="badge">${esc(c.camada)}: ${c.tem_dado ? "com dado" : "sem dado"}</div>`
-  ).join(" ");
-  return `
-    <h2>${esc(vm.titulo)}</h2>
-    <p class="dica">${esc(vm.mensagem)}</p>
-    ${vm.municipio ? `<p class="dica">Município: ${esc(vm.municipio)}</p>` : ""}
-    <div class="secao"><h3>Cobertura</h3>${cobertura || '<p class="dica">—</p>'}</div>
-  `;
-}
-
-function htmlSobreposicao(vm) {
-  const candidatos = vm.candidatos.map((c) =>
-    `<div class="restricao">${esc(c.codigo_sigef ?? c.inscricao_cadastral ?? "lote")}</div>`
-  ).join("");
-  return `
-    <h2>${esc(vm.titulo)}</h2>
-    <p class="dica">${esc(vm.mensagem)}</p>
-    <div class="secao"><h3>Candidatos</h3>${candidatos}</div>
-  `;
-}
-
-function htmlCota(vm) {
-  const espera = vm.retryAfterSegundos != null
-    ? ` Tente novamente em ~${Math.ceil(vm.retryAfterSegundos / 60)} min.` : "";
-  return `<h2>${esc(vm.titulo)}</h2><div class="aviso erro">${esc(vm.mensagem)}${espera}</div>`;
-}
-
-// Escapa texto para inserção segura em HTML (evita XSS a partir de dados da API).
-function esc(valor) {
-  return String(valor)
-    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-}
+// "Tentar de novo" repete o mesmo ponto (MAPA-18).
+painel.addEventListener("click", (evento) => {
+  if (evento.target.closest("[data-acao='tentar-de-novo']") && ultimoPonto) {
+    consultar(ultimoPonto.lat, ultimoPonto.lon);
+  }
+});
 
 // --- Logout ---
 document.getElementById("sair").addEventListener("click", async () => {
