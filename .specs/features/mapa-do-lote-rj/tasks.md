@@ -374,8 +374,8 @@ T24 → T25
 **Requirement**: MAPA-11, MAPA-18
 
 **Done when**:
-- [ ] `node --test`: clique A lento + clique B rápido → só B entrega; B lento + A já descartado → só B; fetch que nunca resolve → `erro_rede` após o timeout (relógio fake).
-- [ ] Gate quick passa.
+- [x] `node --test`: clique A lento + clique B rápido → só B entrega; B lento + A já descartado → só B; fetch que nunca resolve → `erro_rede` após o timeout (relógio fake).
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick
