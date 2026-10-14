@@ -98,6 +98,28 @@ pytest tests/unit tests/integration -q
 Se o Docker não estiver rodando, os testes de integração falham com uma mensagem clara em vez de
 um erro genérico de conexão.
 
+### Testes de navegador (AD-017)
+
+Os testes de `tests/navegador/` abrem o painel num Chromium real com `pytest-playwright`. Cada
+sessão sobe um PostGIS efêmero, semeia fixtures e serve a app numa porta livre. Eles ficam fora da
+suíte padrão: o marcador `navegador` os deixa de fora, e `pytest tests/unit tests/integration` não
+os coleta. Peça-os de forma explícita.
+
+Na primeira vez, baixe o navegador (cerca de 150 MB):
+
+```bash
+.venv/bin/playwright install chromium
+```
+
+Depois rode:
+
+```bash
+.venv/bin/pytest tests/navegador -m navegador -q
+```
+
+NOTE: O MapLibre vem do `unpkg.com`. Essa é a única saída de rede que a suíte permite. As fontes e o
+estilo do OpenFreeMap são interceptados.
+
 ### Lint e type-check
 
 Rode antes de qualquer commit (mesmo padrão dos gates do `tlc-spec-driven`, mas para o código):

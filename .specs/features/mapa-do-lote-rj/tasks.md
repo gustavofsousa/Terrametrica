@@ -469,10 +469,10 @@ T24 → T25
 **Requirement**: AD-017
 
 **Done when**:
-- [ ] Smoke: a fixture abre `cobertura.html` e acha a tabela de cobertura. O teste do canvas do mapa entra na T20.
-- [ ] `pytest tests/unit tests/integration` não coleta `tests/navegador`.
-- [ ] DEV-SETUP explica `playwright install chromium`.
-- [ ] Gate full passa.
+- [x] Smoke: a fixture abre `cobertura.html` e acha a tabela de cobertura. O teste do canvas do mapa entra na T20.
+- [x] `pytest tests/unit tests/integration` não coleta `tests/navegador`.
+- [x] DEV-SETUP explica `playwright install chromium`.
+- [x] Gate full passa.
 
 **Tests**: e2e
 **Gate**: full

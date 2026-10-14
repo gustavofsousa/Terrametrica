@@ -16,7 +16,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11", "testcontainers[postgres]>=4.8"]
+dev = [
+    "pytest>=8",
+    "pytest-playwright>=0.7",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "testcontainers[postgres]>=4.8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -28,7 +34,8 @@ packages = ["src/terrametrica"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not navegador'"
+markers = ["navegador: testes de navegador real com pytest-playwright (AD-017)"]
 
 [tool.ruff]
 src = ["src", "tests"]
