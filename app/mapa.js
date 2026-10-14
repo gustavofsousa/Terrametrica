@@ -10,6 +10,7 @@ import { API_BASE, BBOX_RJ } from "./config.js";
 import { criarControladorDeConsultas } from "./consultas.js";
 import { renderDossie } from "./dossie.js";
 import { bboxDe, mascaraFora } from "./geometria.js";
+import { escreverSelecao, lerSelecao } from "./url.js";
 import { htmlCarregando, htmlPainel, variavelDeCor } from "./painel.js";
 
 const URL_ESTILO = "https://tiles.openfreemap.org/styles/positron";
@@ -21,6 +22,7 @@ const painel = $("conteudo-painel");
 const reducaoDeMovimento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const cssVar = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
 const FEATURES_VAZIAS = { type: "FeatureCollection", features: [] };
+const DICA_INICIAL = painel.innerHTML; // o texto "Clique num ponto…" que a página já traz
 
 const mapa = new maplibregl.Map({
   container: "mapa",
@@ -51,6 +53,7 @@ mapa.on("style.load", () => {
   estiloCarregado = true;
   adicionarCamadas();
   carregarContorno();
+  abrirSelecaoDaUrl();
 });
 
 // Os rótulos do basemap ficam por cima dos nossos dados: tudo entra antes do primeiro `symbol`.
@@ -128,6 +131,8 @@ const consultas = criarControladorDeConsultas({
   baseUrl: API_BASE,
   aoIniciar: (ponto) => {
     ultimoPonto = ponto;
+    // replaceState, nunca pushState: o histórico não cresce a cada clique (MAPA-14).
+    history.replaceState(null, "", location.pathname + escreverSelecao(ponto.lat, ponto.lon));
     limparLote();
     marcarPonto(ponto);
     painel.innerHTML = htmlCarregando();
@@ -145,6 +150,26 @@ const consultas = criarControladorDeConsultas({
 });
 
 mapa.on("click", (evento) => consultas.consultar(evento.lngLat.lat, evento.lngLat.lng));
+
+// ?lat=&lon= válidos e dentro do RJ viram uma consulta; qualquer outra coisa é ignorada (MAPA-13).
+let selecaoDaUrlAberta = false;
+function abrirSelecaoDaUrl() {
+  if (selecaoDaUrlAberta) return;
+  selecaoDaUrlAberta = true;
+  const ponto = lerSelecao(location.search);
+  if (ponto) consultas.consultar(ponto.lat, ponto.lon);
+}
+
+// Esc limpa a seleção: contorno, ponto, painel e parâmetros da URL (MAPA-14).
+document.addEventListener("keydown", (evento) => {
+  if (evento.key !== "Escape") return;
+  consultas.cancelar();
+  limparLote();
+  mapa.getSource("ponto-clicado")?.setData(FEATURES_VAZIAS);
+  painel.innerHTML = DICA_INICIAL;
+  ultimoPonto = null;
+  history.replaceState(null, "", location.pathname);
+});
 
 // "Tentar de novo" repete o mesmo ponto (MAPA-18).
 painel.addEventListener("click", (evento) => {

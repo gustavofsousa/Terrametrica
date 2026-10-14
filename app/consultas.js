@@ -43,5 +43,11 @@ export function criarControladorDeConsultas({
     }
   }
 
-  return { consultar };
+  // Esc: nenhuma resposta em andamento pode repintar o painel depois (MAPA-14).
+  function cancelar() {
+    ultimaSequencia++;
+    consultaAtual?.abort();
+  }
+
+  return { consultar, cancelar };
 }

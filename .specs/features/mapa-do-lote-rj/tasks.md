@@ -532,8 +532,8 @@ T24 → T25
 **Requirement**: MAPA-13, MAPA-14
 
 **Done when**:
-- [ ] E2E: abrir com parâmetros de um lote → contorno e dossiê; parâmetro inválido → nenhuma requisição a `/dossie`; 3 cliques → `history.length` igual; Esc → sem contorno e sem parâmetros.
-- [ ] Gate full passa.
+- [x] E2E: abrir com parâmetros de um lote → contorno e dossiê; parâmetro inválido → nenhuma requisição a `/dossie`; 3 cliques → `history.length` igual; Esc → sem contorno e sem parâmetros.
+- [x] Gate full passa.
 
 **Tests**: e2e
 **Gate**: full

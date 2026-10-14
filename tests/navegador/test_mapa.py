@@ -17,6 +17,7 @@ from tests.navegador.semente import (
     IDS_SOBREPOSTOS,
     PONTO_FORA_DO_RJ,
     PONTO_LOTE,
+    PONTO_SEM_LOTE,
     PONTO_SOBREPOSTO,
 )
 
@@ -269,3 +270,57 @@ class TestSobreposicao:
 
         pagina.locator(".marca").hover()  # sai da linha
         assert estado_do_candidato(pagina, "OVL-2").get("hover") in (None, False)
+
+
+class TestSelecaoNaUrl:
+    """spec:mapa-do-lote-rj — MAPA-13, MAPA-14."""
+
+    def test_mapa13_abrir_com_parametros_de_um_lote_mostra_o_contorno_e_o_dossie(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        lat, lon = PONTO_LOTE
+        abrir_mapa(pagina, base_url, f"/?lat={lat}&lon={lon}")
+
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        esperar_mapa_parado(pagina)
+        assert ids_do_lote_selecionado(pagina) == ["SIGEF-001"]
+
+    def test_mapa13_parametros_invalidos_nao_fazem_nenhuma_requisicao_ao_dossie(
+        self, pagina: Page, base_url: str, requisicoes: list[str]
+    ) -> None:
+        for consulta in ("?lat=abc&lon=-43.1", "?lat=-23.5505&lon=-46.6333", "?lat=-22.9"):
+            abrir_mapa(pagina, base_url, f"/{consulta}")
+            esperar_mapa_parado(pagina)
+
+        assert requisicoes
+        assert not [u for u in requisicoes if "/dossie?" in u]  # a API, não o dossie.js
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("Clique num ponto")
+
+    def test_mapa14_cliques_trocam_a_url_sem_criar_entradas_no_historico(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        entradas = pagina.evaluate("() => history.length")
+
+        for ponto in (PONTO_LOTE, PONTO_SEM_LOTE, PONTO_LOTE):
+            consultar_ponto(pagina, *ponto)
+            expect(pagina.locator("#conteudo-painel h2")).to_be_visible()
+
+        assert pagina.evaluate("() => history.length") == entradas
+        lat, lon = PONTO_LOTE
+        assert pagina.url.endswith(f"?lat={lat:.6f}&lon={lon:.6f}")
+
+    def test_mapa14_esc_remove_contorno_painel_e_parametros(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_LOTE)
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        assert ids_do_lote_selecionado(pagina) == ["SIGEF-001"]
+
+        pagina.keyboard.press("Escape")
+
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("Clique num ponto")
+        esperar_mapa_parado(pagina)
+        assert ids_do_lote_selecionado(pagina) == []
+        assert "?" not in pagina.url

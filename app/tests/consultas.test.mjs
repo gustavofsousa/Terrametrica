@@ -127,3 +127,18 @@ test("corpo que não é JSON vira {} em vez de quebrar (erro HTTP sem corpo)", a
   assert.equal(entregas[0].status, 502);
   assert.deepEqual(entregas[0].corpo, {});
 });
+
+test("MAPA-14 cancelar descarta a resposta da consulta em andamento", async () => {
+  const { fetchFn, chamadas } = criarFetchControlado();
+  const entregas = [];
+  const { consultar, cancelar } = criarControladorDeConsultas({
+    fetchFn, aoResponder: (r) => entregas.push(r),
+  });
+
+  const a = consultar(-22.9, -43.1);
+  cancelar();
+  chamadas[0].resolve(resposta(200, { tipo: "A" }));
+  await a;
+
+  assert.deepEqual(entregas, []);
+});
