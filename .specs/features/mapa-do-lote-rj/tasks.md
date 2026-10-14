@@ -412,8 +412,8 @@ T24 → T25
 **Requirement**: MAPA-04, MAPA-08
 
 **Done when**:
-- [ ] `node --test`: Polygon, MultiPolygon com partes distantes, máscara com N furos para N partes do RJ.
-- [ ] Gate quick passa.
+- [x] `node --test`: Polygon, MultiPolygon com partes distantes, máscara com N furos para N partes do RJ.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick
