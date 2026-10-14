@@ -21,6 +21,7 @@ from terrametrica.dominio.modelos import (
     IntersecaoBruta,
     LoteRural,
     LoteUrbano,
+    Municipio,
     Proveniencia,
     SemLote,
     SituacaoCertificacao,
@@ -105,11 +106,21 @@ class TestRamosSemDossie:
             CoberturaCamada(Camada.UNIDADE_CONSERVACAO, tem_dado=False),
             CoberturaCamada(Camada.INUNDACAO, tem_dado=True, data_extracao=FRESCO),
         ]
-        repo = FakeRepositorioLotes(lote=None, municipio="Maricá", coberturas=coberturas)
+        maricá = Municipio(codigo="3302700", nome="Maricá")
+        repo = FakeRepositorioLotes(lote=None, municipio=maricá, coberturas=coberturas)
         resultado = _montar(repo)
         assert isinstance(resultado, SemLote)
-        assert resultado.municipio == "Maricá"
+        assert resultado.municipio == maricá
         assert resultado.cobertura == tuple(coberturas)
+        assert repo.municipios_com_cobertura_pedida == ["3302700"]
+
+    def test_mun03_ponto_no_rj_fora_de_todo_municipio_devolve_sem_lote_sem_municipio(
+        self,
+    ) -> None:
+        repo = FakeRepositorioLotes(lote=None, municipio=None)
+        resultado = _montar(repo)
+        assert resultado == SemLote(municipio=None, cobertura=())
+        assert repo.municipios_com_cobertura_pedida == []
 
     def test_sobreposicao_devolve_candidatos_para_escolha(self) -> None:
         sobre = Sobreposicao(candidatos=(RURAL, URBANO))

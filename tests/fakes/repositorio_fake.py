@@ -12,6 +12,7 @@ from terrametrica.dominio.modelos import (
     Coordenada,
     IntersecaoBruta,
     LoteHit,
+    Municipio,
     Proveniencia,
     Sobreposicao,
     VersaoBase,
@@ -33,10 +34,11 @@ class FakeRepositorioLotes:
     """Read-model fake configurável por teste."""
 
     lote: LoteHit | Sobreposicao | None = None
-    municipio: str = "Niterói"
+    municipio: Municipio | None = Municipio(codigo="3303302", nome="Niterói")
     intersecoes: list[IntersecaoBruta] = field(default_factory=list)
     proveniencias: dict[Camada, Proveniencia | None] = field(default_factory=dict)
     coberturas: list[CoberturaCamada] = field(default_factory=list)
+    municipios_com_cobertura_pedida: list[str] = field(default_factory=list)
 
     def lote_em(self, coord: Coordenada, versao: VersaoBase) -> LoteHit | Sobreposicao | None:
         return self.lote
@@ -47,8 +49,9 @@ class FakeRepositorioLotes:
     def proveniencia_de(self, camada: Camada, versao: VersaoBase) -> Proveniencia | None:
         return self.proveniencias.get(camada)
 
-    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> str:
+    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> Municipio | None:
         return self.municipio
 
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:
+        self.municipios_com_cobertura_pedida.append(municipio)
         return self.coberturas

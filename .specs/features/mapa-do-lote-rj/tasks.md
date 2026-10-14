@@ -215,10 +215,10 @@ T24 → T25
 **Requirement**: MUN-02, MUN-03
 
 **Done when**:
-- [ ] Unit: ponto no RJ sem lote com município no fake → `SemLote` com código e nome.
-- [ ] Unit: fake sem município → `SemLote(municipio=None, cobertura=())`.
-- [ ] mypy strict passa.
-- [ ] Gate quick passa.
+- [x] Unit: ponto no RJ sem lote com município no fake → `SemLote` com código e nome.
+- [x] Unit: fake sem município → `SemLote(municipio=None, cobertura=())`.
+- [x] mypy strict passa.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick

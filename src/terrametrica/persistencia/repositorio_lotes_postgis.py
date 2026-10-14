@@ -27,6 +27,7 @@ from terrametrica.dominio.modelos import (
     LoteHit,
     LoteRural,
     LoteUrbano,
+    Municipio,
     Proveniencia,
     SituacaoCertificacao,
     Sobreposicao,
@@ -136,7 +137,7 @@ class RepositorioLotesPostGIS:
         fonte, data_extracao, link_oficial = linha
         return Proveniencia(fonte=fonte, data_extracao=data_extracao, link_oficial=link_oficial)
 
-    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> str:
+    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> Municipio | None:
         raise NotImplementedError(MENSAGEM_TD_001)
 
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:

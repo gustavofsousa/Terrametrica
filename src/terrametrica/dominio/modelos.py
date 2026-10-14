@@ -162,6 +162,14 @@ class CoberturaCamada:
 
 
 @dataclass(frozen=True, slots=True)
+class Municipio:
+    """Município da malha do IBGE: código de 7 dígitos e nome (MUN-02)."""
+
+    codigo: str
+    nome: str
+
+
+@dataclass(frozen=True, slots=True)
 class CoberturaMunicipio:
     """Cobertura de todas as camadas para um único município (COBPUB-02/03, F1.12)."""
 
@@ -248,9 +256,12 @@ class ForaDoRJ:
 
 @dataclass(frozen=True, slots=True)
 class SemLote:
-    """Clique sem polígono conhecido: município + cobertura declarada (DOS-04)."""
+    """Clique sem polígono conhecido: município + cobertura declarada (DOS-04).
 
-    municipio: str
+    `municipio` é `None` quando o ponto está no RJ mas fora de todo município da malha (MUN-03).
+    """
+
+    municipio: Municipio | None
     cobertura: tuple[CoberturaCamada, ...]
 
     MENSAGEM = "sem lote mapeado neste ponto"

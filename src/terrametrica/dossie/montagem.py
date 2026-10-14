@@ -59,7 +59,11 @@ def montar_dossie(
 
     if achado is None:
         municipio = repo.municipio_em(coord, versao)
-        return SemLote(municipio=municipio, cobertura=tuple(repo.cobertura_de(municipio)))
+        if municipio is None:
+            return SemLote(municipio=None, cobertura=())
+        return SemLote(
+            municipio=municipio, cobertura=tuple(repo.cobertura_de(municipio.codigo))
+        )
 
     if isinstance(achado, Sobreposicao):
         return achado

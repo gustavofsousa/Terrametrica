@@ -46,7 +46,7 @@ def sem_lote_para_dict(sem_lote: SemLote) -> dict[str, object]:
     return {
         "tipo": "sem_lote",
         "mensagem": sem_lote.mensagem,
-        "municipio": sem_lote.municipio,
+        "municipio": sem_lote.municipio.codigo if sem_lote.municipio else None,
         "cobertura": [_cobertura_para_dict(c) for c in sem_lote.cobertura],
     }
 

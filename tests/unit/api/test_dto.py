@@ -24,6 +24,7 @@ from terrametrica.dominio.modelos import (
     Dossie,
     ItemRestricao,
     LoteRural,
+    Municipio,
     Proveniencia,
     SemLote,
     SituacaoCertificacao,
@@ -135,7 +136,8 @@ class TestSemLoteParaDict:
         cobertura = (
             CoberturaCamada(camada=Camada.APP, tem_dado=True, data_extracao=date(2026, 6, 1)),
         )
-        d = sem_lote_para_dict(SemLote(municipio="3300100", cobertura=cobertura))
+        municipio = Municipio("3300100", "Angra dos Reis")
+        d = sem_lote_para_dict(SemLote(municipio=municipio, cobertura=cobertura))
 
         assert d["tipo"] == "sem_lote"
         assert d["municipio"] == "3300100"

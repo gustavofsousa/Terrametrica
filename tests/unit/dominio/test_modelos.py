@@ -22,6 +22,7 @@ from terrametrica.dominio.modelos import (
     ForaDoRJ,
     Indisponivel,
     LoteRural,
+    Municipio,
     Negado,
     PapelConta,
     Permitido,
@@ -114,7 +115,7 @@ class TestTiposResultado:
 
     def test_sem_lote_traz_mensagem_do_spec(self) -> None:
         # DOS-04: texto literal exigido pelo spec
-        assert SemLote(municipio="Niterói", cobertura=()).mensagem == (
+        assert SemLote(municipio=Municipio("3303302", "Niterói"), cobertura=()).mensagem == (
             "sem lote mapeado neste ponto"
         )
 

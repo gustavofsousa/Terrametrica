@@ -13,6 +13,7 @@ from terrametrica.dominio.modelos import (
     Coordenada,
     IntersecaoBruta,
     LoteHit,
+    Municipio,
     Proveniencia,
     Sobreposicao,
     VersaoBase,
@@ -39,10 +40,10 @@ class RepositorioLotes(Protocol):
         """
         ...
 
-    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> str:
-        """Município que contém o ponto (malha IBGE). Usado para declarar cobertura
+    def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> Municipio | None:
+        """Município que contém o ponto (malha IBGE da versão). Usado para declarar cobertura
         quando não há lote no ponto (DOS-04). Só é chamado após `LimiteEstado.contem`
-        confirmar que a coordenada está no RJ, então sempre resolve um município."""
+        confirmar que a coordenada está no RJ; `None` = ponto fora de todo município da malha."""
         ...
 
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:
