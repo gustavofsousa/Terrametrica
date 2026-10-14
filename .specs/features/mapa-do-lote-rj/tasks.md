@@ -134,10 +134,10 @@ T24 → T25
 **Requirement**: MUN-01, MUN-04, MUN-05, MUN-06
 
 **Done when**:
-- [ ] Unit: 91 municípios, 93, um código fora de `33` e uma geometria vazia → `MalhaIncompleta` com a contagem na mensagem.
-- [ ] Unit: o mesmo GeoDataFrame em ordem diferente → o mesmo SHA.
-- [ ] Integration: 92 feições sintéticas → 92 linhas; segunda carga na mesma versão → 92 linhas; proveniência com SHA.
-- [ ] Gate full passa.
+- [x] Unit: 91 municípios, 93, um código fora de `33` e uma geometria vazia → `MalhaIncompleta` com a contagem na mensagem.
+- [x] Unit: o mesmo GeoDataFrame em ordem diferente → o mesmo SHA.
+- [x] Integration: 92 feições sintéticas → 92 linhas; segunda carga na mesma versão → 92 linhas; proveniência com SHA.
+- [x] Gate full passa.
 
 **Tests**: unit + integration
 **Gate**: full
