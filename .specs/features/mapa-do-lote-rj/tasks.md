@@ -551,9 +551,9 @@ T24 → T25
 **Requirement**: MAPA-15, MAPA-16
 
 **Done when**:
-- [ ] E2E (390×844): altura da folha ≤ 422 px; bbox do lote acima da folha; toque no mapa visível consulta.
-- [ ] UX DoD: alvos de toque ≥ 44 px; sem rolagem horizontal.
-- [ ] Gate full passa.
+- [x] E2E (390×844): altura da folha ≤ 422 px; bbox do lote acima da folha; toque no mapa visível consulta.
+- [x] UX DoD: alvos de toque ≥ 44 px; sem rolagem horizontal.
+- [x] Gate full passa.
 
 **Tests**: e2e
 **Gate**: full

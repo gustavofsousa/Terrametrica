@@ -20,7 +20,7 @@ import httpx
 import pytest
 import uvicorn
 from fastapi.staticfiles import StaticFiles
-from playwright.sync_api import BrowserContext, Page, Route
+from playwright.sync_api import Browser, BrowserContext, Page, Route
 from testcontainers.community.postgres import PostgresContainer
 
 from terrametrica.api.app import criar_app
@@ -146,6 +146,22 @@ def pagina(context: BrowserContext, base_url: str) -> Iterator[Page]:
     pagina.set_default_timeout(10_000)  # falha rápido: o padrão (30 s) esconde teste travado
     yield pagina
     pagina.close()
+
+
+@pytest.fixture
+def pagina_celular(browser: Browser, base_url: str) -> Iterator[Page]:
+    """Página de celular (390×844, toque), com as mesmas rotas externas controladas."""
+    contexto = browser.new_context(
+        viewport={"width": 390, "height": 844},
+        has_touch=True,
+        is_mobile=True,
+        device_scale_factor=2,
+    )
+    _rotear_externos(contexto)
+    pagina = contexto.new_page()
+    pagina.set_default_timeout(10_000)
+    yield pagina
+    contexto.close()
 
 
 @pytest.fixture

@@ -122,6 +122,8 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   background: var(--warn-wash); color: var(--warn); border: 1px solid var(--warn);
 }
 .aviso-mapa[hidden] { display: none; }
+/* A regra global `button` (login) não pode vazar para os controles do MapLibre. */
+.maplibregl-ctrl-group button { margin: 0; }
 .maplibregl-canvas:focus-visible { outline: 2px solid var(--water); outline-offset: -2px; }
 .maplibregl-ctrl-attrib { background: rgba(255, 255, 255, .9); }
 .maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib a { color: #19222c; }
@@ -145,10 +147,22 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .restricao .pct { font-family: var(--f-mono); color: var(--warn); }
 .badge { display: inline-block; font-family: var(--f-mono); font-size: .78rem; padding: .1rem .45rem; border-radius: 6px; background: var(--surface-alt); color: var(--ink-soft); }
 
-@media (max-width: 720px) {
-  .app-shell { flex-direction: column; }
-  .mapa-area { height: 45vh; flex: none; }
-  .painel { width: 100%; border-left: none; border-top: 1px solid var(--rule); }
+/* Celular: o mapa ocupa a tela e o painel vira uma folha inferior de até 50% da altura (MAPA-15).
+   O mapa continua por baixo e recebe cliques e gestos na área visível (MAPA-16); a câmera usa o
+   `padding` inferior do `mapa.js` para o lote não ficar sob a folha. */
+@media (max-width: 640px) {
+  .app-shell { position: relative; }
+  .mapa-area { position: absolute; inset: 0; }
+  .painel {
+    position: fixed; z-index: 3; left: 0; right: 0; bottom: 0; width: 100%;
+    max-height: 50vh; max-height: 50dvh;
+    border-left: none; border-top: 1px solid var(--rule); border-radius: 16px 16px 0 0;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  /* A folha cobre o rodapé do mapa: a atribuição sobe com ela e segue visível. */
+  .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: var(--altura-folha, 0); }
+  /* Alvos de toque de pelo menos 44 px. */
+  .painel .sair, .painel button, .maplibregl-ctrl-group button { min-width: 44px; min-height: 44px; }
 }
 
 .cobertura-tela { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem; }

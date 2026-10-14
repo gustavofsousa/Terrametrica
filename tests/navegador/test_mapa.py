@@ -324,3 +324,95 @@ class TestSelecaoNaUrl:
         esperar_mapa_parado(pagina)
         assert ids_do_lote_selecionado(pagina) == []
         assert "?" not in pagina.url
+
+
+class TestCelular:
+    """spec:mapa-do-lote-rj — MAPA-15, MAPA-16 (viewport 390×844)."""
+
+    def test_mapa15_folha_inferior_com_ate_50_por_cento_e_o_lote_fica_acima_dela(
+        self, pagina_celular: Page, base_url: str
+    ) -> None:
+        pagina = pagina_celular
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_LOTE, zoom=11)
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        esperar_mapa_parado(pagina)
+
+        folha = pagina.locator(".painel").bounding_box()
+        mapa = pagina.locator("#mapa canvas").bounding_box()
+        assert folha is not None and mapa is not None
+        assert folha["height"] <= 422  # 50% de 844
+        assert folha["y"] + folha["height"] == 844  # encostada na base
+        assert mapa["width"] == 390  # o mapa ocupa a largura inteira
+        # cantos do SIGEF-001: [-43.105, -22.905] e [-43.095, -22.895]
+        cantos = pagina.evaluate(
+            """() => [[-43.105, -22.905], [-43.095, -22.895]].map((c) => {
+                const p = __mapa.project(c);
+                return [p.x, p.y];
+            })"""
+        )
+        for x, y in cantos:
+            assert 0 <= x <= 390
+            assert 0 <= y <= folha["y"], (y, folha["y"])  # acima da folha
+
+    def test_mapa16_toque_no_mapa_visivel_consulta_e_nada_o_bloqueia(
+        self, pagina_celular: Page, base_url: str
+    ) -> None:
+        pagina = pagina_celular
+        abrir_mapa(pagina, base_url)
+        lat, lon = PONTO_LOTE
+        # O lote vai para a parte de cima do mapa, a que a folha não cobre.
+        pagina.evaluate(
+            "([lon, lat]) => __mapa.jumpTo({ center: [lon, lat], zoom: 14, "
+            "padding: { bottom: 422 } })",
+            [lon, lat],
+        )
+        esperar_mapa_parado(pagina)
+        x, y = pagina.evaluate(
+            "([lon, lat]) => { const p = __mapa.project([lon, lat]); return [p.x, p.y]; }",
+            [lon, lat],
+        )
+        folha = pagina.locator(".painel").bounding_box()
+        assert folha is not None and y < folha["y"]
+        alvo = pagina.evaluate(
+            "([x, y]) => document.elementFromPoint(x, y).tagName", [x, y]
+        )
+        assert alvo == "CANVAS"  # nenhuma camada invisível sobre o mapa
+
+        pagina.touchscreen.tap(x, y)
+
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+
+    def test_alvos_de_toque_de_pelo_menos_44px_e_sem_rolagem_horizontal(
+        self, pagina_celular: Page, base_url: str
+    ) -> None:
+        pagina = pagina_celular
+        abrir_mapa(pagina, base_url)
+
+        tamanhos = pagina.evaluate(
+            """() => [...document.querySelectorAll('button')].map((b) => {
+                const r = b.getBoundingClientRect();
+                return [b.getAttribute('aria-label') || b.textContent.trim(), r.width, r.height];
+            })"""
+        )
+
+        assert len(tamanhos) >= 4  # sair + controles do mapa
+        for rotulo, largura, altura in tamanhos:
+            assert largura >= 44 and altura >= 44, (rotulo, largura, altura)
+        dimensoes = pagina.evaluate(
+            "() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]"
+        )
+        assert dimensoes[0] <= dimensoes[1]
+
+    def test_atribuicao_fica_acima_da_folha_e_visivel(
+        self, pagina_celular: Page, base_url: str
+    ) -> None:
+        pagina = pagina_celular
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_LOTE, zoom=11)
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+
+        atribuicao = pagina.locator(".maplibregl-ctrl-attrib").bounding_box()
+        folha = pagina.locator(".painel").bounding_box()
+        assert atribuicao is not None and folha is not None
+        assert atribuicao["y"] + atribuicao["height"] <= folha["y"] + 1

@@ -259,10 +259,17 @@ function paddingLivre() {
   const sobrepoe = folha.left < area.right && folha.right > area.left
     && folha.top < area.bottom && folha.bottom > area.top;
   if (!sobrepoe) return padding;
-  if (folha.top > area.top + area.height / 2) padding.bottom += area.bottom - folha.top;
-  else if (folha.left > area.left + area.width / 2) padding.right += area.right - folha.left;
+  const folhaInferior = folha.width >= area.width * 0.9; // ocupa a largura toda: é a folha do celular
+  if (folhaInferior) padding.bottom += area.bottom - folha.top;
+  else padding.right += area.right - folha.left;
   return padding;
 }
+
+// A folha inferior cobre o rodapé do mapa: o CSS sobe os controles de rodapé por esta variável.
+new ResizeObserver(([entrada]) => {
+  const altura = entrada.target.getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--altura-folha", `${altura}px`);
+}).observe(document.querySelector(".painel"));
 
 // --- Logout ----------------------------------------------------------------------------------
 $("sair").addEventListener("click", async () => {
