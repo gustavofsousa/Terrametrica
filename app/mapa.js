@@ -19,6 +19,7 @@ const MARGEM_PX = 48;
 
 const $ = (id) => document.getElementById(id);
 const painel = $("conteudo-painel");
+const regiaoDoPainel = document.querySelector(".painel"); // a região `aria-live` (MAPA-17, MAPA-19)
 const reducaoDeMovimento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const cssVar = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
 const FEATURES_VAZIAS = { type: "FeatureCollection", features: [] };
@@ -135,21 +136,33 @@ const consultas = criarControladorDeConsultas({
     history.replaceState(null, "", location.pathname + escreverSelecao(ponto.lat, ponto.lon));
     limparLote();
     marcarPonto(ponto);
+    regiaoDoPainel.setAttribute("aria-busy", "true");
     painel.innerHTML = htmlCarregando();
   },
   aoResponder: (resultado) => {
+    regiaoDoPainel.setAttribute("aria-busy", "false");
     if (resultado.status === 401) {
       window.location.href = "login.html"; // sessão ausente/expirada (PAINEL-12/06)
       return;
     }
     const vm = renderDossie(resultado);
     painel.innerHTML = htmlPainel(vm);
+    focarTitulo();
     if (vm.estado === "dossie" && vm.geometria) selecionarLote(vm);
     if (vm.estado === "sobreposicao") mostrarCandidatos(vm.candidatos);
   },
 });
 
 mapa.on("click", (evento) => consultas.consultar(evento.lngLat.lat, evento.lngLat.lng));
+
+// O resultado leva o foco ao título do painel, mas nunca no meio de um arraste do mapa (MAPA-19).
+let arrastando = false;
+mapa.on("dragstart", () => { arrastando = true; });
+mapa.on("dragend", () => { arrastando = false; });
+
+function focarTitulo() {
+  if (!arrastando) document.getElementById("titulo-painel")?.focus({ preventScroll: true });
+}
 
 // ?lat=&lon= válidos e dentro do RJ viram uma consulta; qualquer outra coisa é ignorada (MAPA-13).
 let selecaoDaUrlAberta = false;
@@ -164,6 +177,7 @@ function abrirSelecaoDaUrl() {
 document.addEventListener("keydown", (evento) => {
   if (evento.key !== "Escape") return;
   consultas.cancelar();
+  regiaoDoPainel.setAttribute("aria-busy", "false");
   limparLote();
   mapa.getSource("ponto-clicado")?.setData(FEATURES_VAZIAS);
   painel.innerHTML = DICA_INICIAL;

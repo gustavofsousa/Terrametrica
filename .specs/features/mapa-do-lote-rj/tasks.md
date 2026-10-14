@@ -571,8 +571,8 @@ T24 → T25
 **Requirement**: MAPA-17, MAPA-18, MAPA-19
 
 **Done when**:
-- [ ] E2E: durante a consulta, `aria-busy="true"` e o lote anterior sem estilo de selecionado; API bloqueada → erro + botão; liberar e clicar → dossiê do mesmo ponto; o foco vai para o `h2` do painel.
-- [ ] Gate full + build passam (fim da fase 4).
+- [x] E2E: durante a consulta, `aria-busy="true"` e o lote anterior sem estilo de selecionado; API bloqueada → erro + botão; liberar e clicar → dossiê do mesmo ponto; o foco vai para o `h2` do painel.
+- [x] Gate full + build passam (fim da fase 4).
 
 **Tests**: e2e
 **Gate**: build

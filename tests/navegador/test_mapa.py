@@ -416,3 +416,82 @@ class TestCelular:
         folha = pagina.locator(".painel").bounding_box()
         assert atribuicao is not None and folha is not None
         assert atribuicao["y"] + atribuicao["height"] <= folha["y"] + 1
+
+
+class TestEsperaErroEFoco:
+    """spec:mapa-do-lote-rj — MAPA-17, MAPA-18, MAPA-19."""
+
+    def test_mapa17_durante_a_consulta_o_painel_fica_busy_e_sem_lote_selecionado(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_LOTE)
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        esperar_mapa_parado(pagina)
+        assert ids_do_lote_selecionado(pagina) == ["SIGEF-001"]
+        pendentes: list[Route] = []
+        pagina.route("**/dossie?*", lambda rota: pendentes.append(rota))
+
+        clicar_no_centro(pagina)
+
+        expect(pagina.locator(".painel")).to_have_attribute("aria-busy", "true")
+        expect(pagina.locator("#conteudo-painel")).to_have_text("Consultando o lote…")
+        # o lote anterior saiu do estilo de selecionado enquanto a nova consulta espera
+        assert ids_do_lote_selecionado(pagina) == []
+        pendentes[0].continue_()
+        expect(pagina.locator(".painel")).to_have_attribute("aria-busy", "false")
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+
+    def test_mapa18_api_bloqueada_mostra_erro_e_tentar_de_novo_repete_o_mesmo_ponto(
+        self, pagina: Page, base_url: str, requisicoes: list[str]
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        pagina.route("**/dossie?*", lambda rota: rota.abort())
+
+        consultar_ponto(pagina, *PONTO_LOTE)
+
+        painel = pagina.locator("#conteudo-painel")
+        expect(painel).to_contain_text("Não foi possível consultar")
+        botao = painel.get_by_role("button", name="Tentar de novo")
+        expect(botao).to_be_visible()
+
+        pagina.unroute("**/dossie?*")
+        botao.click()
+
+        expect(painel).to_contain_text("SIGEF-001")
+        consultas = [u for u in requisicoes if "/dossie?" in u]
+        assert len(consultas) == 2
+        assert consultas[0] == consultas[1]  # o mesmo ponto, não o último clique do mouse
+
+    def test_mapa19_o_resultado_leva_o_foco_ao_titulo_e_a_regiao_e_anunciada(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+
+        consultar_ponto(pagina, *PONTO_LOTE)
+
+        expect(pagina.locator(".painel")).to_have_attribute("aria-live", "polite")
+        titulo = pagina.locator("#conteudo-painel h2")
+        expect(titulo).to_have_text("SIGEF-001")
+        expect(titulo).to_be_focused()
+
+    def test_mapa19_resultado_que_chega_durante_um_arraste_nao_rouba_o_foco(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        pendentes: list[Route] = []
+        pagina.route("**/dossie?*", lambda rota: pendentes.append(rota))
+        consultar_ponto(pagina, *PONTO_LOTE)
+        expect(pagina.locator("#conteudo-painel")).to_have_text("Consultando o lote…")
+        caixa = pagina.locator("#mapa canvas").bounding_box()
+        assert caixa is not None
+        x, y = caixa["x"] + 100, caixa["y"] + 100
+
+        pagina.mouse.move(x, y)
+        pagina.mouse.down()
+        pagina.mouse.move(x + 60, y + 40, steps=6)  # arraste em curso
+        pendentes[0].continue_()
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+
+        assert pagina.evaluate("() => document.activeElement.id") != "titulo-painel"
+        pagina.mouse.up()
