@@ -4,11 +4,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=Source+Serif+4:opsz,wght@8..60,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="estilos.css">
 
 <div class="app-shell">
-  <div id="mapa" role="application" aria-label="Mapa do estado do Rio de Janeiro; clique num ponto para ver o dossiê do lote"></div>
+  <div class="mapa-area">
+    <div id="mapa" role="application" aria-label="Mapa do estado do Rio de Janeiro; clique num ponto para ver o dossiê do lote"></div>
+    <p id="aviso-mapa" class="aviso-mapa" role="status" hidden></p>
+  </div>
   <aside class="painel" aria-live="polite">
     <header>
       <h2 class="marca">Terramétrica</h2>
@@ -20,5 +24,4 @@
   </aside>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module" src="mapa.js"></script>

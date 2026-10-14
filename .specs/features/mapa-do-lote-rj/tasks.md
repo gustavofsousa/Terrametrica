@@ -490,12 +490,12 @@ T24 → T25
 **Requirement**: MAPA-01, MAPA-02, MAPA-03, MAPA-04, MAPA-05, MAPA-08
 
 **Done when**:
-- [ ] E2E: nenhuma URL com `tile.openstreetmap.org`; atribuição visível; câmera inicial dentro do bbox do RJ; arraste para fora permitido.
-- [ ] E2E: estilo bloqueado → "Mapa base indisponível"; clique ainda consulta.
-- [ ] E2E: clique num lote semeado → camada `lote-selecionado` com o id; bbox do lote dentro da área livre do painel; com `reducedMotion: reduce`, sem animação.
-- [ ] E2E: clique fora do RJ → "Fora do estado do Rio de Janeiro".
-- [ ] UX DoD: foco visível, atribuição legível (contraste ≥ 4,5:1), estado de espera, sem rolagem horizontal em 320 px.
-- [ ] Gate full passa.
+- [x] E2E: nenhuma URL com `tile.openstreetmap.org`; atribuição visível; câmera inicial dentro do bbox do RJ; arraste para fora permitido.
+- [x] E2E: estilo bloqueado → "Mapa base indisponível"; clique ainda consulta.
+- [x] E2E: clique num lote semeado → camada `lote-selecionado` com o id; bbox do lote dentro da área livre do painel; com `reducedMotion: reduce`, sem animação.
+- [x] E2E: clique fora do RJ → "Fora do estado do Rio de Janeiro".
+- [x] UX DoD: foco visível, atribuição legível (contraste ≥ 4,5:1), estado de espera, sem rolagem horizontal em 320 px.
+- [x] Gate full passa.
 
 **Tests**: e2e
 **Gate**: full

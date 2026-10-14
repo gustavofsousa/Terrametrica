@@ -143,6 +143,7 @@ def pagina(context: BrowserContext, base_url: str) -> Iterator[Page]:
     """Página com as rotas externas sob controle; `pagina.goto("/")` abre a app."""
     _rotear_externos(context)
     pagina = context.new_page()
+    pagina.set_default_timeout(10_000)  # falha rápido: o padrão (30 s) esconde teste travado
     yield pagina
     pagina.close()
 
