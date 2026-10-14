@@ -420,3 +420,16 @@ class TestRotaCoberturaEstado:
         assert "corpo_dagua" in camadas  # nunca ingerida — não pode ficar omitida (COBPUB-03)
         assert camadas["corpo_dagua"]["tem_dado"] is False
         assert camadas["corpo_dagua"]["data_extracao"] is None
+
+    def test_mun08_lista_os_92_municipios_com_codigo_e_nome_em_ordem_alfabetica(
+        self, client: TestClient
+    ) -> None:
+        corpo = client.get("/cobertura/estado").json()
+
+        itens = corpo["municipios"]
+        assert len(itens) == 92
+        assert all(len(item["municipio"]) == 7 for item in itens)
+        nomes = [item["municipio_nome"] for item in itens]
+        assert nomes == sorted(nomes)
+        por_codigo = {item["municipio"]: item["municipio_nome"] for item in itens}
+        assert por_codigo["3304557"] == "Município 00"

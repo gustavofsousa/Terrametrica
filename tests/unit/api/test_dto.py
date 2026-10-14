@@ -185,7 +185,7 @@ class TestCoberturaEstadoParaDict:
         """COBPUB-03 edge case: camada nunca ingerida não pode ficar omitida da grade."""
         municipios = [
             CoberturaMunicipio(
-                municipio="Niterói",
+                municipio="3303302",
                 nome="Niterói",
                 camadas=(
                     CoberturaCamada(
@@ -198,7 +198,8 @@ class TestCoberturaEstadoParaDict:
         d = cobertura_estado_para_dict(municipios)
 
         (item,) = d["municipios"]  # type: ignore[misc]
-        assert item["municipio"] == "Niterói"
+        assert item["municipio"] == "3303302"
+        assert item["municipio_nome"] == "Niterói"  # MUN-08
         camadas_no_dict = {c["camada"]: c for c in item["cobertura"]}
         assert len(camadas_no_dict) == len(Camada)  # nenhuma camada omitida
         assert camadas_no_dict[Camada.APP.value]["tem_dado"] is True
@@ -213,11 +214,11 @@ class TestCoberturaEstadoParaDict:
     def test_preserva_ordem_dos_municipios_recebida(self) -> None:
         """COBPUB-02: a ordenação alfabética é responsabilidade do repositório; o DTO preserva."""
         municipios = [
-            CoberturaMunicipio(municipio="Angra dos Reis", nome="Angra dos Reis", camadas=()),
-            CoberturaMunicipio(municipio="Niterói", nome="Niterói", camadas=()),
+            CoberturaMunicipio(municipio="3300100", nome="Angra dos Reis", camadas=()),
+            CoberturaMunicipio(municipio="3303302", nome="Niterói", camadas=()),
         ]
 
         d = cobertura_estado_para_dict(municipios)
 
-        nomes = [item["municipio"] for item in d["municipios"]]  # type: ignore[misc]
+        nomes = [item["municipio_nome"] for item in d["municipios"]]  # type: ignore[misc]
         assert nomes == ["Angra dos Reis", "Niterói"]

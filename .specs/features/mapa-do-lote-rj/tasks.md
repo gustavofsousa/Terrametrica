@@ -335,8 +335,8 @@ T24 → T25
 **Requirement**: MUN-08
 
 **Done when**:
-- [ ] Unit + integration: cada item tem `municipio` e `municipio_nome`; ordem alfabética.
-- [ ] Gate full + build passam (fim da fase 2).
+- [x] Unit + integration: cada item tem `municipio` e `municipio_nome`; ordem alfabética.
+- [x] Gate full + build passam (fim da fase 2).
 
 **Tests**: unit + integration
 **Gate**: build

@@ -85,6 +85,7 @@ def cobertura_estado_para_dict(municipios: list[CoberturaMunicipio]) -> dict[str
         "municipios": [
             {
                 "municipio": item.municipio,
+                "municipio_nome": item.nome,
                 "cobertura": [
                     _cobertura_para_dict(_camada_ou_ausente(item, camada)) for camada in Camada
                 ],
