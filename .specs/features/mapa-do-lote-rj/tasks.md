@@ -236,9 +236,9 @@ T24 → T25
 **Requirement**: MUN-02
 
 **Done when**:
-- [ ] Integration: ponto dentro do município A → A; ponto no mar → `None`; mesma coordenada em duas versões com malhas diferentes → o município de cada versão.
-- [ ] `MENSAGEM_TD_001` removida.
-- [ ] Gate full passa.
+- [x] Integration: ponto dentro do município A → A; ponto no mar → `None`; mesma coordenada em duas versões com malhas diferentes → o município de cada versão.
+- [x] `MENSAGEM_TD_001` removida.
+- [x] Gate full passa.
 
 **Tests**: integration
 **Gate**: full

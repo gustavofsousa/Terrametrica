@@ -20,13 +20,14 @@ from terrametrica.dominio.modelos import (
     CoberturaCamada,
     Coordenada,
     LoteRural,
+    Municipio,
     Sobreposicao,
     TipoRestricao,
     VersaoBase,
 )
+from terrametrica.persistencia import repositorio_lotes_postgis as repositorio_postgis
 from terrametrica.persistencia.migrar import aplicar_migracoes
 from terrametrica.persistencia.repositorio_lotes_postgis import (
-    MENSAGEM_TD_001,
     RepositorioLotesPostGIS,
 )
 
@@ -400,13 +401,72 @@ class TestCoberturaDeTodos:
         assert repositorio.cobertura_de_todos() == []  # COBPUB-06
 
 
+def _inserir_municipio(
+    conexao: psycopg.Connection, versao: VersaoBase, *, codigo: str, nome: str, wkt: str
+) -> None:
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO municipio (codigo, nome, uf, geom, versao_base_id) "
+            "VALUES (%s, %s, '33', ST_GeomFromText(%s, 4674), %s)",
+            (codigo, nome, wkt, versao.id),
+        )
+
+
 class TestMunicipioEm:
-    def test_levanta_not_implemented_citando_td_001(
+    """spec:mapa-do-lote-rj — MUN-02 (fecha TD-001)."""
+
+    PONTO = Coordenada(lat=-22.9, lon=-43.1)
+
+    def test_mun02_ponto_dentro_do_municipio_devolve_codigo_e_nome(
         self,
+        conexao: psycopg.Connection,
         repositorio: RepositorioLotesPostGIS,
         versao: VersaoBase,
     ) -> None:
-        with pytest.raises(NotImplementedError, match="TD-001"):
-            repositorio.municipio_em(Coordenada(lat=-22.9, lon=-43.1), versao)
+        _inserir_municipio(
+            conexao, versao, codigo="3300100", nome="Município A", wkt=_quadrado_wkt(-43.1, -22.9)
+        )
+        _inserir_municipio(
+            conexao, versao, codigo="3300200", nome="Município B", wkt=_quadrado_wkt(-42.0, -22.9)
+        )
 
-        assert "TD-001" in MENSAGEM_TD_001
+        assert repositorio.municipio_em(self.PONTO, versao) == Municipio(
+            codigo="3300100", nome="Município A"
+        )
+
+    def test_mun02_ponto_no_mar_devolve_none(
+        self,
+        conexao: psycopg.Connection,
+        repositorio: RepositorioLotesPostGIS,
+        versao: VersaoBase,
+    ) -> None:
+        _inserir_municipio(
+            conexao, versao, codigo="3300100", nome="Município A", wkt=_quadrado_wkt(-43.1, -22.9)
+        )
+
+        assert repositorio.municipio_em(Coordenada(lat=-25.0, lon=-40.0), versao) is None
+
+    def test_mun02_mesma_coordenada_em_duas_versoes_devolve_o_municipio_de_cada_uma(
+        self,
+        conexao: psycopg.Connection,
+        repositorio: RepositorioLotesPostGIS,
+        versao: VersaoBase,
+    ) -> None:
+        outra = VersaoBase(id="2026-10", criada_em=date(2026, 10, 1))
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO versao_base (id, criada_em, status) VALUES (%s, %s, 'draft')",
+                (outra.id, outra.criada_em),
+            )
+        _inserir_municipio(
+            conexao, versao, codigo="3300100", nome="Município A", wkt=_quadrado_wkt(-43.1, -22.9)
+        )
+        _inserir_municipio(
+            conexao, outra, codigo="3300200", nome="Município B", wkt=_quadrado_wkt(-43.1, -22.9)
+        )
+
+        assert repositorio.municipio_em(self.PONTO, versao) == Municipio("3300100", "Município A")
+        assert repositorio.municipio_em(self.PONTO, outra) == Municipio("3300200", "Município B")
+
+    def test_mun02_mensagem_do_td_001_foi_removida_do_adapter(self) -> None:
+        assert not hasattr(repositorio_postgis, "MENSAGEM_TD_001")

@@ -9,8 +9,7 @@ dois ao mesmo tempo, e aí vira `Sobreposicao` com candidatos das duas naturezas
 estão populados nesta fatia; as demais camadas de restrição (UC, inundação, deslizamento, corpo
 d'água — INEA/ICMBio) ficam para fatias futuras, mesma tabela.
 
-`municipio_em` levanta `NotImplementedError` — TD-001 (`.specs/TECH-DEBT.md`): resolver
-uma coordenada em município exige a malha municipal do IBGE, fora do escopo desta fatia.
+`municipio_em` resolve o município pela malha municipal da versão (`municipio`, AD-016).
 """
 
 from dataclasses import dataclass
@@ -35,12 +34,6 @@ from terrametrica.dominio.modelos import (
     VersaoBase,
 )
 
-MENSAGEM_TD_001 = (
-    "municipio_em não implementado nesta fatia — TD-001 (.specs/TECH-DEBT.md): "
-    "resolver coordenada em município exige a malha municipal do IBGE, fora do "
-    "escopo da Fatia 2 (só SIGEF)."
-)
-
 _SELECT_LOTE_NO_PONTO = """
     SELECT id, municipios, codigo_sigef, denominacao, situacao_certificacao,
            ST_Area(geom_sigef::geography) AS area_m2,
@@ -59,6 +52,15 @@ _SELECT_LOTE_URBANO_NO_PONTO = """
     WHERE versao_base_id = %(versao)s
       AND ST_Contains(geom, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
     ORDER BY id
+"""
+
+_SELECT_MUNICIPIO_NO_PONTO = """
+    SELECT codigo, nome
+    FROM municipio
+    WHERE versao_base_id = %(versao)s
+      AND ST_Contains(geom, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4674))
+    ORDER BY codigo
+    LIMIT 1
 """
 
 _SELECT_INTERSECOES_DO_LOTE = """
@@ -138,7 +140,11 @@ class RepositorioLotesPostGIS:
         return Proveniencia(fonte=fonte, data_extracao=data_extracao, link_oficial=link_oficial)
 
     def municipio_em(self, coord: Coordenada, versao: VersaoBase) -> Municipio | None:
-        raise NotImplementedError(MENSAGEM_TD_001)
+        parametros = {"versao": versao.id, "lon": coord.lon, "lat": coord.lat}
+        with self.conexao.cursor() as cursor:
+            cursor.execute(_SELECT_MUNICIPIO_NO_PONTO, parametros)
+            linha = cursor.fetchone()
+        return Municipio(codigo=linha[0], nome=linha[1]) if linha is not None else None
 
     def cobertura_de(self, municipio: str) -> list[CoberturaCamada]:
         with self.conexao.cursor() as cursor:
