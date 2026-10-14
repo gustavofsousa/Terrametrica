@@ -230,7 +230,8 @@ def _montar_e_traduzir(
         return _json(status.HTTP_422_UNPROCESSABLE_ENTITY, corpo), None, ()
 
     if isinstance(resultado, Sobreposicao):
-        corpo = sobreposicao_para_dict(resultado)
+        ids = [candidato.lote_id for candidato in resultado.candidatos]
+        corpo = sobreposicao_para_dict(resultado, repo.geometrias_de(ids, versao))
         return _json(status.HTTP_409_CONFLICT, corpo), None, ()
 
     if isinstance(resultado, SemLote):
@@ -238,7 +239,7 @@ def _montar_e_traduzir(
         return _json(status.HTTP_404_NOT_FOUND, corpo), None, ()
 
     assert isinstance(resultado, Dossie)
-    corpo = dossie_para_dict(resultado)
+    corpo = dossie_para_dict(resultado, repo.geometrias_de([resultado.lote.lote_id], versao))
     camadas = tuple(_camadas_do_dossie(resultado))
     return _json(status.HTTP_200_OK, corpo), resultado.lote.lote_id, camadas
 

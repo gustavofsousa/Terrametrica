@@ -296,9 +296,9 @@ T24 → T25
 **Requirement**: MAPA-06, MAPA-07, MAPA-10, MUN-03
 
 **Done when**:
-- [ ] Unit (DTO): os três corpos têm os campos novos; 404 com `municipio=None` → `municipio_nome=None`.
-- [ ] Integration: 200 com geometria; 409 com geometria em cada candidato; 404 com nome; linha do `consulta_log` sem coluna nova.
-- [ ] Gate full passa.
+- [x] Unit (DTO): os três corpos têm os campos novos; 404 com `municipio=None` → `municipio_nome=None`.
+- [x] Integration: 200 com geometria; 409 com geometria em cada candidato; 404 com nome; linha do `consulta_log` sem coluna nova.
+- [x] Gate full passa.
 
 **Tests**: unit + integration
 **Gate**: full

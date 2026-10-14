@@ -42,6 +42,15 @@ RURAL = LoteRural(
     denominacao="Fazenda Teste",
 )
 
+GEOMETRIA_RJ_1: dict[str, object] = {
+    "type": "Polygon",
+    "coordinates": [[[-43.1, -22.9], [-43.0, -22.9], [-43.0, -22.8], [-43.1, -22.9]]],
+}
+GEOMETRIA_RJ_2: dict[str, object] = {
+    "type": "MultiPolygon",
+    "coordinates": [[[[-43.2, -22.9], [-43.1, -22.9], [-43.1, -22.8], [-43.2, -22.9]]]],
+}
+
 PROV_SIGEF = Proveniencia(
     fonte="SIGEF", data_extracao=date(2026, 9, 1), link_oficial="https://sigef.example/1"
 )
@@ -70,10 +79,11 @@ class TestDossieParaDict:
         )
 
     def test_serializa_ficha_do_lote_rural(self) -> None:
-        d = dossie_para_dict(self._dossie())
+        d = dossie_para_dict(self._dossie(), {"RJ-1": GEOMETRIA_RJ_1})
 
         assert d["tipo"] == "dossie"
         assert d["lote"] == {
+            "geometria": GEOMETRIA_RJ_1,  # MAPA-06
             "natureza": "rural",
             "lote_id": "RJ-1",
             "codigo_sigef": "SIGEF-1",
@@ -124,11 +134,17 @@ class TestSobreposicaoParaDict:
             area=AreaHa(10.0),
             perimetro_m=1000.0,
         )
-        d = sobreposicao_para_dict(Sobreposicao(candidatos=(RURAL, outro)))
+        d = sobreposicao_para_dict(
+            Sobreposicao(candidatos=(RURAL, outro)),
+            {"RJ-1": GEOMETRIA_RJ_1, "RJ-2": GEOMETRIA_RJ_2},
+        )
 
         assert d["tipo"] == "sobreposicao"
-        ids = [c["lote_id"] for c in d["candidatos"]]  # type: ignore[union-attr]
+        candidatos = d["candidatos"]
+        ids = [c["lote_id"] for c in candidatos]  # type: ignore[union-attr]
         assert ids == ["RJ-1", "RJ-2"]
+        geometrias = [c["geometria"] for c in candidatos]  # type: ignore[union-attr]
+        assert geometrias == [GEOMETRIA_RJ_1, GEOMETRIA_RJ_2]  # MAPA-07
 
 
 class TestSemLoteParaDict:
@@ -141,8 +157,17 @@ class TestSemLoteParaDict:
 
         assert d["tipo"] == "sem_lote"
         assert d["municipio"] == "3300100"
+        assert d["municipio_nome"] == "Angra dos Reis"  # MUN-03
         (cob,) = d["cobertura"]  # type: ignore[misc]
         assert cob == {"camada": "app", "tem_dado": True, "data_extracao": "2026-06-01"}
+
+
+    def test_mun03_ponto_fora_de_todo_municipio_leva_municipio_e_nome_nulos(self) -> None:
+        d = sem_lote_para_dict(SemLote(municipio=None, cobertura=()))
+
+        assert d["municipio"] is None
+        assert d["municipio_nome"] is None
+        assert d["cobertura"] == []
 
 
 class TestCoberturaParaDict:

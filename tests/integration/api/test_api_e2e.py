@@ -18,6 +18,7 @@ import subprocess
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import psycopg
 import pytest
@@ -141,6 +142,123 @@ class TestRotaDossie:
         resp = client.get("/dossie", params={"lat": LAT_DENTRO, "lon": LON_DENTRO})
 
         assert resp.status_code == 401
+
+
+def _vertices(geojson: dict[str, Any]) -> list[list[float]]:
+    pontos: list[list[float]] = []
+
+    def descer(no: Any) -> None:
+        if isinstance(no, list) and no and isinstance(no[0], float):
+            pontos.append(no)
+        elif isinstance(no, list):
+            for filho in no:
+                descer(filho)
+
+    descer(geojson["coordinates"])
+    return pontos
+
+
+# Dentro do RJ e dentro do quadrado sintético "Município 25" (código 3300025), sem lote.
+LAT_SEM_LOTE, LON_SEM_LOTE = -22.95, -43.49
+# Dentro do RJ (Vale do Paraíba fluminense) e fora de todo quadrado da malha sintética.
+LAT_FORA_DA_MALHA, LON_FORA_DA_MALHA = -22.5, -43.7
+
+
+class TestGeometriaNoDossie:
+    """spec:mapa-do-lote-rj — MAPA-06, MAPA-07, MAPA-10, MUN-03."""
+
+    def test_mapa06_200_traz_a_geometria_do_lote_em_lon_lat_com_6_casas(
+        self, client: TestClient
+    ) -> None:
+        resp = client.get("/dossie", params={"lat": LAT_DENTRO, "lon": LON_DENTRO}, headers=CONTA)
+
+        assert resp.status_code == 200
+        geometria = resp.json()["lote"]["geometria"]
+        assert geometria["type"] in {"Polygon", "MultiPolygon"}
+        vertices = _vertices(geometria)
+        # SIGEF-001: quadrado [-43.105, -43.095] × [-22.905, -22.895]
+        for lon, lat in vertices:
+            assert -43.1051 < lon < -43.0949
+            assert -22.9051 < lat < -22.8949
+            assert len(repr(lon).split(".")[1]) <= 6
+            assert len(repr(lat).split(".")[1]) <= 6
+
+    def test_mapa07_409_traz_a_geometria_de_cada_candidato(
+        self, client: TestClient, url_banco: str
+    ) -> None:
+        wkt = (
+            "MULTIPOLYGON(((-43.31 -22.86, -43.29 -22.86, -43.29 -22.84, "
+            "-43.31 -22.84, -43.31 -22.86)))"
+        )
+        conexao = psycopg.connect(url_banco)
+        try:
+            with conexao.cursor() as cursor:
+                for lote_id in ("OVL-1", "OVL-2"):
+                    cursor.execute(
+                        "INSERT INTO lote_rural (id, uf, municipios, codigo_sigef, "
+                        "situacao_certificacao, geom_sigef, versao_base_id) VALUES "
+                        "(%s, 'RJ', ARRAY['3304557'], %s, 'certificado', "
+                        "ST_GeomFromText(%s, 4674), %s)",
+                        (lote_id, f"SIGEF-{lote_id}", wkt, VERSAO_ID),
+                    )
+            conexao.commit()
+
+            resp = client.get("/dossie", params={"lat": -22.85, "lon": -43.30}, headers=CONTA)
+        finally:
+            with conexao.cursor() as cursor:
+                cursor.execute("DELETE FROM lote_rural WHERE id LIKE 'OVL-%'")
+            conexao.commit()
+            conexao.close()
+
+        assert resp.status_code == 409
+        candidatos = resp.json()["candidatos"]
+        assert {c["lote_id"] for c in candidatos} == {"OVL-1", "OVL-2"}
+        for candidato in candidatos:
+            assert candidato["geometria"]["type"] in {"Polygon", "MultiPolygon"}
+            assert len(_vertices(candidato["geometria"])) >= 4
+
+    def test_mun03_404_traz_codigo_e_nome_do_municipio_e_a_cobertura(
+        self, client: TestClient
+    ) -> None:
+        resp = client.get(
+            "/dossie", params={"lat": LAT_SEM_LOTE, "lon": LON_SEM_LOTE}, headers=CONTA
+        )
+
+        assert resp.status_code == 404
+        corpo = resp.json()
+        assert corpo["tipo"] == "sem_lote"
+        assert corpo["municipio"] == "3300025"
+        assert corpo["municipio_nome"] == "Município 25"
+        assert isinstance(corpo["cobertura"], list)
+
+    def test_mun03_404_fora_de_todo_municipio_devolve_municipio_nulo_sem_erro(
+        self, client: TestClient
+    ) -> None:
+        resp = client.get(
+            "/dossie",
+            params={"lat": LAT_FORA_DA_MALHA, "lon": LON_FORA_DA_MALHA},
+            headers=CONTA,
+        )
+
+        assert resp.status_code == 404
+        corpo = resp.json()
+        assert corpo["municipio"] is None
+        assert corpo["municipio_nome"] is None
+        assert corpo["cobertura"] == []
+
+    def test_mapa10_consulta_log_continua_com_as_mesmas_colunas(self, url_banco: str) -> None:
+        conexao = psycopg.connect(url_banco)
+        try:
+            with conexao.cursor() as cursor:
+                cursor.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'consulta_log'"
+                )
+                colunas = {linha[0] for linha in cursor.fetchall()}
+        finally:
+            conexao.close()
+
+        assert colunas == {"id", "ts", "conta_id", "lote_id", "camadas", "latencia_ms"}
 
 
 class TestAcessoAberto:

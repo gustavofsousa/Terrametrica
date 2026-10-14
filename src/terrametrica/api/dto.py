@@ -10,6 +10,8 @@ ausentes / sem-cobertura / desatualizadas viram arrays de string para o cliente 
 estados (DOS-11/12/13).
 """
 
+from collections.abc import Mapping
+
 from terrametrica.dominio.modelos import (
     Camada,
     CoberturaCamada,
@@ -23,12 +25,15 @@ from terrametrica.dominio.modelos import (
     Sobreposicao,
 )
 
+Geometrias = Mapping[str, dict[str, object]]
+"""GeoJSON por `lote_id`, lido à parte do dossiê (o domínio não carrega dado de desenho)."""
 
-def dossie_para_dict(dossie: Dossie) -> dict[str, object]:
-    """Projeta um `Dossie` montado no corpo JSON de `200 /dossie`."""
+
+def dossie_para_dict(dossie: Dossie, geometrias: Geometrias | None = None) -> dict[str, object]:
+    """Projeta um `Dossie` montado no corpo JSON de `200 /dossie` (MAPA-06)."""
     return {
         "tipo": "dossie",
-        "lote": _lote_para_dict(dossie.lote),
+        "lote": _lote_para_dict(dossie.lote, geometrias or {}),
         "restricoes": [_item_restricao_para_dict(item) for item in dossie.itens_restricao],
         "proveniencia": {
             camada.value: _proveniencia_para_dict(carimbo)
@@ -47,16 +52,20 @@ def sem_lote_para_dict(sem_lote: SemLote) -> dict[str, object]:
         "tipo": "sem_lote",
         "mensagem": sem_lote.mensagem,
         "municipio": sem_lote.municipio.codigo if sem_lote.municipio else None,
+        "municipio_nome": sem_lote.municipio.nome if sem_lote.municipio else None,
         "cobertura": [_cobertura_para_dict(c) for c in sem_lote.cobertura],
     }
 
 
-def sobreposicao_para_dict(sobreposicao: Sobreposicao) -> dict[str, object]:
-    """Projeta a `Sobreposicao` — lista os candidatos, exige escolha (DOS-06)."""
+def sobreposicao_para_dict(
+    sobreposicao: Sobreposicao, geometrias: Geometrias | None = None
+) -> dict[str, object]:
+    """Projeta a `Sobreposicao` — lista os candidatos com geometria, exige escolha (DOS-06,
+    MAPA-07)."""
     return {
         "tipo": "sobreposicao",
         "mensagem": sobreposicao.mensagem,
-        "candidatos": [_lote_para_dict(lote) for lote in sobreposicao.candidatos],
+        "candidatos": [_lote_para_dict(lote, geometrias or {}) for lote in sobreposicao.candidatos],
     }
 
 
@@ -97,9 +106,10 @@ def _camada_ou_ausente(item: CoberturaMunicipio, camada: Camada) -> CoberturaCam
 # --------------------------------------------------------------------------- #
 
 
-def _lote_para_dict(lote: LoteHit) -> dict[str, object]:
+def _lote_para_dict(lote: LoteHit, geometrias: Geometrias) -> dict[str, object]:
     if isinstance(lote, LoteRural):
         return {
+            "geometria": geometrias.get(lote.lote_id),
             "natureza": "rural",
             "lote_id": lote.lote_id,
             "codigo_sigef": lote.codigo_sigef,
@@ -110,6 +120,7 @@ def _lote_para_dict(lote: LoteHit) -> dict[str, object]:
             "denominacao": lote.denominacao,
         }
     return {
+        "geometria": geometrias.get(lote.lote_id),
         "natureza": "urbano",
         "lote_id": lote.lote_id,
         "inscricao_cadastral": lote.inscricao_cadastral,
