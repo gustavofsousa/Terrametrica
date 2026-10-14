@@ -155,9 +155,9 @@ T24 → T25
 **Requirement**: AD-016 (garante a coerência estado × municípios usada por MUN-02)
 
 **Done when**:
-- [ ] Unit: um leitor fake registra que a chamada pediu ano 2025 e resolução completa.
-- [ ] Testes atuais de `limite_rj` continuam verdes.
-- [ ] Gate quick passa.
+- [x] Unit: um leitor fake registra que a chamada pediu ano 2025 e resolução completa.
+- [x] Testes atuais de `limite_rj` continuam verdes.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick

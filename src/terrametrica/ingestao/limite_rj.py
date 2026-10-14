@@ -7,7 +7,10 @@ comita o swap e, transitivamente, todo staging feito na mesma transação, só q
 90% passa — DOS-25/28).
 """
 
+from collections.abc import Callable
+
 import geobr  # type: ignore[import-untyped]
+import geopandas as gpd  # type: ignore[import-untyped]
 import psycopg
 
 from terrametrica.dominio.modelos import VersaoBase
@@ -30,10 +33,17 @@ _INSERIR_LIMITE = """
 """
 
 
-def ingerir_limite_rj(versao: VersaoBase, conexao: psycopg.Connection) -> RelatorioCamada:
+def ingerir_limite_rj(
+    versao: VersaoBase,
+    conexao: psycopg.Connection,
+    *,
+    ler: Callable[..., gpd.GeoDataFrame] = geobr.read_state,
+) -> RelatorioCamada:
     """Busca o polígono do RJ via geobr, corrige/reprojeta e grava em `limite_estado`."""
     try:
-        malha = geobr.read_state(year=ANO_MALHA_ESTADUAL, code_state=CODIGO_ESTADO_RJ)
+        # COMPAT: resolução completa (AD-016). O padrão simplificado do geobr deixa lotes SIGEF
+        # reais fora do estado e frestas entre o estado e a malha municipal.
+        malha = ler(year=ANO_MALHA_ESTADUAL, code_state=CODIGO_ESTADO_RJ, simplified=False)
     except Exception as erro:  # geobr pode levantar erro de rede via requests ou via duckdb
         raise RuntimeError(
             "ingerir_limite_rj precisa de rede para buscar a malha do RJ via geobr — "
