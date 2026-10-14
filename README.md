@@ -12,19 +12,24 @@ O dado sobre a terra é público e está espalhado por oito portais que não se 
 
 ## Estado atual
 
-**Fase 0 fechada, Fatia 2 fechada.** Há código real: núcleo de domínio, montagem do dossiê, gate
-jurídico (regras) e um walking skeleton de ingestão (SIGEF + limite do RJ) publicando num
-PostGIS real. Ver [arquitetura](docs/arquitetura.md) e [domínio](docs/dominio.md) para o estado
-atual em diagramas, e [`.specs/STATE.md`](.specs/STATE.md) para o log de decisões e o handoff
-completo.
+**v0.3 (MVP visível) em andamento.** O produto roda ponta a ponta: o usuário clica no mapa do RJ e
+recebe o dossiê do lote, com o contorno do lote desenhado no mapa. Ver [arquitetura](docs/arquitetura.md)
+e [domínio](docs/dominio.md) para os diagramas, e [`.specs/STATE.md`](.specs/STATE.md) para o log de
+decisões e o handoff.
 
-| Fase (tlc-spec-driven) | Estado |
+| Peça | Estado |
 | --- | --- |
-| Pesquisa de fontes | Feita e **verificada por acesso real** (2026-09-03) |
-| Specify | Concluída (`dossie-lote-rj`, `gate-juridico-p2`) |
-| Design | Concluído |
-| Tasks | Concluídas para Fatia 1, Fatia 2 e gate jurídico P2 |
-| Execute | Fatia 1 e Fatia 2 **DONE**, Verifier PASS; gate jurídico (regras + serviço) DONE, sem adapter real ainda |
+| Núcleo de domínio e montagem do dossiê | ✅ F1.1 |
+| Ingestão: SIGEF, CAR, UC, lotes de Niterói, limite do RJ e malha municipal (92 municípios) | ✅ F1.2–F1.5, F1.9, F1.8 |
+| API HTTP (FastAPI): `/dossie`, `/cobertura`, `/cobertura/estado`, `/mapa/contorno`, `/auth/*`, `/saude` | ✅ F1.10, F1.12, F1.13 |
+| Painel web (`app/`): mapa MapLibre + OpenFreeMap, contorno do lote, link compartilhável, celular | ✅ F1.11, F1.13 |
+| Página de cobertura pública (`app/cobertura.html`): 92 municípios pelo nome | ✅ F1.12 |
+| Resolução de município por coordenada (fecha TD-001) | ✅ F1.8 |
+| Deploy no Railway, front e API na mesma origem (AD-013) | Serviço no ar. A base real ainda não foi restaurada — ver [RESTORE-E-GO-LIVE](docs/RESTORE-E-GO-LIVE.md) |
+| Gate jurídico | Regras e serviço prontos, sem adapter de persistência |
+
+Testes: Python (`pytest tests/unit tests/integration`), JS (`node --test app/tests/*.test.mjs`) e
+navegador (`pytest tests/navegador -m navegador`, ver [DEV-SETUP](docs/DEV-SETUP.md)).
 
 > ✅ **As fontes foram confirmadas por acesso real.** SIGEF (14.664 feições), CAR (69.105
 > feições) e SIGeo Niterói (82.199 feições) foram baixados e medidos numa máquina local — o
@@ -33,9 +38,9 @@ completo.
 > SIGEF certificado, confirmando empiricamente a AD-003. Detalhe em
 > [`fontes-de-dados-rj.md`](docs/research/fontes-de-dados-rj.md) e no handoff de `.specs/STATE.md`.
 
-**O que ainda não existe:** camada HTTP/API (FastAPI está decidido em AD-007, zero código),
-ingestão de CAR e da camada urbana de Niterói, malha municipal do IBGE, e persistência real do
-gate jurídico. Nada disso bloqueia o próximo passo — ver [arquitetura](docs/arquitetura.md#o-que-ainda-não-existe-para-não-ler-o-diagrama-como-se-existisse).
+**O que ainda não existe:** as camadas de inundação, deslizamento e corpo d'água (fontes do INEA
+ainda sem verificação), a exportação em PDF, a divergência SIGEF × CAR e a persistência real do gate
+jurídico. Ver o [roadmap](docs/produto/roadmap.md).
 
 ## Escopo do MVP
 
@@ -98,7 +103,8 @@ python3 .claude/skills/tlc-spec-driven/scripts/validate_spec.py .specs/features/
 
 ## Próximo passo
 
-**Fatia 3**, em ordem de valor: (a) CAR — segunda geometria do lote rural (AD-003), reusando o
-padrão de `ingestao/sigef.py`; (b) camada urbana de Niterói via SIGeo, já confirmada acessível em
-Fase 0; (c) malha municipal do IBGE, fechando o débito técnico TD-001. Sem bloqueio técnico
-conhecido para nenhuma das três — ver o handoff completo em [`.specs/STATE.md`](.specs/STATE.md).
+**Recarregar a base com a malha municipal e restaurá-la no Railway.** A base atual não tem a camada
+`municipio`. Com ela, o clique sem lote devolve o nome do município e a página de cobertura lista os
+92 municípios. Rode `python -m terrametrica.ingestao.carregar_base` com uma versão nova e siga o
+[RESTORE-E-GO-LIVE](docs/RESTORE-E-GO-LIVE.md). Depois, abra as camadas do INEA (F1.6 e F1.7) quando
+a fonte for verificada.

@@ -26,7 +26,7 @@ código). Toda fonte nova pode gerar uma feature nova — os totais abaixo são 
 |--------|------|--------------|----------|--------|
 | v0.1 | Verificar fontes | as fontes geoespaciais existem e são usáveis de verdade? | `ingestao` (pré-medição) | ✅ fechada (reabre por fonte nova) |
 | v0.2 | Motor do dossiê | o cruzamento vale mais que o dado cru — provado fim-a-fim | `dossie`, `ingestao`, `geometria`, `cobertura`, `api` | ✅ fechada |
-| v0.3 | MVP visível | um usuário clica no mapa e vê o dossiê | `app`, `api`, `ingestao`, `cobertura` | 🔄 *(F1.9/F1.11/F1.12 fechadas; falta F1.8/F1.6/F1.7 + base no ar)* |
+| v0.3 | MVP visível | um usuário clica no mapa e vê o dossiê | `app`, `api`, `ingestao`, `cobertura` | 🔄 *(F1.8/F1.9/F1.11/F1.12/F1.13 fechadas; falta F1.6/F1.7 + base no ar)* |
 | v0.4 | Fazer circular | o dossiê vira artefato e a divergência vira produto | `api`, `geometria`, `autorizacao` | 🗓️ |
 | v0.5 | Camada registral | existe caminho jurídico defensável p/ o dado registral? | `registral`, `autorizacao` | ⏭️ condicional |
 | v1.0 | Ampliação | escala em município, camada, estado e canal | `ingestao`, `api` | 🗓️ |
@@ -69,8 +69,8 @@ F1.6–F1.9 aumentam o valor do cruzamento em paralelo.
 |---------|---------|-------|--------|
 | F1.11 Painel web + conta autenticada | `— ops` | — | ✅ *(mapa, clique→dossiê, conta obrigatória sem paywall, magic link; AD-012, Verifier PASS)* |
 | F1.12 Página de cobertura pública | `cobertura` | — | ✅ *(estado real por município × camada, `GET /cobertura/estado` + `app/cobertura.html`; sem limiar de obsolescência ainda — DOS-29 parcial; Verifier PASS)* |
-| F1.8 Malha municipal IBGE + resolução de município | `ingestao` | — | 🗓️ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md), MUN-01..09; destrava o clique "sem lote" DOS-04 e o nome de município; fecha TD-001)* |
-| F1.13 Mapa do lote no RJ | `— ops` | — | 🗓️ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md): MapLibre + OpenFreeMap no lugar de tiles OSM, contorno do lote clicado, mapa focado no RJ, URL, celular)* |
+| F1.8 Malha municipal IBGE + resolução de município | `ingestao` | — | ✅ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md), MUN-01..09: 92 municípios versionados na base, o clique "sem lote" DOS-04 devolve o município, cobertura com os 92; fecha TD-001)* |
+| F1.13 Mapa do lote no RJ | `— ops` | — | ✅ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md): MapLibre + OpenFreeMap no lugar de tiles OSM, contorno do lote clicado, mapa focado no RJ, URL, celular; AD-015..017)* |
 | F1.9 Camada urbana Niterói (SIGeo) | `restricoes` | — | ✅ *(82.205 lotes de Niterói no dossiê, UC cruzada, atribuição SIGeo; Verifier PASS; base ainda não restaurada no Railway)* |
 | F1.6 Restrição inundação + deslizamento (INEA) | `restricoes` | — | 🔒 *(fonte a verificar — slice 0.5)* |
 | F1.7 Restrição corpo d'água | `restricoes` | — | 🔒 *(fonte a verificar — slice 0.5)* |

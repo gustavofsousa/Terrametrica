@@ -7,7 +7,7 @@ Format: `TD-NNN` · Status: `open | in-progress | resolved | wontfix`.
 
 ## TD-001 — `RepositorioLotesPostGIS.municipio_em` sem malha municipal
 
-**Status:** open
+**Status:** resolved (F1.8, 2026-10-14 — commit `d6ec431`; a malha entrou na base em `fca0909`)
 **Opened:** 2026-09-03
 **Origin:** Fatia 2 (`.specs/features/dossie-lote-rj/tasks.md`, T9) implementa o adapter real do
 Protocol `RepositorioLotes` (`dossie/portas.py`). O Protocol tem 5 métodos; a task T9, como
@@ -32,6 +32,11 @@ produção contra o adapter real — funciona hoje só no fake em memória (T5).
 **Revisit trigger:** Quando a Fatia 3+ (CAR, camada urbana Niterói, ou qualquer trabalho que
 precise de contexto municipal) começar — ingerir a malha municipal nesse momento, não isoladamente
 só pra fechar este TD.
+
+**Resolução (F1.8, AD-016):** a malha municipal do RJ (geobr 2025, resolução completa, 92
+municípios) é uma camada versionada da base (tabela `municipio`, migração `0008`).
+`municipio_em` resolve o ponto por `ST_Contains` na malha da versão e devolve `Municipio(codigo,
+nome)`, ou `None` fora de todo município. O nome do município agora vem dessa malha.
 
 **Nota (2026-09-03, T12):** mesma causa raiz aparece na ingestão SIGEF — `lote_rural.municipios`
 grava o código IBGE bruto do campo `municipio_` do shapefile (ex. `3304557`), não o nome do

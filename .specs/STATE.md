@@ -233,6 +233,51 @@ num marcador próprio (`-m navegador`) para a suíte rápida continuar rápida.
 
 ## Handoff
 
+**Branch:** `main`. **Feature:** `mapa-do-lote-rj` (F1.8 + F1.13, `.specs/features/mapa-do-lote-rj/`).
+**Fase atual:** Execute **concluído** (T1–T25, um commit por task). A verificação independente
+(Verifier) roda a seguir; este handoff recebe o resultado. Gates no fim de T24: ruff 0, mypy strict
+0, **292 Python passed**, **50 JS passed**, **27 de navegador passed**.
+**O que existe agora:** a malha municipal do RJ (geobr 2025, resolução completa, 92 municípios) é
+uma camada versionada da base (tabela `municipio`, migração `0008` com rollback manual em
+`migracoes/rollback/`). `municipio_em` resolve o ponto pela malha (fecha TD-001) e a cobertura
+semeia os 92 municípios. A API devolve a geometria do lote em `/dossie` (200 e 409), o nome do
+município no 404 e em `/cobertura/estado`, e tem a rota pública `GET /mapa/contorno` (ETag + cache).
+O painel (`app/`) usa MapLibre 6.14.0 + OpenFreeMap (AD-015): contorno do RJ, máscara fora do RJ,
+contorno do lote, candidatos da sobreposição, URL compartilhável, folha inferior no celular, estados
+de espera e erro de rede. A lógica pura está em `dossie.js`, `consultas.js`, `url.js`,
+`geometria.js` e `painel.js`. Os testes de navegador (`tests/navegador/`, AD-017) usam
+`pytest-playwright`.
+**Commits:** `6d40e38` T1 · `fca0909` T2 · `58344e8` T3 · `bd59c87` T4 · `57bf034` T5 · `7902357` T6
+· `d6ec431` T7 · `3077ab2` T8 · `7a4d983` T9 · `fd84783` T10 · `e12dfb3` T11 · `b0ece25` T12 ·
+`ca9278f` T13 · `8d75263` T14 · `d3ea5d2` T15 · `9217bd0` T16 · `a5c60c5` T17 · `6822095` T18 ·
+`3b70602` T19 · `d805db0` T20 · `e429a01` T21 · `334ec1a` T22 · `8da3c2a` T23 · `39651ab` T24 · T25
+(docs). Os artefatos de spec entraram em `646dc17`. **Nada em push.**
+**Desvios do plano (decididos na execução):**
+- O comando de gate JS é `node --test app/tests/*.test.mjs`. No Node 24, `node --test app/tests/`
+  falha: ele trata a pasta como módulo. `tasks.md` foi corrigido.
+- T6 também tocou `api/dto.py` e dois testes existentes. A mudança de tipo de `SemLote.municipio`
+  quebrava os dois. O campo `municipio_nome` entrou na T10.
+- T5 e três fixtures de e2e (`test_dossie_e2e`, `test_api_e2e`, `test_lote_urbano_niteroi`) passaram a
+  semear a malha, porque o conjunto de municípios da cobertura agora vem da tabela `municipio`.
+  Nenhuma asserção foi enfraquecida.
+- T9: `cobertura_de_todos` faz `JOIN` com a malha publicada. Uma linha de cobertura com código fora
+  da malha não aparece na página.
+- T13: um 422 com o campo `erro` (coordenada inválida) vira estado `erro`, não `fora_do_rj`.
+- MAPA-12: só o `feature-state` `hover` foi implementado para os candidatos. O estado `selected` não
+  tem função: a API não tem como escolher um candidato.
+- A base de teste de navegador usa um limite do RJ sintético (sem rede). O MapLibre vem do `unpkg.com`,
+  a única saída de rede da suíte de navegador.
+**Pendência de deploy (WARNING):** a base de produção não tem a camada `municipio`. Com o código
+novo sobre a base antiga, o clique sem lote devolve `municipio: null` e `/cobertura/estado` devolve
+lista vazia. Recarregue a base (`carregar_base`, que agora ingere a malha) e restaure no Railway
+antes do deploy. Ver `docs/RESTORE-E-GO-LIVE.md`.
+**Não resolvido, fora do escopo:** `docs/DEV-SETUP.md`, seção "Rodando e testando localmente", ainda
+diz que o projeto não expõe servidor HTTP.
+
+---
+
+**Handoff anterior (Página de Cobertura Pública, F1.12):**
+
 **Branch:** `main`. **Fase atual:** Execute + verificação **concluídos** para a **Página de
 Cobertura Pública (F1.12)** (`.specs/features/pagina-de-cobertura-publica/`, 3 tasks inline —
 escopo Medium, sem `tasks.md` formal). Validação **PASS** por Verifier independente

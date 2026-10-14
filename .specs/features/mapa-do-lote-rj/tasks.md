@@ -590,8 +590,8 @@ T24 → T25
 **Requirement**: DOC-01
 
 **Done when**:
-- [ ] README lista API, painel, cobertura, deploy (AD-013) e esta feature; a frase "zero código" sumiu.
-- [ ] TD-001 com status `resolved` e o commit da T7.
+- [x] README lista API, painel, cobertura, deploy (AD-013) e esta feature; a frase "zero código" sumiu.
+- [x] TD-001 com status `resolved` e o commit da T7.
 
 **Tests**: none
 **Gate**: build
