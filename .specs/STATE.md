@@ -198,6 +198,39 @@ aberto: o painel não redireciona para `login.html` (só redireciona em 401); o 
 atrás de NAT/CGNAT visitantes diferentes dividem uma cota; e `X-Conta-Id` forjado burla a cota — já
 era assim em AD-011, mas agora o painel público fica exposto. Risco aceito no período.
 
+### AD-015 — Mapa do painel em MapLibre + OpenFreeMap (supersede a linha "Leaflet + tiles OSM" da AD-012)
+**Data:** 2026-10-14
+**Decisão:** O mapa do painel usa MapLibre GL JS `6.14.0` (ESM via unpkg, sem build) com o basemap
+OpenFreeMap `positron`. O produto nunca pede tiles a `tile.openstreetmap.org`. O resto da AD-012
+(front vanilla estático, sem Node no deploy) continua.
+**Razão:** A política de uso da OSMF proíbe o servidor de tiles do OSM em produto, e o painel está
+público desde a AD-014. MapLibre é o motor que o protótipo já previa e o padrão da skill `web-map`.
+Feature `mapa-do-lote-rj`.
+**Consequência:** OpenFreeMap não tem SLA. Se o basemap cair, o mapa degrada e a consulta continua
+(MAPA-03). Gatilho de revisita: tráfego alto → basemap Protomaps auto-hospedado, por RFD.
+
+### AD-016 — Malha municipal versionada define o conjunto de municípios (supersede parte da AD-009)
+**Data:** 2026-10-14
+**Decisão:** A malha municipal do RJ (geobr 2025, resolução completa, 92 municípios) é uma camada
+versionada da base (tabela `municipio`, mesmo ponteiro da AD-008). Ela define o conjunto de
+municípios da `cobertura`, no lugar de `lote_rural.municipios` DISTINCT (AD-009). O `limite_estado`
+passa a vir da mesma malha em resolução completa. Toda tabela geográfica nova carrega `uf`.
+**Razão:** Medido em 2026-10-14: na resolução completa a união dos municípios é igual ao estado;
+na simplificada sobram ~25 km² de frestas e 1 lote SIGEF real cai fora do RJ. Fecha TD-001. A
+coluna `uf` deixa a expansão para outros estados (F4.5) custar só ingestão.
+**Consequência:** A carga precisa de rede para o geobr (como já precisava para o limite). A
+cobertura lista os 92 municípios, com `tem_dado=false` onde não há dado.
+
+### AD-017 — Testes de navegador com pytest-playwright (dev-only)
+**Data:** 2026-10-14
+**Decisão:** Os critérios de UI que só um navegador prova rodam com `pytest-playwright`, como
+dependência de dev no `pyproject`. A app real sobe com uvicorn, e o estilo do basemap é servido
+localmente pela fixture.
+**Razão:** Fica no runner que o projeto já usa, sem Node, e a AD-012 continua intacta no deploy.
+Escolha do usuário (2026-10-14) contra a checagem manual via Playwright MCP.
+**Consequência:** O Chromium (~150 MB) é baixado na máquina de dev. Os testes de navegador ficam
+num marcador próprio (`-m navegador`) para a suíte rápida continuar rápida.
+
 ## Handoff
 
 **Branch:** `main`. **Fase atual:** Execute + verificação **concluídos** para a **Página de

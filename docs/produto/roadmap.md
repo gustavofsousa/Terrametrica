@@ -69,7 +69,8 @@ F1.6–F1.9 aumentam o valor do cruzamento em paralelo.
 |---------|---------|-------|--------|
 | F1.11 Painel web + conta autenticada | `— ops` | — | ✅ *(mapa, clique→dossiê, conta obrigatória sem paywall, magic link; AD-012, Verifier PASS)* |
 | F1.12 Página de cobertura pública | `cobertura` | — | ✅ *(estado real por município × camada, `GET /cobertura/estado` + `app/cobertura.html`; sem limiar de obsolescência ainda — DOS-29 parcial; Verifier PASS)* |
-| F1.8 Malha municipal IBGE + resolução de município | `ingestao` | — | 🗓️ *(destrava o clique "sem lote" DOS-04 e o nome de município; fecha TD-001)* |
+| F1.8 Malha municipal IBGE + resolução de município | `ingestao` | — | 🗓️ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md), MUN-01..09; destrava o clique "sem lote" DOS-04 e o nome de município; fecha TD-001)* |
+| F1.13 Mapa do lote no RJ | `— ops` | — | 🗓️ *(spec [`mapa-do-lote-rj`](../../.specs/features/mapa-do-lote-rj/spec.md): MapLibre + OpenFreeMap no lugar de tiles OSM, contorno do lote clicado, mapa focado no RJ, URL, celular)* |
 | F1.9 Camada urbana Niterói (SIGeo) | `restricoes` | — | ✅ *(82.205 lotes de Niterói no dossiê, UC cruzada, atribuição SIGeo; Verifier PASS; base ainda não restaurada no Railway)* |
 | F1.6 Restrição inundação + deslizamento (INEA) | `restricoes` | — | 🔒 *(fonte a verificar — slice 0.5)* |
 | F1.7 Restrição corpo d'água | `restricoes` | — | 🔒 *(fonte a verificar — slice 0.5)* |
