@@ -15,7 +15,7 @@ from collections.abc import Callable
 from datetime import datetime
 
 import psycopg
-from fastapi import Body, Cookie, FastAPI, Query, Response, status
+from fastapi import Body, Cookie, FastAPI, Header, Query, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -30,7 +30,7 @@ from terrametrica.api.dto import (
 from terrametrica.api.identidade import COOKIE_SESSAO, Credenciais, resolver_conta_id
 from terrametrica.api.limite_taxa import Bloqueado, LimitadorEmMemoria
 from terrametrica.api.observabilidade import EntradaConsulta, registrar_consulta
-from terrametrica.api.versao import resolver_versao_publicada
+from terrametrica.api.versao import SemVersaoPublicada, resolver_versao_publicada
 from terrametrica.auth.adaptadores import (
     EnviadorResend,
     RepositorioCredencialPostgres,
@@ -134,6 +134,30 @@ def criar_app(
             repo = RepositorioLotesPostGIS(conexao)
             corpo = cobertura_estado_para_dict(repo.cobertura_de_todos())
         return JSONResponse(status_code=status.HTTP_200_OK, content=corpo)
+
+    @app.get("/mapa/contorno")
+    def mapa_contorno(
+        if_none_match: str | None = Header(default=None),
+    ) -> Response:
+        """Contorno do RJ da versão publicada, público e cacheável (MAPA-04)."""
+        with abrir_conexao(url_banco) as conexao:
+            try:
+                versao = resolver_versao_publicada(conexao)
+            except SemVersaoPublicada as erro:
+                return _json(status.HTTP_503_SERVICE_UNAVAILABLE, {"erro": str(erro)})
+            contorno = RepositorioLotesPostGIS(conexao).contorno_estado(versao)
+        if contorno is None:
+            return _json(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                {"erro": f"a versão {versao.id} não tem o contorno do RJ"},
+            )
+
+        etag = f'"{versao.id}"'
+        cabecalhos = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+        if if_none_match is not None and etag in _etags_de(if_none_match):
+            return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=cabecalhos)
+        feature = {"type": "Feature", "properties": {"versao": versao.id}, "geometry": contorno}
+        return JSONResponse(status_code=status.HTTP_200_OK, content=feature, headers=cabecalhos)
 
     @app.post("/auth/solicitar")
     def auth_solicitar(email: str = Body(..., embed=True)) -> Response:
@@ -259,6 +283,11 @@ def _resposta_cota_estourada(cota: Bloqueado) -> JSONResponse:
         },
         headers={"Retry-After": str(cota.retry_after_segundos)},
     )
+
+
+def _etags_de(cabecalho: str) -> set[str]:
+    """Valores de um `If-None-Match`, sem o prefixo de validador fraco (`W/`)."""
+    return {valor.strip().removeprefix("W/") for valor in cabecalho.split(",")}
 
 
 def _json(status_code: int, corpo: dict[str, object]) -> JSONResponse:

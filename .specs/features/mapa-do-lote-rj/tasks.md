@@ -316,8 +316,8 @@ T24 → T25
 **Requirement**: MAPA-04
 
 **Done when**:
-- [ ] Integration: 200 com Feature, `ETag` e `Cache-Control`; 304 com `If-None-Match`; sem versão publicada → 503 com mensagem.
-- [ ] Gate full passa.
+- [x] Integration: 200 com Feature, `ETag` e `Cache-Control`; 304 com `If-None-Match`; sem versão publicada → 503 com mensagem.
+- [x] Gate full passa.
 
 **Tests**: integration
 **Gate**: full

@@ -261,6 +261,32 @@ class TestGeometriaNoDossie:
         assert colunas == {"id", "ts", "conta_id", "lote_id", "camadas", "latencia_ms"}
 
 
+class TestRotaMapaContorno:
+    """spec:mapa-do-lote-rj — MAPA-04."""
+
+    def test_mapa04_200_com_feature_etag_e_cache_control(self, client: TestClient) -> None:
+        resp = client.get("/mapa/contorno")  # pública: sem header de conta
+
+        assert resp.status_code == 200
+        corpo = resp.json()
+        assert corpo["type"] == "Feature"
+        assert corpo["geometry"]["type"] == "MultiPolygon"
+        assert resp.headers["ETag"] == f'"{VERSAO_ID}"'
+        assert resp.headers["Cache-Control"] == "public, max-age=86400"
+
+    def test_mapa04_if_none_match_igual_devolve_304_sem_corpo(self, client: TestClient) -> None:
+        resp = client.get("/mapa/contorno", headers={"If-None-Match": f'"{VERSAO_ID}"'})
+
+        assert resp.status_code == 304
+        assert resp.content == b""
+        assert resp.headers["ETag"] == f'"{VERSAO_ID}"'
+
+    def test_mapa04_if_none_match_de_outra_versao_devolve_200(self, client: TestClient) -> None:
+        resp = client.get("/mapa/contorno", headers={"If-None-Match": '"versao-antiga"'})
+
+        assert resp.status_code == 200
+
+
 class TestAcessoAberto:
     """AD-014: período sem login — sem sessão nem header, a consulta funciona e é registrada."""
 

@@ -11,8 +11,10 @@ from datetime import date
 
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
 from testcontainers.community.postgres import PostgresContainer
 
+from terrametrica.api.app import criar_app
 from terrametrica.api.versao import SemVersaoPublicada, resolver_versao_publicada
 from terrametrica.dominio.modelos import Camada
 from terrametrica.persistencia.migrar import aplicar_migracoes
@@ -72,3 +74,17 @@ class TestResolverVersaoPublicada:
     def test_sem_ponteiro_levanta_erro_claro(self, conexao: psycopg.Connection) -> None:
         with pytest.raises(SemVersaoPublicada):
             resolver_versao_publicada(conexao)
+
+
+class TestRotaMapaContornoSemVersao:
+    """spec:mapa-do-lote-rj — MAPA-04: sem versão publicada, 503 com mensagem."""
+
+    def test_mapa04_sem_versao_publicada_devolve_503_com_mensagem(
+        self, container: PostgresContainer
+    ) -> None:
+        cliente = TestClient(criar_app(container.get_connection_url(driver=None)))
+
+        resp = cliente.get("/mapa/contorno")
+
+        assert resp.status_code == 503
+        assert "nenhuma versão publicada" in resp.json()["erro"]
