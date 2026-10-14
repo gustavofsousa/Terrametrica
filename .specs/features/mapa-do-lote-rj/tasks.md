@@ -450,8 +450,8 @@ T24 → T25
 **Requirement**: MUN-08
 
 **Done when**:
-- [ ] `node --test`: o view model traz o nome; o código não aparece como texto visível.
-- [ ] Gate quick + build passam (fim da fase 3).
+- [x] `node --test`: o view model traz o nome; o código não aparece como texto visível.
+- [x] Gate quick + build passam (fim da fase 3).
 
 **Tests**: unit
 **Gate**: build

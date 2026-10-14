@@ -3,6 +3,7 @@
 // Recebe o JSON de `GET /cobertura/estado` e devolve uma estrutura pronta para o DOM: data
 // formatada (nunca ISO cru, COBPUB-04) e "sem dado" explícito para tem_dado=false (COBPUB-05).
 // Mantido sem toque de DOM para ser testável por `node --test`, mesmo padrão de `dossie.js`.
+// O município aparece pelo nome (MUN-08); o código IBGE segue no view model só como atributo.
 
 export function renderCoberturaEstado(corpo) {
   const municipios = corpo.municipios ?? [];
@@ -12,7 +13,8 @@ export function renderCoberturaEstado(corpo) {
   return {
     estado: "cobertura",
     municipios: municipios.map((item) => ({
-      municipio: item.municipio,
+      nome: item.municipio_nome,
+      codigo: item.municipio,
       camadas: (item.cobertura ?? []).map(formatarCelula),
     })),
   };

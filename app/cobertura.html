@@ -19,6 +19,7 @@
 <script type="module">
   import { API_BASE } from "./config.js";
   import { renderCoberturaEstado } from "./cobertura.js";
+  import { esc } from "./painel.js";
 
   const conteudo = document.getElementById("conteudo-cobertura");
 
@@ -53,7 +54,7 @@
               `<td><span class="${c.temDado ? "badge ok" : "badge"}">${c.dataFormatada}</span></td>`
           )
           .join("");
-        return `<tr><td>${item.municipio}</td>${celulas}</tr>`;
+        return `<tr data-codigo="${esc(item.codigo)}"><td>${esc(item.nome)}</td>${celulas}</tr>`;
       })
       .join("");
     return `<table class="tabela-cobertura"><thead><tr><th>Município</th>${cabecalho}</tr></thead><tbody>${linhas}</tbody></table>`;
