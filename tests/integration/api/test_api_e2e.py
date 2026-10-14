@@ -30,11 +30,13 @@ from terrametrica.dominio.modelos import VersaoBase
 from terrametrica.ingestao.cobertura import semear_cobertura
 from terrametrica.ingestao.intersecoes import materializar_intersecoes
 from terrametrica.ingestao.limite_rj import ingerir_limite_rj
+from terrametrica.ingestao.municipios_rj import ingerir_municipios_rj
 from terrametrica.ingestao.publicar import publicar_versao
 from terrametrica.ingestao.restricao_car import ingerir_app_car, ingerir_reserva_legal_car
 from terrametrica.ingestao.restricao_uc import ingerir_uc
 from terrametrica.ingestao.sigef import ingerir_sigef
 from terrametrica.persistencia.migrar import aplicar_migracoes
+from tests.fakes.malha_municipal_fake import malha_sintetica
 
 IMAGEM_POSTGIS = "postgis/postgis:16-3.4"
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -82,6 +84,8 @@ def url_banco() -> Iterator[str]:
 
             versao = VersaoBase(id=VERSAO_ID, criada_em=date(2026, 9, 1))
             ingerir_limite_rj(versao, conexao)
+            malha = malha_sintetica(codigos=("3304557", "3300100", "3303500"))
+            ingerir_municipios_rj(versao, conexao, ler=lambda: malha)
             ingerir_sigef(FIXTURE_SIGEF, versao, conexao, data_extracao=DATA_EXTRACAO_SIGEF)
             ingerir_app_car(FIXTURE_APP, versao, conexao, data_extracao=DATA_EXTRACAO_CAR)
             ingerir_reserva_legal_car(

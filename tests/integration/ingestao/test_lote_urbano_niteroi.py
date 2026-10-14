@@ -29,10 +29,12 @@ from terrametrica.ingestao.lote_urbano_niteroi import (
     FONTE_SIGEO,
     ingerir_lotes_niteroi,
 )
+from terrametrica.ingestao.municipios_rj import ingerir_municipios_rj
 from terrametrica.ingestao.publicar import publicar_versao
 from terrametrica.ingestao.restricao_uc import ingerir_uc
 from terrametrica.persistencia.migrar import aplicar_migracoes
 from terrametrica.persistencia.repositorio_lotes_postgis import RepositorioLotesPostGIS
+from tests.fakes.malha_municipal_fake import malha_sintetica
 
 IMAGEM_POSTGIS = "postgis/postgis:16-3.4"
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -68,6 +70,9 @@ def conexao(container: PostgresContainer) -> Iterator[psycopg.Connection]:
     conexao.commit()
     relatorio = ingerir_lotes_niteroi(FIXTURE_LOTES, VERSAO, conexao, data_extracao=DATA_EXTRACAO)
     ingerir_uc(FIXTURE_UC, VERSAO, conexao, data_extracao=DATA_EXTRACAO)
+    ingerir_municipios_rj(
+        VERSAO, conexao, ler=lambda: malha_sintetica(codigos=(CODIGO_IBGE_NITEROI,))
+    )
     materializar_intersecoes(VERSAO, conexao)
     semear_cobertura(VERSAO, conexao)
     conexao.commit()

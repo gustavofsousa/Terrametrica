@@ -195,9 +195,9 @@ T24 → T25
 **Requirement**: MUN-07
 
 **Done when**:
-- [ ] Integration: 3 municípios na malha, lote em só 1 → 3 × N camadas linhas, `tem_dado=true` só no município com lote.
-- [ ] Testes atuais de cobertura continuam verdes.
-- [ ] Gate full passa.
+- [x] Integration: 3 municípios na malha, lote em só 1 → 3 × N camadas linhas, `tem_dado=true` só no município com lote.
+- [x] Testes atuais de cobertura continuam verdes.
+- [x] Gate full passa.
 
 **Tests**: integration
 **Gate**: full

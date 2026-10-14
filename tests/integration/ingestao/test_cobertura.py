@@ -30,6 +30,19 @@ DATA_RESERVA_LEGAL = date(2026, 8, 15)
 _GEOM_MINIMA = "MULTIPOLYGON(((-43.2 -22.9,-43.2 -22.8,-43.1 -22.8,-43.1 -22.9,-43.2 -22.9)))"
 
 
+def _inserir_municipios(
+    conexao: psycopg.Connection, versao_id: str, codigos: tuple[str, ...]
+) -> None:
+    """Malha da versão (AD-016): o conjunto de municípios que `semear_cobertura` usa."""
+    with conexao.cursor() as cursor:
+        for codigo in codigos:
+            cursor.execute(
+                "INSERT INTO municipio (codigo, nome, uf, geom, versao_base_id) "
+                "VALUES (%s, %s, '33', ST_GeomFromText(%s, 4674), %s)",
+                (codigo, f"Município {codigo}", _GEOM_MINIMA, versao_id),
+            )
+
+
 def _garantir_docker_disponivel() -> None:
     try:
         resultado = subprocess.run(
@@ -73,6 +86,7 @@ def versao_com_dado(conexao: psycopg.Connection) -> VersaoBase:
             "INSERT INTO versao_base (id, criada_em, status) VALUES (%s, %s, %s)",
             (versao_id, date(2026, 9, 4), "draft"),
         )
+        _inserir_municipios(conexao, versao_id, (MUNICIPIO_A, MUNICIPIO_B))
         for lote_id, municipio in (("L-A", MUNICIPIO_A), ("L-B", MUNICIPIO_B)):
             cursor.execute(
                 "INSERT INTO lote_rural "
@@ -224,3 +238,80 @@ class TestCoberturaDoLoteRural:
         cobertura = _cobertura(conexao)
         assert cobertura[(MUNICIPIO_A, "lote_rural")] == (True, data_sigef)
         assert cobertura[(MUNICIPIO_B, "lote_rural")] == (True, data_sigef)
+
+
+class TestCoberturaComAMalhaMunicipal:
+    """MUN-07: o conjunto de municípios vem da tabela `municipio`, não dos lotes."""
+
+    MUNICIPIO_C = "3303500"  # Nova Iguaçu
+
+    def test_mun07_municipio_sem_lote_ganha_linha_com_tem_dado_false(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        versao_id = "2026-10-malha"
+        data = date(2026, 10, 1)
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO versao_base (id, criada_em, status) VALUES (%s, %s, 'draft')",
+                (versao_id, data),
+            )
+            cursor.execute(
+                "INSERT INTO lote_rural (id, uf, municipios, codigo_sigef, "
+                "situacao_certificacao, geom_sigef, versao_base_id) VALUES "
+                "('L-A', 'RJ', %s, 'SIGEF-L-A', 'CERTIFICADA', ST_GeomFromText(%s, 4674), %s)",
+                ([MUNICIPIO_A], _GEOM_MINIMA, versao_id),
+            )
+            cursor.execute(
+                "INSERT INTO restricao (id, tipo, nome, geom, versao_base_id) "
+                "VALUES ('R-APP', 'app', 'app', ST_GeomFromText(%s, 4674), %s)",
+                (_GEOM_MINIMA, versao_id),
+            )
+            for camada in ("app", "lote_rural"):
+                cursor.execute(
+                    "INSERT INTO proveniencia (camada, versao_base_id, fonte, data_extracao, "
+                    "link_oficial) VALUES (%s, %s, 'fonte', %s, 'http://exemplo')",
+                    (camada, versao_id, data),
+                )
+        _inserir_municipios(conexao, versao_id, (MUNICIPIO_A, MUNICIPIO_B, self.MUNICIPIO_C))
+
+        relatorio = semear_cobertura(VersaoBase(id=versao_id, criada_em=data), conexao)
+
+        # 3 municípios × 2 camadas (app, lote_rural); só o município com lote tem dado.
+        assert _cobertura(conexao) == {
+            (MUNICIPIO_A, "app"): (True, data),
+            (MUNICIPIO_B, "app"): (False, data),
+            (self.MUNICIPIO_C, "app"): (False, data),
+            (MUNICIPIO_A, "lote_rural"): (True, data),
+            (MUNICIPIO_B, "lote_rural"): (False, data),
+            (self.MUNICIPIO_C, "lote_rural"): (False, data),
+        }
+        assert relatorio.linhas_semeadas == 6
+
+    def test_mun07_lote_urbano_marca_so_o_municipio_do_lote(
+        self, conexao: psycopg.Connection
+    ) -> None:
+        versao_id = "2026-10-malha-urbana"
+        data = date(2026, 10, 1)
+        with conexao.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO versao_base (id, criada_em, status) VALUES (%s, %s, 'draft')",
+                (versao_id, data),
+            )
+            cursor.execute(
+                "INSERT INTO lote_urbano (id, municipio, geom, versao_base_id) "
+                "VALUES ('niteroi:1', %s, ST_GeomFromText(%s, 4674), %s)",
+                (MUNICIPIO_A, _GEOM_MINIMA, versao_id),
+            )
+            cursor.execute(
+                "INSERT INTO proveniencia (camada, versao_base_id, fonte, data_extracao, "
+                "link_oficial) VALUES ('lote_urbano', %s, 'SIGeo', %s, 'http://exemplo')",
+                (versao_id, data),
+            )
+        _inserir_municipios(conexao, versao_id, (MUNICIPIO_A, MUNICIPIO_B))
+
+        semear_cobertura(VersaoBase(id=versao_id, criada_em=data), conexao)
+
+        assert _cobertura(conexao) == {
+            (MUNICIPIO_A, "lote_urbano"): (True, data),
+            (MUNICIPIO_B, "lote_urbano"): (False, data),
+        }
