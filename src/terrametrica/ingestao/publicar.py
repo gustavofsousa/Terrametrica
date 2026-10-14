@@ -1,7 +1,7 @@
 """Publicação de versão — guarda de 90% de feições + swap atômico do ponteiro (DOS-25/28).
 
-Decisão desta fase: a guarda é avaliada por camada (`limite_estado`, `lote_rural`), mas a
-decisão de publicar é única para a versão inteira — se QUALQUER camada reprovar a guarda
+Decisão desta fase: a guarda é avaliada por camada (`limite_estado`, `municipio`, `lote_rural`...),
+mas a decisão de publicar é única para a versão inteira — se QUALQUER camada reprovar a guarda
 (<90% das feições da versão publicada anteriormente), a publicação inteira é rejeitada e o
 `ponteiro_publicado` de TODAS as camadas permanece na versão anterior. Não há swap parcial:
 misturar um `limite_estado` novo com um `lote_rural` antigo (ou vice-versa) quebraria a
@@ -20,12 +20,14 @@ import psycopg
 
 from terrametrica.dominio.modelos import Camada, VersaoBase
 from terrametrica.ingestao.limite_rj import CAMADA_LIMITE_ESTADO
+from terrametrica.ingestao.municipios_rj import CAMADA_MUNICIPIO
 from terrametrica.ingestao.tipos import RelatorioPublicacaoCamada, ResultadoPublicacao
 
 LIMIAR_GUARDA = 0.90
 
 _CAMADAS_PUBLICADAS = (
     CAMADA_LIMITE_ESTADO,
+    CAMADA_MUNICIPIO,
     Camada.LOTE_RURAL.value,
     Camada.LOTE_URBANO.value,
     Camada.APP.value,
@@ -39,6 +41,7 @@ _QUERY_CONTAGEM_RESTRICAO = (
 
 _QUERY_CONTAGEM_POR_CAMADA = {
     CAMADA_LIMITE_ESTADO: "SELECT COUNT(*) FROM limite_estado WHERE versao_base_id = %(versao)s",
+    CAMADA_MUNICIPIO: "SELECT COUNT(*) FROM municipio WHERE versao_base_id = %(versao)s",
     Camada.LOTE_RURAL.value: "SELECT COUNT(*) FROM lote_rural WHERE versao_base_id = %(versao)s",
     Camada.LOTE_URBANO.value: "SELECT COUNT(*) FROM lote_urbano WHERE versao_base_id = %(versao)s",
     Camada.APP.value: _QUERY_CONTAGEM_RESTRICAO,

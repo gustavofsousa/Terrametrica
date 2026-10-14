@@ -175,9 +175,9 @@ T24 → T25
 **Requirement**: MUN-01, MUN-04
 
 **Done when**:
-- [ ] Integration: versão anterior com 92 municípios e nova com 0 → publicação rejeitada e ponteiro intacto.
-- [ ] Integration: primeira versão com 92 → publica e o ponteiro `municipio` aponta para ela.
-- [ ] Gate full passa.
+- [x] Integration: versão anterior com 92 municípios e nova com 0 → publicação rejeitada e ponteiro intacto.
+- [x] Integration: primeira versão com 92 → publica e o ponteiro `municipio` aponta para ela.
+- [x] Gate full passa.
 
 **Tests**: integration
 **Gate**: full

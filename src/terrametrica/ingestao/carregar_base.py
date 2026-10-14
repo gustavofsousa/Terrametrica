@@ -28,6 +28,7 @@ from terrametrica.ingestao.cobertura import semear_cobertura
 from terrametrica.ingestao.intersecoes import materializar_intersecoes
 from terrametrica.ingestao.limite_rj import ingerir_limite_rj
 from terrametrica.ingestao.lote_urbano_niteroi import ingerir_lotes_niteroi
+from terrametrica.ingestao.municipios_rj import ingerir_municipios_rj
 from terrametrica.ingestao.publicar import publicar_versao
 from terrametrica.ingestao.restricao_car import ingerir_app_car, ingerir_reserva_legal_car
 from terrametrica.ingestao.restricao_uc import ingerir_uc
@@ -67,6 +68,8 @@ def _ingerir_camadas(
 ) -> None:
     print("limite do RJ (geobr)...", flush=True)
     ingerir_limite_rj(versao, conexao)
+    print("malha municipal do RJ (geobr)...", flush=True)
+    print(f"  {ingerir_municipios_rj(versao, conexao)}", flush=True)
     if argumentos.sigef:
         print(f"SIGEF: {argumentos.sigef}", flush=True)
         print(f"  {ingerir_sigef(argumentos.sigef, versao, conexao)}", flush=True)
