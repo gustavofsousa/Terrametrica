@@ -393,8 +393,8 @@ T24 → T25
 **Requirement**: MAPA-13, MAPA-14
 
 **Done when**:
-- [ ] `node --test`: válido, inválido, fora do bbox, faltando um parâmetro, 6 casas na escrita.
-- [ ] Gate quick passa.
+- [x] `node --test`: válido, inválido, fora do bbox, faltando um parâmetro, 6 casas na escrita.
+- [x] Gate quick passa.
 
 **Tests**: unit
 **Gate**: quick
