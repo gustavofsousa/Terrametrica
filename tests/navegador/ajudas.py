@@ -41,3 +41,17 @@ def consultar_ponto(pagina: Page, lat: float, lon: float, zoom: float = 14) -> N
 def ids_do_lote_selecionado(pagina: Page) -> list[str]:
     ids: list[Any] = pagina.evaluate("() => __mapa.querySourceFeatures('lote').map((f) => f.id)")
     return sorted({str(i) for i in ids})
+
+
+def ids_dos_candidatos(pagina: Page) -> list[str]:
+    ids: list[Any] = pagina.evaluate(
+        "() => __mapa.querySourceFeatures('candidatos').map((f) => f.id)"
+    )
+    return sorted({str(i) for i in ids})
+
+
+def estado_do_candidato(pagina: Page, lote_id: str) -> dict[str, Any]:
+    estado: dict[str, Any] | None = pagina.evaluate(
+        "(id) => __mapa.getFeatureState({ source: 'candidatos', id })", lote_id
+    )
+    return estado or {}

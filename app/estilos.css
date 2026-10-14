@@ -163,3 +163,8 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .painel .medidas { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1rem; margin: .5rem 0; }
 .painel .medidas dt { color: var(--ink-soft); }
 .painel .medidas dd { margin: 0; font-family: var(--f-mono); }
+
+.painel .candidato { display: flex; align-items: center; gap: .6rem; cursor: default; }
+.painel .candidato.is-hover { background: var(--surface-alt); }
+.painel .candidato:focus-visible { outline: 2px solid var(--water); outline-offset: 1px; }
+.painel .amostra { width: .9rem; height: .9rem; border-radius: 3px; background: var(--cor); flex: none; }

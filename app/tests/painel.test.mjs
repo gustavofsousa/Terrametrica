@@ -116,3 +116,24 @@ test("429 mostra a espera em minutos", () => {
 
   assert.match(html, /Tente novamente em ~30 min\./);
 });
+
+test("MAPA-12 cada candidato da sobreposição é uma linha com o lote_id e uma cor própria", () => {
+  const vm = renderDossie({
+    status: 409,
+    corpo: {
+      mensagem: "Mais de um lote.",
+      candidatos: [
+        { lote_id: "OVL-1", natureza: "rural", codigo_sigef: "SIGEF-OVL-1" },
+        { lote_id: "niteroi:7", natureza: "urbano", inscricao_cadastral: ATAQUE },
+      ],
+    },
+  });
+
+  const html = htmlPainel(vm);
+
+  assert.match(html, /data-lote-id="OVL-1"/);
+  assert.match(html, /data-lote-id="niteroi:7"/);
+  assert.match(html, /--cor: var\(--boundary\)/);
+  assert.match(html, /--cor: var\(--water\)/);
+  assert.ok(!html.includes("<script>"));
+});

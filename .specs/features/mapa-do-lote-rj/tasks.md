@@ -513,8 +513,8 @@ T24 → T25
 **Requirement**: MAPA-12
 
 **Done when**:
-- [ ] E2E: clique na sobreposição semeada → N contornos; hover na linha da lista → `feature-state.hover` no candidato certo.
-- [ ] Gate full passa.
+- [x] E2E: clique na sobreposição semeada → N contornos; hover na linha da lista → `feature-state.hover` no candidato certo.
+- [x] Gate full passa.
 
 **Tests**: e2e
 **Gate**: full

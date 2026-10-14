@@ -9,9 +9,16 @@ from tests.navegador.ajudas import (
     clicar_no_centro,
     consultar_ponto,
     esperar_mapa_parado,
+    estado_do_candidato,
     ids_do_lote_selecionado,
+    ids_dos_candidatos,
 )
-from tests.navegador.semente import PONTO_FORA_DO_RJ, PONTO_LOTE
+from tests.navegador.semente import (
+    IDS_SOBREPOSTOS,
+    PONTO_FORA_DO_RJ,
+    PONTO_LOTE,
+    PONTO_SOBREPOSTO,
+)
 
 BBOX_RJ = {"oeste": -44.9, "sul": -23.4, "leste": -40.9, "norte": -20.7}
 
@@ -225,3 +232,40 @@ class TestUxDoD:
         )
         assert largura[0] <= largura[1], largura
         centrar(pagina, *PONTO_LOTE)
+
+
+class TestSobreposicao:
+    def test_mapa12_clique_na_sobreposicao_desenha_um_contorno_por_candidato(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_SOBREPOSTO, zoom=11)
+
+        linhas = pagina.locator("#conteudo-painel .candidato")
+        expect(linhas).to_have_count(2)
+        esperar_mapa_parado(pagina)
+        assert ids_dos_candidatos(pagina) == sorted(IDS_SOBREPOSTOS)
+        assert ids_do_lote_selecionado(pagina) == []  # candidato não é "selecionado"
+        tracejado = pagina.evaluate(
+            "() => __mapa.getPaintProperty('lote-candidatos', 'line-dasharray')"
+        )
+        assert tracejado == [2, 2]
+
+    def test_mapa12_hover_na_linha_destaca_so_o_candidato_certo_no_mapa(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_SOBREPOSTO, zoom=11)
+        segunda = pagina.locator("#conteudo-painel .candidato[data-lote-id='OVL-2']")
+        expect(segunda).to_be_visible()
+
+        segunda.hover()
+
+        assert estado_do_candidato(pagina, "OVL-2").get("hover") is True
+        assert estado_do_candidato(pagina, "OVL-1").get("hover") in (None, False)
+        expect(segunda).to_have_class("restricao candidato is-hover")
+        # hover não é seleção: o lote selecionado continua vazio
+        assert ids_do_lote_selecionado(pagina) == []
+
+        pagina.locator(".marca").hover()  # sai da linha
+        assert estado_do_candidato(pagina, "OVL-2").get("hover") in (None, False)

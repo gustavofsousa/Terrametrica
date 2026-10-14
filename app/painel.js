@@ -12,6 +12,11 @@ export function esc(valor) {
 // Título de cada resultado: `tabindex="-1"` deixa o shell mover o foco para ele (MAPA-19).
 const titulo = (texto) => `<h2 id="titulo-painel" tabindex="-1">${esc(texto)}</h2>`;
 
+// Cor de cada candidato da sobreposição: o mapa pinta o contorno e a lista a amostra com a mesma
+// variável CSS, pela posição do candidato (MAPA-12).
+export const VARIAVEIS_DE_COR = ["--boundary", "--water", "--ok", "--warn"];
+export const variavelDeCor = (indice) => VARIAVEIS_DE_COR[indice % VARIAVEIS_DE_COR.length];
+
 export function htmlPainel(vm) {
   switch (vm.estado) {
     case "dossie":       return htmlDossie(vm);
@@ -82,9 +87,13 @@ function htmlSemLote(vm) {
   `;
 }
 
+// Cada linha leva o `lote_id` para o mapa destacar o contorno do candidato sob o cursor.
 function htmlSobreposicao(vm) {
-  const candidatos = vm.candidatos.map((c) =>
-    `<div class="restricao">${esc(c.codigo_sigef ?? c.inscricao_cadastral ?? "lote")}</div>`
+  const candidatos = vm.candidatos.map((c, indice) => `
+    <div class="restricao candidato" data-lote-id="${esc(c.lote_id)}" tabindex="0">
+      <span class="amostra" style="--cor: var(${variavelDeCor(indice)})" aria-hidden="true"></span>
+      ${esc(c.codigo_sigef ?? c.inscricao_cadastral ?? "lote")}
+    </div>`
   ).join("");
   return `
     ${titulo(vm.titulo)}

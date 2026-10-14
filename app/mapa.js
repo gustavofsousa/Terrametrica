@@ -10,7 +10,7 @@ import { API_BASE, BBOX_RJ } from "./config.js";
 import { criarControladorDeConsultas } from "./consultas.js";
 import { renderDossie } from "./dossie.js";
 import { bboxDe, mascaraFora } from "./geometria.js";
-import { htmlCarregando, htmlPainel } from "./painel.js";
+import { htmlCarregando, htmlPainel, variavelDeCor } from "./painel.js";
 
 const URL_ESTILO = "https://tiles.openfreemap.org/styles/positron";
 const ESTILO_SEM_BASE = { version: 8, sources: {}, layers: [] };
@@ -63,6 +63,7 @@ function adicionarCamadas() {
   mapa.addSource("fora-rj", { type: "geojson", data: FEATURES_VAZIAS });
   mapa.addSource("rj-contorno", { type: "geojson", data: FEATURES_VAZIAS });
   mapa.addSource("lote", { type: "geojson", data: FEATURES_VAZIAS, promoteId: "lote_id" });
+  mapa.addSource("candidatos", { type: "geojson", data: FEATURES_VAZIAS, promoteId: "lote_id" });
   mapa.addSource("ponto-clicado", { type: "geojson", data: FEATURES_VAZIAS });
 
   mapa.addLayer({
@@ -72,6 +73,20 @@ function adicionarCamadas() {
   mapa.addLayer({
     id: "rj-contorno", type: "line", source: "rj-contorno",
     paint: { "line-color": cssVar("--ink-soft"), "line-width": 1.5 },
+  }, antes);
+  // Candidatos da sobreposição: tracejados, cada um com a sua cor. `hover` engrossa o contorno;
+  // "passar o mouse" nunca parece "selecionado" (MAPA-12).
+  const comHover = (normal, destacado) =>
+    ["case", ["boolean", ["feature-state", "hover"], false], destacado, normal];
+  mapa.addLayer({
+    id: "lote-candidatos-fill", type: "fill", source: "candidatos",
+    paint: { "fill-color": ["get", "cor"], "fill-opacity": comHover(0.08, 0.3) },
+  }, antes);
+  mapa.addLayer({
+    id: "lote-candidatos", type: "line", source: "candidatos",
+    paint: {
+      "line-color": ["get", "cor"], "line-width": comHover(2, 4), "line-dasharray": [2, 2],
+    },
   }, antes);
   mapa.addLayer({
     id: "lote-selecionado-fill", type: "fill", source: "lote",
@@ -125,6 +140,7 @@ const consultas = criarControladorDeConsultas({
     const vm = renderDossie(resultado);
     painel.innerHTML = htmlPainel(vm);
     if (vm.estado === "dossie" && vm.geometria) selecionarLote(vm);
+    if (vm.estado === "sobreposicao") mostrarCandidatos(vm.candidatos);
   },
 });
 
@@ -149,9 +165,52 @@ function selecionarLote(vm) {
   enquadrar(vm.geometria);
 }
 
+function mostrarCandidatos(candidatos) {
+  const features = candidatos
+    .filter((c) => c.geometria)
+    .map((c, indice) => ({
+      type: "Feature",
+      properties: { lote_id: c.lote_id, cor: cssVar(variavelDeCor(indice)) },
+      geometry: c.geometria,
+    }));
+  if (features.length === 0) return;
+  const colecao = { type: "FeatureCollection", features };
+  mapa.getSource("candidatos")?.setData(colecao);
+  enquadrar(colecao);
+}
+
 function limparLote() {
   mapa.getSource("lote")?.setData(FEATURES_VAZIAS);
+  mapa.getSource("candidatos")?.setData(FEATURES_VAZIAS);
+  destacarCandidato(null);
 }
+
+// --- Candidato sob o cursor: o mesmo destaque na lista e no mapa (MAPA-12) -----------------
+
+let candidatoDestacado = null;
+
+function destacarCandidato(loteId) {
+  if (candidatoDestacado === loteId) return;
+  if (candidatoDestacado !== null) {
+    mapa.setFeatureState({ source: "candidatos", id: candidatoDestacado }, { hover: false });
+  }
+  candidatoDestacado = loteId;
+  for (const linha of painel.querySelectorAll(".candidato")) {
+    linha.classList.toggle("is-hover", linha.dataset.loteId === loteId);
+  }
+  if (loteId !== null) mapa.setFeatureState({ source: "candidatos", id: loteId }, { hover: true });
+}
+
+const idDaLinha = (evento) => evento.target.closest(".candidato")?.dataset.loteId ?? null;
+painel.addEventListener("pointerover", (evento) => destacarCandidato(idDaLinha(evento)));
+painel.addEventListener("pointerleave", () => destacarCandidato(null));
+painel.addEventListener("focusin", (evento) => destacarCandidato(idDaLinha(evento)));
+painel.addEventListener("focusout", () => destacarCandidato(null));
+
+mapa.on("mousemove", "lote-candidatos-fill", (evento) => {
+  destacarCandidato(evento.features[0]?.id !== undefined ? String(evento.features[0].id) : null);
+});
+mapa.on("mouseleave", "lote-candidatos-fill", () => destacarCandidato(null));
 
 function marcarPonto({ lat, lon }) {
   mapa.getSource("ponto-clicado")?.setData({
