@@ -14,6 +14,7 @@ tipo-resultado da montagem em HTTP:
 - /cobertura devolve o estado por camada do município (DOS-11/13)
 """
 
+import math
 import subprocess
 from collections.abc import Iterator
 from datetime import date
@@ -216,6 +217,40 @@ class TestGeometriaNoDossie:
         for candidato in candidatos:
             assert candidato["geometria"]["type"] in {"Polygon", "MultiPolygon"}
             assert len(_vertices(candidato["geometria"])) >= 4
+
+    def test_edge_maior_lote_do_sigef_volta_com_a_geometria_completa_sem_simplificar(
+        self, client: TestClient, url_banco: str
+    ) -> None:
+        # 2.301 vértices, como o maior lote do SIGEF RJ (medido): 2.300 distintos + o de fechamento.
+        total = 2300
+        anel = ", ".join(
+            f"{-43.60 + 0.02 * math.cos(2 * math.pi * i / total):.6f} "
+            f"{-22.60 + 0.02 * math.sin(2 * math.pi * i / total):.6f}"
+            for i in range(total)
+        )
+        primeiro = anel.split(", ")[0]
+        wkt = f"MULTIPOLYGON((({anel}, {primeiro})))"
+        conexao = psycopg.connect(url_banco)
+        try:
+            with conexao.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO lote_rural (id, uf, municipios, codigo_sigef, "
+                    "situacao_certificacao, geom_sigef, versao_base_id) VALUES "
+                    "('GRANDE-1', 'RJ', ARRAY['3304557'], 'SIGEF-GRANDE', 'certificado', "
+                    "ST_GeomFromText(%s, 4674), %s)",
+                    (wkt, VERSAO_ID),
+                )
+            conexao.commit()
+
+            resp = client.get("/dossie", params={"lat": -22.60, "lon": -43.60}, headers=CONTA)
+        finally:
+            with conexao.cursor() as cursor:
+                cursor.execute("DELETE FROM lote_rural WHERE id = 'GRANDE-1'")
+            conexao.commit()
+            conexao.close()
+
+        assert resp.status_code == 200
+        assert len(_vertices(resp.json()["lote"]["geometria"])) == 2301
 
     def test_mun03_404_traz_codigo_e_nome_do_municipio_e_a_cobertura(
         self, client: TestClient

@@ -68,7 +68,7 @@ class TestMapaBase:
         expect(atribuicao).to_contain_text("OpenFreeMap")
 
     def test_mapa02_camera_inicial_enquadra_o_rj_e_o_arraste_nao_e_travado(
-        self, pagina: Page, base_url: str
+        self, pagina: Page, base_url: str, requisicoes: list[str]
     ) -> None:
         abrir_mapa(pagina, base_url)
         esperar_mapa_parado(pagina)
@@ -88,6 +88,8 @@ class TestMapaBase:
         esperar_mapa_parado(pagina)
         depois = pagina.evaluate("() => __mapa.getCenter().toArray()")
         assert depois[0] < centro[0]  # arrastou para a direita → o centro andou para o oeste
+        # edge case: arrastar sem clicar nunca consulta o dossiê
+        assert not [u for u in requisicoes if "/dossie?" in u]
 
     def test_mapa04_contorno_e_mascara_fora_do_rj_estao_no_mapa(
         self, pagina: Page, base_url: str
