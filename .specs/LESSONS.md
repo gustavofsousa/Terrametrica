@@ -32,6 +32,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: Verifier F1.11 (sensor mutant A1)
 - last seen: 2026-09-11T18:20:36Z
 
+### L-004 — Assert transient browser state (animation, busy flags) in the same frame as the trigger, with raf polling or a held route, never after a polling expect
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `navegador` · harmful: 0
+- features: mapa-do-lote-rj
+- evidence: validation.md M9 app/mapa.js:265; tests/navegador/test_mapa.py:142 (navegador)
+- last seen: 2026-10-15T00:04:32Z
+
+### L-005 — Give every spec edge case its own test in the suite; a verifier probe is not coverage
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `tests` · harmful: 0
+- features: mapa-do-lote-rj
+- evidence: validation.md Edge Cases: drag, largest lot, tiny lot (M13) (tests)
+- last seen: 2026-10-15T00:04:32Z
+
+### L-006 — When a rollback must also remove the feature's own pointer rows or columns, say so in the AC's must-not wording
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `migracoes` · harmful: 0
+- features: mapa-do-lote-rj
+- evidence: spec.md MUN-09 vs rollback/0008_f113_municipio.down.sql (migracoes)
+- last seen: 2026-10-15T00:04:32Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

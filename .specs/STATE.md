@@ -234,9 +234,13 @@ num marcador próprio (`-m navegador`) para a suíte rápida continuar rápida.
 ## Handoff
 
 **Branch:** `main`. **Feature:** `mapa-do-lote-rj` (F1.8 + F1.13, `.specs/features/mapa-do-lote-rj/`).
-**Fase atual:** Execute **concluído** (T1–T25, um commit por task). A verificação independente
-(Verifier) roda a seguir; este handoff recebe o resultado. Gates no fim de T24: ruff 0, mypy strict
-0, **292 Python passed**, **50 JS passed**, **27 de navegador passed**.
+**Fase atual:** Execute e verificação **concluídos**. T1–T25 em um commit por task, mais 3 commits
+de correção (`d563f85`, `038f158`, `2113479`). O Verifier independente deu **PASS** na 2ª iteração
+(`validation.md`): 29/29 ACs e 5/5 edge cases com teste ancorado na spec, sensor 13/13 mutantes
+mortos (+3 extras). A 1ª iteração deu FAIL por lacunas só de teste (movimento reduzido sem teste que
+falhe, zoom máximo, 2 edge cases, MUN-09 sem `/dossie`). Gates finais: ruff 0, mypy strict 0,
+**294 Python passed**, **50 JS passed**, **29 de navegador passed**. Lições L-004..L-006 em
+`LESSONS.md`.
 **O que existe agora:** a malha municipal do RJ (geobr 2025, resolução completa, 92 municípios) é
 uma camada versionada da base (tabela `municipio`, migração `0008` com rollback manual em
 `migracoes/rollback/`). `municipio_em` resolve o ponto pela malha (fecha TD-001) e a cobertura
@@ -250,8 +254,8 @@ de espera e erro de rede. A lógica pura está em `dossie.js`, `consultas.js`, `
 **Commits:** `6d40e38` T1 · `fca0909` T2 · `58344e8` T3 · `bd59c87` T4 · `57bf034` T5 · `7902357` T6
 · `d6ec431` T7 · `3077ab2` T8 · `7a4d983` T9 · `fd84783` T10 · `e12dfb3` T11 · `b0ece25` T12 ·
 `ca9278f` T13 · `8d75263` T14 · `d3ea5d2` T15 · `9217bd0` T16 · `a5c60c5` T17 · `6822095` T18 ·
-`3b70602` T19 · `d805db0` T20 · `e429a01` T21 · `334ec1a` T22 · `8da3c2a` T23 · `39651ab` T24 · T25
-(docs). Os artefatos de spec entraram em `646dc17`. **Nada em push.**
+`3b70602` T19 · `d805db0` T20 · `e429a01` T21 · `334ec1a` T22 · `8da3c2a` T23 · `39651ab` T24 ·
+`9c8dbb3` T25 (docs). Os artefatos de spec entraram em `646dc17`. **Nada em push.**
 **Desvios do plano (decididos na execução):**
 - O comando de gate JS é `node --test app/tests/*.test.mjs`. No Node 24, `node --test app/tests/`
   falha: ele trata a pasta como módulo. `tasks.md` foi corrigido.
@@ -263,6 +267,10 @@ de espera e erro de rede. A lógica pura está em `dossie.js`, `consultas.js`, `
 - T9: `cobertura_de_todos` faz `JOIN` com a malha publicada. Uma linha de cobertura com código fora
   da malha não aparece na página.
 - T13: um 422 com o campo `erro` (coordenada inválida) vira estado `erro`, não `fora_do_rj`.
+- Enquadramento do lote: `maxZoom` é `mapa.getMaxZoom()` (22), não um número fixo. O estilo positron
+  não define zoom máximo próprio.
+- O MUN-09 passou a dizer que o rollback também remove a linha de ponteiro da camada `municipio` e a
+  coluna `proveniencia.sha256`.
 - MAPA-12: só o `feature-state` `hover` foi implementado para os candidatos. O estado `selected` não
   tem função: a API não tem como escolher um candidato.
 - A base de teste de navegador usa um limite do RJ sintético (sem rede). O MapLibre vem do `unpkg.com`,

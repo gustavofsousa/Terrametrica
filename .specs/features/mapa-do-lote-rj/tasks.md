@@ -10,7 +10,7 @@ Implement these tasks with the `spec-driven` skill: **activate it by name and fo
 
 **Design**: `.specs/features/mapa-do-lote-rj/design.md`
 **Spec**: `.specs/features/mapa-do-lote-rj/spec.md` (r1)
-**Status**: Draft
+**Status**: Verified
 
 > Nomenclatura do repo: esta é a **Fatia 10** (após F1.12). A migração segue o padrão
 > `0008_f113_municipio.sql`; o rollback fica em `migracoes/rollback/0008_f113_municipio.down.sql`.

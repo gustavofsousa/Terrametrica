@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 4,
+  "next_id": 7,
   "lessons": [
     {
       "id": "L-001",
@@ -58,6 +58,60 @@
       ],
       "created": "2026-09-11T18:20:36Z",
       "last_seen": "2026-09-11T18:20:36Z"
+    },
+    {
+      "id": "L-004",
+      "key": "surviving_mutant::assert transient browser state animation busy flags in the same frame as the trigger with raf polling or a held route never after a polling expect",
+      "text": "Assert transient browser state (animation, busy flags) in the same frame as the trigger, with raf polling or a held route, never after a polling expect",
+      "signal": "surviving_mutant",
+      "scope": "navegador",
+      "status": "candidate",
+      "features": [
+        "mapa-do-lote-rj"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md M9 app/mapa.js:265; tests/navegador/test_mapa.py:142 (navegador)"
+      ],
+      "created": "2026-10-15T00:04:32Z",
+      "last_seen": "2026-10-15T00:04:32Z"
+    },
+    {
+      "id": "L-005",
+      "key": "ac_gap::give every spec edge case its own test in the suite a verifier probe is not coverage",
+      "text": "Give every spec edge case its own test in the suite; a verifier probe is not coverage",
+      "signal": "ac_gap",
+      "scope": "tests",
+      "status": "candidate",
+      "features": [
+        "mapa-do-lote-rj"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md Edge Cases: drag, largest lot, tiny lot (M13) (tests)"
+      ],
+      "created": "2026-10-15T00:04:32Z",
+      "last_seen": "2026-10-15T00:04:32Z"
+    },
+    {
+      "id": "L-006",
+      "key": "spec_precision_gap::when a rollback must also remove the feature s own pointer rows or columns say so in the ac s must not wording",
+      "text": "When a rollback must also remove the feature's own pointer rows or columns, say so in the AC's must-not wording",
+      "signal": "spec_precision_gap",
+      "scope": "migracoes",
+      "status": "candidate",
+      "features": [
+        "mapa-do-lote-rj"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md MUN-09 vs rollback/0008_f113_municipio.down.sql (migracoes)"
+      ],
+      "created": "2026-10-15T00:04:32Z",
+      "last_seen": "2026-10-15T00:04:32Z"
     }
   ]
 }
