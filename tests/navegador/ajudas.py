@@ -55,3 +55,21 @@ def estado_do_candidato(pagina: Page, lote_id: str) -> dict[str, Any]:
         "(id) => __mapa.getFeatureState({ source: 'candidatos', id })", lote_id
     )
     return estado or {}
+
+
+def espiar_enquadramentos(pagina: Page) -> None:
+    """Registra a `duration` de cada `fitBounds`: prova a animação sem depender de tempo."""
+    pagina.evaluate(
+        """() => {
+            window.__duracoes = [];
+            const original = __mapa.fitBounds.bind(__mapa);
+            __mapa.fitBounds = (limites, opcoes) => {
+                window.__duracoes.push(opcoes.duration);
+                return original(limites, opcoes);
+            };
+        }"""
+    )
+
+
+def duracoes_dos_enquadramentos(pagina: Page) -> list[float]:
+    return pagina.evaluate("() => window.__duracoes")  # type: ignore[no-any-return]

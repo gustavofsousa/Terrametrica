@@ -32,6 +32,9 @@ BBOX_LOTE = (-43.105, -22.905, -43.095, -22.895)  # oeste, sul, leste, norte
 # Dois lotes sobrepostos (409): o mesmo quadrado de 0,02° sob dois ids.
 PONTO_SOBREPOSTO = (-22.85, -43.30)
 IDS_SOBREPOSTOS = ("OVL-1", "OVL-2")
+# Lote de ~1 m de lado, menor que um pixel na maioria dos zooms (edge case do enquadramento).
+PONTO_LOTE_MINUSCULO = (-22.70, -43.00)
+ID_LOTE_MINUSCULO = "TINY-1"
 # Dentro do RJ e do "Município 25" sintético, sem lote (404 com nome).
 PONTO_SEM_LOTE = (-22.95, -43.49)
 NOME_MUNICIPIO_SEM_LOTE = "Município 25"
@@ -76,6 +79,7 @@ def semear_base(url: str) -> None:
             FIXTURES / "restricao_uc" / "uc_amostra.geojson", versao, conexao, data_extracao=DATA
         )
         _semear_lotes_sobrepostos(conexao)
+        _semear_lote_minusculo(conexao)
         materializar_intersecoes(versao, conexao)
         semear_cobertura(versao, conexao)
         resultado = publicar_versao(versao, conexao)
@@ -84,6 +88,23 @@ def semear_base(url: str) -> None:
 
 def _ler_limite_sintetico(**_: object) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame({"geometry": [_RJ_SINTETICO]}, crs="EPSG:4674")
+
+
+def _semear_lote_minusculo(conexao: psycopg.Connection) -> None:
+    lat, lon = PONTO_LOTE_MINUSCULO
+    meio = 0.000005
+    anel = (
+        f"{lon - meio} {lat - meio}, {lon + meio} {lat - meio}, {lon + meio} {lat + meio}, "
+        f"{lon - meio} {lat + meio}, {lon - meio} {lat - meio}"
+    )
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO lote_rural (id, uf, municipios, codigo_sigef, "
+            "situacao_certificacao, geom_sigef, versao_base_id) VALUES "
+            "(%s, 'RJ', ARRAY['3304557'], 'SIGEF-TINY', 'certificado', "
+            "ST_GeomFromText(%s, 4674), %s)",
+            (ID_LOTE_MINUSCULO, f"MULTIPOLYGON((({anel})))", VERSAO_ID),
+        )
 
 
 def _semear_lotes_sobrepostos(conexao: psycopg.Connection) -> None:

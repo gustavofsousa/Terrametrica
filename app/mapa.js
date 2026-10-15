@@ -261,7 +261,7 @@ function marcarPonto({ lat, lon }) {
 function enquadrar(geojson) {
   mapa.fitBounds(bboxDe(geojson), {
     padding: paddingLivre(),
-    maxZoom: 18,
+    maxZoom: mapa.getMaxZoom(), // lote menor que um pixel: aproxima até o zoom máximo do estilo
     duration: reducaoDeMovimento() ? 0 : 600,
   });
 }

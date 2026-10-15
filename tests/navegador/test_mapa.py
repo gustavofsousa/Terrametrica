@@ -8,15 +8,19 @@ from tests.navegador.ajudas import (
     centrar,
     clicar_no_centro,
     consultar_ponto,
+    duracoes_dos_enquadramentos,
     esperar_mapa_parado,
+    espiar_enquadramentos,
     estado_do_candidato,
     ids_do_lote_selecionado,
     ids_dos_candidatos,
 )
 from tests.navegador.semente import (
+    ID_LOTE_MINUSCULO,
     IDS_SOBREPOSTOS,
     PONTO_FORA_DO_RJ,
     PONTO_LOTE,
+    PONTO_LOTE_MINUSCULO,
     PONTO_SEM_LOTE,
     PONTO_SOBREPOSTO,
 )
@@ -144,11 +148,38 @@ class TestClique:
     ) -> None:
         pagina.emulate_media(reduced_motion="reduce")
         abrir_mapa(pagina, base_url)
+        espiar_enquadramentos(pagina)
+
         consultar_ponto(pagina, *PONTO_LOTE, zoom=11)
 
         expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        assert duracoes_dos_enquadramentos(pagina) == [0]
 
-        assert pagina.evaluate("() => __mapa.isMoving()") is False
+    def test_mapa08_sem_preferencia_de_movimento_o_enquadramento_anima(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        espiar_enquadramentos(pagina)
+
+        consultar_ponto(pagina, *PONTO_LOTE, zoom=11)
+
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        duracoes = duracoes_dos_enquadramentos(pagina)
+        assert len(duracoes) == 1 and duracoes[0] > 0
+
+    def test_edge_lote_menor_que_um_pixel_aproxima_ate_o_zoom_maximo_do_estilo(
+        self, pagina: Page, base_url: str
+    ) -> None:
+        abrir_mapa(pagina, base_url)
+        consultar_ponto(pagina, *PONTO_LOTE_MINUSCULO, zoom=20)
+
+        expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-TINY")
+        esperar_mapa_parado(pagina)
+
+        zoom = pagina.evaluate("() => __mapa.getZoom()")
+        maximo = pagina.evaluate("() => __mapa.getMaxZoom()")
+        assert zoom == maximo
+        assert ids_do_lote_selecionado(pagina) == [ID_LOTE_MINUSCULO]
 
     def test_mapa05_clique_fora_do_rj_mostra_o_estado_fora_do_rj(
         self, pagina: Page, base_url: str
