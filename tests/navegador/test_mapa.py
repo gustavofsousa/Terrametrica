@@ -349,6 +349,7 @@ class TestSelecaoNaUrl:
         abrir_mapa(pagina, base_url)
         consultar_ponto(pagina, *PONTO_LOTE)
         expect(pagina.locator("#conteudo-painel")).to_contain_text("SIGEF-001")
+        esperar_mapa_parado(pagina)  # querySourceFeatures só vê o lote depois de renderizado
         assert ids_do_lote_selecionado(pagina) == ["SIGEF-001"]
 
         pagina.keyboard.press("Escape")

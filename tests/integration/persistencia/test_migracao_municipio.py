@@ -11,8 +11,10 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
 from testcontainers.community.postgres import PostgresContainer
 
+from terrametrica.api.app import criar_app
 from terrametrica.persistencia.migrar import DIRETORIO_MIGRACOES, aplicar_migracoes
 
 IMAGEM_POSTGIS = "postgis/postgis:16-3.4"
@@ -30,12 +32,19 @@ def _garantir_docker_disponivel() -> None:
 
 
 @pytest.fixture
-def conexao() -> Iterator[psycopg.Connection]:
+def url_banco() -> Iterator[str]:
     _garantir_docker_disponivel()
     with PostgresContainer(image=IMAGEM_POSTGIS) as postgres:
-        with psycopg.connect(postgres.get_connection_url(driver=None)) as conn:
+        url = postgres.get_connection_url(driver=None)
+        with psycopg.connect(url) as conn:
             aplicar_migracoes(conn)
-            yield conn
+        yield url
+
+
+@pytest.fixture
+def conexao(url_banco: str) -> Iterator[psycopg.Connection]:
+    with psycopg.connect(url_banco) as conn:
+        yield conn
 
 
 def _existe_tabela(conexao: psycopg.Connection, nome: str) -> bool:
@@ -150,6 +159,27 @@ def test_mun09_rollback_remove_so_a_malha_e_preserva_lotes_restricoes_e_ponteiro
             "WHERE table_name = 'proveniencia' AND column_name = 'sha256'"
         )
         assert cursor.fetchone() == (0,)
+
+
+def test_mun09_depois_do_rollback_o_dossie_de_um_lote_conhecido_continua_200(
+    url_banco: str, conexao: psycopg.Connection
+) -> None:
+    _semear_base_com_lote(conexao)
+    with conexao.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO limite_estado (uf, geom, versao_base_id) "
+            "VALUES ('RJ', ST_GeomFromText(%s, 4674), '2026-10')",
+            (QUADRADO,),
+        )
+    conexao.commit()
+    _executar_rollback(conexao)
+
+    resposta = TestClient(criar_app(url_banco, acesso_aberto=True)).get(
+        "/dossie", params={"lat": -21.995, "lon": -42.995}
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json()["lote"]["lote_id"] == "L1"
 
 
 def test_mun09_depois_do_rollback_a_migracao_aplica_de_novo(conexao: psycopg.Connection) -> None:
