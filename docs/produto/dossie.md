@@ -1,16 +1,16 @@
 # Anatomia do Dossiê
 
-O dossiê é a unidade de entrega do produto. Este documento define o que ele mostra, em que
-ordem e de onde vem cada campo. É o contrato entre produto, design e engenharia.
+O dossiê é a unidade de entrega do produto. Este documento define o que ele mostra, em que ordem e
+de onde vem cada campo. É o contrato entre produto, design e engenharia.
 
-**Regra que vale para toda linha deste documento:** nenhum campo aparece sem fonte e data de
-extração. Onde não há dado, o dossiê declara ausência de cobertura — nunca devolve vazio.
+**Regra para toda linha deste documento:** nenhum campo aparece sem fonte e data de extração. Se não
+há dado, o dossiê declara ausência de cobertura. Ele nunca devolve vazio.
 
 ---
 
 ## Ordem de leitura
 
-As seções aparecem nesta ordem, porque é a ordem em que a pergunta do usuário se forma:
+As seções seguem a ordem em que a pergunta do usuário se forma:
 *o que é isso → posso usar? → posso confiar?*
 
 1. Identificação
@@ -52,19 +52,19 @@ As seções aparecem nesta ordem, porque é a ordem em que a pergunta do usuári
 | Testada | — | Metros (quando derivável do PAL) |
 | Polígono no mapa | Destacado ao clique | Destacado ao clique |
 
-**Área calculada, não copiada.** A área exibida é recalculada a partir da geometria em projeção
-equivalente, e comparada com a área declarada na fonte. Divergência acima do limiar aparece
-como alerta, não é escondida.
+**Área calculada, não copiada.** O sistema recalcula a área exibida a partir da geometria, em
+projeção equivalente. Depois compara com a área declarada na fonte. Se a divergência passa do
+limiar, ela aparece como alerta. Ela nunca fica escondida.
 
-**Porção fora do estado.** Imóvel que ultrapassa a divisa do RJ tem as áreas calculadas apenas
-sobre a porção dentro do estado, e o dossiê declara isso.
+**Porção fora do estado.** Se o imóvel ultrapassa a divisa do RJ, o sistema calcula as áreas só sobre
+a porção dentro do estado. O dossiê declara isso.
 
 ---
 
 ## 3. Restrições e alertas — "posso usar isso"
 
-Esta é a seção que justifica o produto. Toda intersecção é expressa como **área absoluta e
-percentual do lote** — nunca como sim ou não.
+Esta seção justifica o produto. Toda intersecção aparece como **área absoluta e percentual do
+lote**, nunca como sim ou não.
 
 | Alerta | Fonte | Aplica a |
 | --- | --- | --- |
@@ -77,18 +77,18 @@ percentual do lote** — nunca como sim ou não.
 
 ### Duas regras que evitam alarme falso
 
-**Toque marginal.** Intersecção abaixo de 1% da área do lote aparece marcada como
-"toque marginal — verificar em campo". Polígonos públicos têm erro posicional real; tratar
-um encostão de 30 cm como restrição destrói a credibilidade do produto inteiro.
+**Toque marginal.** Se a intersecção fica abaixo de 1% da área do lote, ela aparece marcada como
+"toque marginal — verificar em campo". Polígonos públicos têm erro posicional real. Tratar um
+encostão de 30 cm como restrição destrói a credibilidade do produto inteiro.
 
-**Indicativo, não licenciamento.** Toda a seção carrega a declaração de que os cruzamentos são
-indicativos e não substituem levantamento técnico ou processo de licenciamento.
+**Indicativo, não licenciamento.** A seção inteira declara que os cruzamentos são indicativos. Eles
+não substituem levantamento técnico nem processo de licenciamento.
 
 ---
 
 ## 4. Divergência entre fontes — "esse limite é contestado"
 
-Aparece apenas em lote rural que existe nas duas bases.
+Esta seção aparece só em lote rural que existe nas duas bases.
 
 | Elemento | Comportamento |
 | --- | --- |
@@ -115,7 +115,7 @@ Aparece apenas em lote rural que existe nas duas bases.
 
 ## Estados que não são o caminho feliz
 
-Estes estados são parte do produto, não tratamento de erro. São eles que sustentam a confiança.
+Estes estados são parte do produto, não tratamento de erro. Eles sustentam a confiança.
 
 | Situação | O que o dossiê faz |
 | --- | --- |
@@ -129,14 +129,14 @@ Estes estados são parte do produto, não tratamento de erro. São eles que sust
 
 ## A seção que não existe nesta versão
 
-**Proprietário.** Nome, CPF/CNPJ, ônus e cadeia dominial não aparecem, e não estão em nenhuma
-tabela do produto. A seção aparece como "indisponível nesta versão" para todos os papéis de
-usuário. A razão está em [riscos.md](riscos.md) e a decisão em `.specs/STATE.md` (AD-002).
+**Proprietário.** Nome, CPF/CNPJ, ônus e cadeia dominial não aparecem. Eles não estão em nenhuma
+tabela do produto. A seção aparece como "indisponível nesta versão" para todos os papéis de usuário.
+A razão está em [riscos.md](riscos.md). A decisão está em `.specs/STATE.md` (AD-002).
 
 ---
 
 ## Página de cobertura
 
-Fora do dossiê, mas parte do mesmo contrato de honestidade: uma página pública que informa,
-**por município e por camada**, se há dado e de qual data. Cobertura irregular é fato estrutural
-do estado — declarada, vira característica; escondida, vira bug percebido.
+Fica fora do dossiê, mas segue o mesmo contrato de honestidade. É uma página pública que informa,
+**por município e por camada**, se há dado e de qual data. A cobertura irregular é um fato
+estrutural do estado. Declarada, ela vira característica. Escondida, ela vira bug percebido.

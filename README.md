@@ -7,15 +7,15 @@ com fonte e data em cada número. Estado do Rio de Janeiro.
 
 ## O problema em uma frase
 
-O dado sobre a terra é público e está espalhado por oito portais que não se falam; o cruzamento
-— que é onde mora o valor — ninguém entrega pronto.
+O dado sobre a terra é público, mas está espalhado por oito portais que não se falam. O valor está
+no cruzamento, e ninguém entrega o cruzamento pronto.
 
 ## Estado atual
 
-**v0.3 (MVP visível) em andamento.** O produto roda ponta a ponta: o usuário clica no mapa do RJ e
-recebe o dossiê do lote, com o contorno do lote desenhado no mapa. Ver [arquitetura](docs/arquitetura.md)
-e [domínio](docs/dominio.md) para os diagramas, e [`.specs/STATE.md`](.specs/STATE.md) para o log de
-decisões e o handoff.
+**v0.3 (MVP visível) em andamento.** O produto roda ponta a ponta. O usuário clica no mapa do RJ e
+recebe o dossiê do lote, com o contorno do lote desenhado no mapa. Os diagramas estão em
+[arquitetura](docs/arquitetura.md) e [domínio](docs/dominio.md). O log de decisões e o handoff estão em
+[`.specs/STATE.md`](.specs/STATE.md).
 
 | Peça | Estado |
 | --- | --- |
@@ -31,16 +31,19 @@ decisões e o handoff.
 Testes: Python (`pytest tests/unit tests/integration`), JS (`node --test app/tests/*.test.mjs`) e
 navegador (`pytest tests/navegador -m navegador`, ver [DEV-SETUP](docs/DEV-SETUP.md)).
 
-> ✅ **As fontes foram confirmadas por acesso real.** SIGEF (14.664 feições), CAR (69.105
-> feições) e SIGeo Niterói (82.199 feições) foram baixados e medidos numa máquina local — o
-> bloqueio de HTTPS para `.gov.br` era do ambiente de desenvolvimento remoto, não da rede em
-> geral. Sobreposição SIGEF × CAR medida de verdade: só 35,1% dos imóveis CAR sobrepõem algum
-> SIGEF certificado, confirmando empiricamente a AD-003. Detalhe em
-> [`fontes-de-dados-rj.md`](docs/research/fontes-de-dados-rj.md) e no handoff de `.specs/STATE.md`.
+> ✅ **Um acesso real confirmou as fontes.** Baixamos e medimos numa máquina local o SIGEF (14.664
+> feições), o CAR (69.105 feições) e o SIGeo Niterói (82.199 feições). O bloqueio de HTTPS para
+> `.gov.br` vinha do ambiente de desenvolvimento remoto, não da rede em geral. A sobreposição SIGEF
+> × CAR medida: só 35,1% dos imóveis CAR sobrepõem algum SIGEF certificado. Isso confirma a AD-003
+> na prática. O detalhe está em [`fontes-de-dados-rj.md`](docs/research/fontes-de-dados-rj.md) e no
+> handoff de `.specs/STATE.md`.
 
-**O que ainda não existe:** as camadas de inundação, deslizamento e corpo d'água (fontes do INEA
-ainda sem verificação), a exportação em PDF, a divergência SIGEF × CAR e a persistência real do gate
-jurídico. Ver o [roadmap](docs/produto/roadmap.md).
+**O que ainda não existe** (detalhe no [roadmap](docs/produto/roadmap.md)):
+
+- As camadas de inundação, deslizamento e corpo d'água. As fontes do INEA ainda não têm verificação.
+- A exportação em PDF.
+- A divergência SIGEF × CAR.
+- A persistência real do gate jurídico.
 
 ## Escopo do MVP
 
@@ -53,13 +56,13 @@ jurídico. Ver o [roadmap](docs/produto/roadmap.md).
 
 ## Três decisões que definem o produto
 
-1. **SIGEF é o limite certificado; CAR é declaração do proprietário.** Onde discordam, mostramos
-   os dois com a diferença quantificada. Nunca reconciliamos em silêncio.
-2. **Nenhum dado pessoal de proprietário é ingerido ou armazenado.** A publicidade registral
-   sustenta consulta por certidão, não agregação de base. O gate de autorização nasce vazio para
-   ligar a camada depois, se houver caminho jurídico defensável.
-3. **Todo campo carrega fonte e data.** Onde não há dado, o sistema declara ausência de cobertura
-   em vez de devolver vazio ambíguo.
+1. **SIGEF é o limite certificado. CAR é a declaração do proprietário.** Se os dois discordam,
+   mostramos os dois com a diferença quantificada. Nunca reconciliamos em silêncio.
+2. **O produto nunca ingere nem armazena dado pessoal de proprietário.** A publicidade registral
+   sustenta a consulta por certidão, não a agregação de base. O gate de autorização nasce vazio. Se
+   houver um caminho jurídico defensável, ele liga a camada depois.
+3. **Todo campo carrega fonte e data.** Se não há dado, o sistema declara ausência de cobertura. Ele
+   nunca devolve um vazio ambíguo.
 
 ## Documentação
 
@@ -93,9 +96,9 @@ jurídico. Ver o [roadmap](docs/produto/roadmap.md).
 
 ## Processo
 
-O projeto usa [tlc-spec-driven](https://github.com/tech-leads-club/agent-skills) — quatro fases
-(Specify, Design, Tasks, Execute) com gates determinísticos em Python. Nenhuma fase fecha sem o
-gate passar. Instalação em [DEV-SETUP.md](docs/DEV-SETUP.md).
+O projeto usa [tlc-spec-driven](https://github.com/tech-leads-club/agent-skills): quatro fases
+(Specify, Design, Tasks, Execute) com gates determinísticos em Python. Uma fase só fecha quando o
+gate passa. A instalação está em [DEV-SETUP.md](docs/DEV-SETUP.md).
 
 ```bash
 python3 .claude/skills/tlc-spec-driven/scripts/validate_spec.py .specs/features/dossie-lote-rj/spec.md
@@ -104,7 +107,9 @@ python3 .claude/skills/tlc-spec-driven/scripts/validate_spec.py .specs/features/
 ## Próximo passo
 
 **Recarregar a base com a malha municipal e restaurá-la no Railway.** A base atual não tem a camada
-`municipio`. Com ela, o clique sem lote devolve o nome do município e a página de cobertura lista os
-92 municípios. Rode `python -m terrametrica.ingestao.carregar_base` com uma versão nova e siga o
-[RESTORE-E-GO-LIVE](docs/RESTORE-E-GO-LIVE.md). Depois, abra as camadas do INEA (F1.6 e F1.7) quando
-a fonte for verificada.
+`municipio`. Com ela, o clique sem lote devolve o nome do município, e a página de cobertura lista os
+92 municípios.
+
+1. Rode `python -m terrametrica.ingestao.carregar_base` com uma versão nova.
+2. Siga o [RESTORE-E-GO-LIVE](docs/RESTORE-E-GO-LIVE.md).
+3. Quando a fonte do INEA tiver verificação, abra as camadas F1.6 e F1.7.

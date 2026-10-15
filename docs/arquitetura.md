@@ -1,12 +1,15 @@
 # Arquitetura — estado atual
 
-Snapshot de engenharia. Descreve o que existe em `src/terrametrica/` hoje (Fatia 2 fechada,
-AD-007 handoff em `.specs/STATE.md`), não o que está planejado — onde algo é planejado e ainda
-não implementado, o diagrama diz isso explicitamente.
+Snapshot de engenharia. Ele descreve o que existia em `src/terrametrica/` no fechamento da Fatia 2
+(handoff AD-007 em `.specs/STATE.md`), não o que está planejado. Se algo é planejado e ainda não
+existe, o diagrama diz isso de forma explícita.
 
-**Decisão que molda tudo abaixo (AD-007):** monolito Python modular, organizado por domínio, com
-a **ingestão como entrypoint separado no mesmo repositório**. A ingestão nunca fica no caminho de
-uma requisição — ela materializa um *read-model* versionado; o dossiê só lê o que já foi calculado.
+NOTE: Este snapshot é da Fatia 2. O estado atual de cada peça está na tabela do
+[README](../README.md#estado-atual).
+
+**Decisão que molda tudo abaixo (AD-007):** monolito Python modular, organizado por domínio, com a
+**ingestão como entrypoint separado no mesmo repositório**. A ingestão nunca fica no caminho de uma
+requisição. Ela materializa um *read-model* versionado. O dossiê só lê o que já foi calculado.
 
 ---
 
@@ -97,27 +100,28 @@ flowchart TB
 
 - **Setas cheias** = dependência de execução (import ou I/O real).
 - **Setas tracejadas** = dependência de tipo (`dominio/modelos.py`, sem I/O) ou relação declarada
-  mas ainda não concretizada (HTTP planejado, CAR/SIGeo fora desta fatia).
-- `dossie/portas.py` e `autorizacao/portas.py` são `Protocol` — a montagem e o serviço de
-  autorização nunca importam `psycopg` ou `geopandas` diretamente. Isso é o que permite trocar o
-  adapter fake (testes) pelo PostGIS real (produção) sem tocar a regra de negócio — provado por
-  `tests/integration/test_dossie_e2e.py` (T14).
-- **Não existe camada HTTP ainda.** `montar_dossie` e o serviço de autorização são chamados hoje
-  só por testes. FastAPI está decidido (AD-007) mas não implementado — não há `main.py`, rota ou
-  processo de servidor no repositório.
+  que ainda não existe (HTTP planejado, CAR/SIGeo fora desta fatia).
+- `dossie/portas.py` e `autorizacao/portas.py` são `Protocol`. A montagem e o serviço de
+  autorização nunca importam `psycopg` ou `geopandas` diretamente. Por isso é possível trocar o
+  adapter fake (testes) pelo PostGIS real (produção) sem tocar a regra de negócio.
+  `tests/integration/test_dossie_e2e.py` (T14) prova isso.
+- **Não existe camada HTTP ainda.** Hoje só os testes chamam `montar_dossie` e o serviço de
+  autorização. O FastAPI está decidido (AD-007), mas não existe: não há `main.py`, rota nem processo
+  de servidor no repositório.
 - **`autorizacao/` não tem adapter real.** Só o `Protocol` (`portas.py`) e um fake em memória
-  (`tests/fakes/autorizacao_fake.py`). Não há tabela `conta` nem `entrada_auditoria` no schema
-  Postgres — o gate jurídico está arquitetado (AD-002) mas a persistência dele é trabalho futuro.
-- **CAR e SIGeo (camada urbana) não são ingeridos.** Só SIGEF (rural) tem pipeline real. `AreaM2`,
-  `LoteUrbano` e a lógica de `LoteHit` já existem no domínio — a montagem já sabe lidar com lote
-  urbano — mas não há linha em `ingestao/` nem tabela para ele ainda.
+  (`tests/fakes/autorizacao_fake.py`). O schema Postgres não tem tabela `conta` nem
+  `entrada_auditoria`. O gate jurídico está arquitetado (AD-002), mas a persistência dele é
+  trabalho futuro.
+- **O pipeline não ingere CAR nem SIGeo (camada urbana).** Só o SIGEF (rural) tem pipeline real.
+  `AreaM2`, `LoteUrbano` e a lógica de `LoteHit` já existem no domínio, e a montagem já trata lote
+  urbano. Mas `ingestao/` não tem nenhuma linha nem tabela para ele.
 
 ---
 
 ## Pipeline de ingestão e publicação
 
-Os três passos rodam hoje via chamada direta de função (não há CLI nem agendador) — normalmente
-disparados manualmente ou por um teste de integração/e2e.
+Hoje os três passos rodam por chamada direta de função. Não há CLI nem agendador. Uma pessoa ou um
+teste de integração/e2e dispara os passos.
 
 ```mermaid
 sequenceDiagram
@@ -148,16 +152,16 @@ sequenceDiagram
     end
 ```
 
-Pontos que não são óbvios lendo o código isoladamente:
+Pontos que a leitura isolada do código não mostra:
 
-- `ingerir_limite_rj` e `ingerir_sigef` **nunca commitam** — quem orquestra decide o limite da
-  transação. Isso é o que permite `publicar_versao` tratar limite + lote como uma unidade atômica.
-- A guarda (`LIMIAR_GUARDA = 0.90`) é avaliada **por camada**, mas a decisão de publicar é única
-  para a versão inteira: se qualquer camada reprovar, nenhuma é publicada — evita misturar um
+- `ingerir_limite_rj` e `ingerir_sigef` **nunca fazem commit**. Quem orquestra decide o limite da
+  transação. Por isso `publicar_versao` trata limite + lote como uma unidade atômica.
+- A guarda (`LIMIAR_GUARDA = 0.90`) avalia **cada camada**, mas a decisão de publicar vale para a
+  versão inteira. Se uma camada reprovar, nenhuma é publicada. Isso evita misturar um
   `limite_estado` novo com um `lote_rural` antigo.
-- SIGEF não tem download programático (exige login GOV.BR humano) — `ingerir_sigef` lê de um
-  shapefile já exportado, não da rede. CAR e SIGeo, quando entrarem (Fatia 3), seguem o mesmo
-  padrão de porta de entrada por arquivo ou API, plugando em `publicar_versao` sem mudá-lo.
+- O SIGEF não tem download programático: ele exige login GOV.BR humano. Por isso `ingerir_sigef` lê
+  um shapefile já exportado, não a rede. Quando CAR e SIGeo entrarem (Fatia 3), eles seguem o mesmo
+  padrão de entrada por arquivo ou API. Eles se ligam a `publicar_versao` sem mudá-lo.
 
 ---
 
@@ -181,10 +185,10 @@ flowchart TD
     Cobertura --> Dossie["Dossie completo<br/>lote, itens_restricao, proveniencia por campo, ressalva fixa"]
 ```
 
-Esta é literalmente a árvore documentada no docstring de `dossie/montagem.py` — quatro ramos
-(`ForaDoRJ`, `SemLote`, `Sobreposicao`, `Dossie`), guard clauses, um caminho óbvio, sem
-`else` aninhado. `montar_dossie` não faz I/O: recebe `repo` e `limite` como `Protocol`
-(injeção de dependência via `dossie/portas.py`).
+Esta é a mesma árvore do docstring de `dossie/montagem.py`: quatro ramos (`ForaDoRJ`, `SemLote`,
+`Sobreposicao`, `Dossie`), guard clauses, um caminho óbvio, sem `else` aninhado. `montar_dossie` não
+faz I/O. Ele recebe `repo` e `limite` como `Protocol` (injeção de dependência via
+`dossie/portas.py`).
 
 ---
 
@@ -208,11 +212,11 @@ flowchart TD
     Gate[["CAMADA_REGISTRAL_LIGADA = False<br/>constante, nao config externa"]] -.-> SecaoProp["estado_secao_proprietario<br/>sempre Indisponivel para qualquer papel"]
 ```
 
-Regra de negócio central (AD-002, GATE-05): **toda decisão de acesso produz exatamente uma
-entrada de auditoria antes de devolver o resultado** — permitida ou negada. O log é uma obrigação
-síncrona: se `log.registrar` falhar, a exceção propaga e nenhum `ResultadoAcesso` é devolvido sem
-o registro correspondente. `CAMADA_REGISTRAL_LIGADA` é hoje uma constante Python (`False`), não
-uma config externa — nenhuma fatia do produto criou mecanismo de config ainda.
+Regra de negócio central (AD-002, GATE-05): **cada decisão de acesso produz exatamente uma entrada
+de auditoria antes de devolver o resultado**, permitida ou negada. O log é uma obrigação síncrona.
+Se `log.registrar` falhar, a exceção propaga. Nenhum `ResultadoAcesso` sai sem o registro
+correspondente. Hoje `CAMADA_REGISTRAL_LIGADA` é uma constante Python (`False`), não uma config
+externa. Nenhuma fatia do produto criou um mecanismo de config ainda.
 
 ---
 
@@ -246,9 +250,9 @@ flowchart LR
     Docker -.-> Pipeline
 ```
 
-O e2e é a prova de que os *ports* isolam de verdade fake de real: `montar_dossie` não muda uma
-linha entre `tests/unit` (fakes em memória) e `test_dossie_e2e.py` (adapters PostGIS reais) — só
-o que é injetado muda.
+O e2e prova que os *ports* isolam de verdade o fake do real. `montar_dossie` não muda uma linha
+entre `tests/unit` (fakes em memória) e `test_dossie_e2e.py` (adapters PostGIS reais). Só muda o que
+é injetado.
 
 ---
 
@@ -264,4 +268,4 @@ o que é injetado muda.
 | Adapter real de `autorizacao/portas.py` | Só fake em memória; sem tabela `conta`/`entrada_auditoria` no schema |
 | CLI ou agendador de ingestão | Chamada de função direta, hoje só via teste |
 
-Ver `.specs/STATE.md` para o log de decisões completo e o handoff atualizado.
+O log de decisões completo e o handoff atual estão em `.specs/STATE.md`.

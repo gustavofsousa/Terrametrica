@@ -2,9 +2,9 @@
 
 ## Skill de especificação (tlc-spec-driven)
 
-O projeto usa a skill `tlc-spec-driven` (Tech Lead's Club, CC-BY-4.0) como processo de
-especificação e implementação. Ela não é versionada aqui — é código de terceiros e ocupa
-236 KB. Instale localmente:
+O projeto usa a skill `tlc-spec-driven` (Tech Lead's Club, CC-BY-4.0) como processo de especificação
+e implementação. O repo não versiona a skill: é código de terceiros e ocupa 236 KB. Instale-a
+localmente:
 
 ```bash
 git clone --depth 1 https://github.com/tech-leads-club/agent-skills.git /tmp/agent-skills
@@ -15,7 +15,7 @@ cp -r "/tmp/agent-skills/packages/skills-catalog/skills/(development)/tlc-spec-d
 
 ### Gates determinísticos
 
-Rode antes de fechar cada fase. Saída diferente de zero significa parar e corrigir.
+Rode estes gates antes de fechar cada fase. Se a saída for diferente de zero, pare e corrija.
 
 ```bash
 # Antes de confirmar um spec
@@ -35,7 +35,8 @@ Requer Python 3 (sem dependências externas).
 
 ## Ambiente Python
 
-Requer Python 3.12. Crie o `.venv` e instale o projeto em modo editável com os extras de dev:
+O projeto requer Python 3.12. Crie o `.venv` e instale o projeto em modo editável com os extras de
+dev:
 
 ```bash
 python3.12 -m venv .venv
@@ -44,27 +45,27 @@ python3.12 -m venv .venv
 
 ## Banco de dados (Docker + PostGIS)
 
-A persistência (Fatia 2 em diante) requer PostgreSQL com PostGIS. Pré-requisito: **Docker**
-instalado e rodando (`docker info` deve retornar sem erro).
+A persistência (Fatia 2 em diante) requer PostgreSQL com PostGIS. Pré-requisito: o **Docker**
+instalado e rodando (`docker info` retorna sem erro).
 
-Para dev manual (subir um Postgres persistente local na porta 5433, fora dos testes):
+Para dev manual, suba um Postgres persistente local na porta 5433, fora dos testes:
 
 ```bash
 docker compose up -d
 ```
 
-Isso sobe `postgis/postgis:16-3.4` com usuário/senha/banco `terrametrica`, acessível em
+O comando sobe `postgis/postgis:16-3.4` com usuário/senha/banco `terrametrica`, em
 `postgresql://terrametrica:terrametrica@localhost:5433/terrametrica`.
 
-Os testes de integração (`tests/integration/`) **não** usam o `docker-compose.yml` acima — eles
-sobem um container PostGIS efêmero por módulo de teste via `testcontainers`, que gerencia sua
-própria porta e aplica as migrações automaticamente. O `docker-compose.yml` só serve para
-inspecionar dado manualmente (`psql`, DBeaver, QGIS) fora do ciclo de teste.
+Os testes de integração (`tests/integration/`) **não** usam o `docker-compose.yml` acima. O
+`testcontainers` sobe um container PostGIS efêmero por módulo de teste. Ele gerencia a própria porta e
+aplica as migrações automaticamente. O `docker-compose.yml` serve só para inspecionar dado à mão
+(`psql`, DBeaver, QGIS) fora do ciclo de teste.
 
 ### Aplicar as migrações manualmente no banco do `docker-compose.yml`
 
-Não há CLI para isso ainda — `aplicar_migracoes` (`persistencia/migrar.py`) hoje só é chamado por
-testes. Para rodar contra o Postgres do `docker-compose.yml` e inspecionar dado manualmente:
+Ainda não há CLI para isso. Hoje só os testes chamam `aplicar_migracoes` (`persistencia/migrar.py`).
+Para rodar contra o Postgres do `docker-compose.yml` e inspecionar dado à mão:
 
 ```bash
 export TERRAMETRICA_DB_URL="postgresql://terrametrica:terrametrica@localhost:5433/terrametrica"
@@ -79,12 +80,10 @@ conexao.commit()
 
 ## Rodando e testando localmente
 
-O projeto **não expõe servidor HTTP ainda** (AD-007 decide FastAPI, mas não há `main.py`, rota
-nem processo de servidor no repositório — ver `docs/arquitetura.md`). Hoje "rodar" o produto
-significa rodar a suíte de testes, que exercita `montar_dossie` e o pipeline de ingestão
-diretamente. Não há também CLI para disparar a ingestão manualmente fora de teste — só chamada
-de função Python (ver snippet acima e `tests/integration/test_dossie_e2e.py` para o padrão
-completo: `ingerir_limite_rj` → `ingerir_sigef` → `publicar_versao` → `montar_dossie`).
+A suíte de testes exercita `montar_dossie` e o pipeline de ingestão diretamente. A ingestão roda por
+chamada de função Python. O padrão completo está no snippet acima e em
+`tests/integration/test_dossie_e2e.py`: `ingerir_limite_rj` → `ingerir_sigef` → `publicar_versao` →
+`montar_dossie`. O README e `python -m terrametrica.ingestao.carregar_base` cobrem a carga da base.
 
 ```bash
 # só testes unitários — sem I/O, sem Docker, roda em segundos
@@ -95,8 +94,8 @@ docker info
 pytest tests/unit tests/integration -q
 ```
 
-Se o Docker não estiver rodando, os testes de integração falham com uma mensagem clara em vez de
-um erro genérico de conexão.
+Se o Docker não estiver rodando, os testes de integração falham com uma mensagem clara, não com um
+erro genérico de conexão.
 
 ### Testes de navegador (AD-017)
 
@@ -122,7 +121,7 @@ estilo do OpenFreeMap são interceptados.
 
 ### Lint e type-check
 
-Rode antes de qualquer commit (mesmo padrão dos gates do `tlc-spec-driven`, mas para o código):
+Rode antes de cada commit. É o mesmo padrão dos gates do `tlc-spec-driven`, mas para o código:
 
 ```bash
 .venv/bin/ruff check src tests
@@ -131,7 +130,7 @@ Rode antes de qualquer commit (mesmo padrão dos gates do `tlc-spec-driven`, mas
 
 ## Restrição conhecida do ambiente remoto
 
-O ambiente de execução remota deste projeto bloqueia HTTPS para hosts `.gov.br` por política
-de egress (403 no CONNECT) e não tem credencial de escrita no git — a publicação acontece pela
-API do GitHub. A ingestão de dados públicos precisa rodar em ambiente com egress liberado.
-Ver a checklist em `docs/research/fontes-de-dados-rj.md`.
+O ambiente de execução remota deste projeto bloqueia HTTPS para hosts `.gov.br` por política de
+egress (403 no CONNECT). Ele também não tem credencial de escrita no git: a publicação passa pela API
+do GitHub. Por isso a ingestão de dados públicos deve rodar num ambiente com egress liberado. A
+checklist está em `docs/research/fontes-de-dados-rj.md`.

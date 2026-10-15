@@ -7,9 +7,9 @@
 > "Perspective Sweep → Domain"): o vocabulário do [glossario.md](glossario.md) é o dos módulos e tabelas.
 > Este arquivo é a fonte que o [roadmap.md](roadmap.md) referencia na coluna **Domínio**.
 
-Arquitetura hexagonal em todos os domínios com I/O: `regras.py` (funções puras) + `portas.py`
-(contratos `Protocol`) + `servico.py` (orquestra regras+ports) + `adaptadores.py` (implementação
-real). O teste injeta *fakes* nos ports; o núcleo nunca importa I/O.
+Todo domínio com I/O usa arquitetura hexagonal: `regras.py` (funções puras) + `portas.py`
+(contratos `Protocol`) + `servico.py` (orquestra regras e ports) + `adaptadores.py` (implementação
+real). O teste injeta *fakes* nos ports. O núcleo nunca importa I/O.
 
 ## Tiers
 
@@ -44,6 +44,6 @@ Classificação DDD-lite (ver skill `domain-first-structure`): **Core** carrega 
 
 ## Como isto se relaciona com o roadmap
 
-O [roadmap.md](roadmap.md) tagueia cada **feature** com o domínio onde ela mora. Uma feature nova de
+O [roadmap.md](roadmap.md) marca cada **feature** com o domínio onde ela mora. Uma feature nova de
 restrição (CAR, UC, INEA, urbana) é sempre `ingestao` (materializa) + `geometria` (regra) + `dossie`
-(exibe) — não um domínio "restricoes" isolado. Painel, exportação e deploy são `app`/`api`.
+(exibe). Ela nunca é um domínio "restricoes" isolado. Painel, exportação e deploy são `app`/`api`.
